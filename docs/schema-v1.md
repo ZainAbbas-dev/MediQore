@@ -17,6 +17,7 @@ Phase 0 exit gate: **"Schema v1 and OpenAPI v1 reviewed by both members."** Revi
 - **`server_seq` assignment:** a trigger (`assign_server_seq`) sets it from one shared sequence on every insert and every update, together with `synced_at`. A value sent by a device is ignored.
   - The pull query is `WHERE area_id = $1 AND server_seq > $since ORDER BY server_seq`. It never uses device time (LI-7).
   - Every edit gets a new `server_seq`, so other devices and the portal pick it up on their next pull.
+  - The trigger takes a transaction-level advisory lock, so concurrent writers are numbered in commit order (added in P0-6). Without the lock, a row that commits late could be skipped by a pull that has already moved past its number.
 - **Soft deletes only:** a trigger (`prevent_hard_delete`) refuses `DELETE`; set `deleted_at` instead.
 - **Audit log:** `audit_log` is append-only; a trigger refuses `UPDATE` and `DELETE`.
 - **Server-only tables** (geography, users and tokens, audit log, conflicts, report jobs, EPI config) are never synced as rows.

@@ -7,12 +7,14 @@
     "migrate:up": "node-pg-migrate up",
     "migrate:down": "node-pg-migrate down",
     "migrate:create": "node-pg-migrate create --migration-file-language sql",
-    "test": "node --test"
+    "test": "node --test",
+    "seed:demo": "node seeds/demo.js"
   },
   "engines": {
     "node": ">=20.19"
   },
   "devDependencies": {
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "node-pg-migrate": "^9.0.0",
     "pg": "^8.23.1"

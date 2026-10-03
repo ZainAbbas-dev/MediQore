@@ -15,28 +15,24 @@ permissions:
   contents: read
 
 jobs:
-  node:
-    name: ${{ matrix.part }} (Node.js 20)
+  web:
+    name: web (Node.js 20)
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        part: [api, web]
     defaults:
       run:
-        working-directory: ${{ matrix.part }}
+        working-directory: web
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check for ${{ matrix.part }}/package.json
+      - name: Check for web/package.json
         id: manifest
         working-directory: .
         run: |
-          if [ -f "${{ matrix.part }}/package.json" ]; then
+          if [ -f web/package.json ]; then
             echo "found=true" >> "$GITHUB_OUTPUT"
           else
             echo "found=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::${{ matrix.part }}/package.json not found; skipping lint and tests until the part is created."
+            echo "::notice::web/package.json not found; skipping lint and tests until the part is created."
           fi
 
       - uses: actions/setup-node@v4
@@ -48,6 +44,74 @@ jobs:
         if: steps.manifest.outputs.found == 'true'
         run: |
           if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+      - name: Lint
+        if: steps.manifest.outputs.found == 'true'
+        run: npm run lint --if-present
+
+      - name: Test
+        if: steps.manifest.outputs.found == 'true'
+        run: npm run test --if-present
+
+      - name: Build
+        if: steps.manifest.outputs.found == 'true'
+        run: npm run build --if-present
+
+  api:
+    name: api (Node.js 20 + PostgreSQL 15)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          # Throwaway database that only exists for this CI job.
+          POSTGRES_USER: mediqore
+          POSTGRES_PASSWORD: ci-only
+          POSTGRES_DB: mediqore_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mediqore"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # The API tests run against TEST_DATABASE_URL (name must end in _test).
+      TEST_DATABASE_URL: postgres://mediqore:ci-only@localhost:5432/mediqore_test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for api/package.json
+        id: manifest
+        working-directory: .
+        run: |
+          if [ -f api/package.json ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::api/package.json not found; skipping lint and tests until the part is created."
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.manifest.outputs.found == 'true'
+        with:
+          node-version: 20
+
+      - name: Apply the database migrations
+        if: steps.manifest.outputs.found == 'true'
+        working-directory: db
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+        run: |
+          npm ci
+          npm run migrate:up
+
+      - name: Install dependencies
+        if: steps.manifest.outputs.found == 'true'
+        run: npm ci
 
       - name: Lint
         if: steps.manifest.outputs.found == 'true'

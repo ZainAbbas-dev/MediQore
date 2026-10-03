@@ -149,6 +149,24 @@ describe('schema v1', () => {
     });
   });
 
+  test('writes to synced tables are serialised so server_seq follows commit order', async () => {
+    const tryLock = `SELECT pg_try_advisory_xact_lock(hashtext('mediqore.sync_server_seq')) AS locked`;
+    const other = new Client({ connectionString: process.env.DATABASE_URL });
+    await other.connect();
+    try {
+      await inRollback(async () => {
+        const ids = await insertArea();
+        await insertHousehold(ids); // holds the sync lock until this transaction ends
+        const { rows: [busy] } = await other.query(tryLock);
+        assert.equal(busy.locked, false, 'a second writer must wait');
+      });
+      const { rows: [free] } = await other.query(tryLock);
+      assert.equal(free.locked, true, 'the lock is released at rollback or commit');
+    } finally {
+      await other.end();
+    }
+  });
+
   test('the device-generated UUID is kept as the primary key', async () => {
     await inRollback(async () => {
       const ids = await insertArea();

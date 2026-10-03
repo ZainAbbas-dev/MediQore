@@ -1,16 +1,18 @@
 openapi: 3.1.0
 info:
   title: MediQore REST API
-  version: 0.1.0
+  version: 0.2.0
   description: |
-    REST API for the MediQore LHW app and the supervisor/admin portal (roadmap P0-3, M1 FE-2).
+    REST API for the MediQore LHW app and the supervisor/admin portal (roadmap P0-3, P0-6; M1 FE-2, M3 FE-2).
 
     Conventions (see CLAUDE.md):
     - Every route is under `/api/v1` and exchanges JSON.
     - Every request body is validated with Joi before any database call.
     - Errors always use the `Error` shape below.
-    - Authentication is a JWT access token plus a refresh token (M1 FE-2, Phase 1). Every route
-      requires it by default; public routes such as /health set `security: []`.
+    - Authentication is a JWT access token (M1 FE-2). Every route requires it by default; public
+      routes such as /health and /auth/login set `security: []`. Refresh tokens, OTP and login rate
+      limiting come in Phase 1.
+    - Records are scoped by area: an LHW sees only her area, a supervisor only their assigned areas.
 
     Document every new route here in the same pull request that adds it.
 servers:
@@ -22,6 +24,12 @@ security:
 tags:
   - name: System
     description: Service health
+  - name: Auth
+    description: Sign-in (M1 FE-2)
+  - name: Sync
+    description: Offline sync between the LHW app and the server (M3 FE-2)
+  - name: Households
+    description: Households for the supervisor portal (M2 FE-3, M10 FE-1)
 paths:
   /health:
     get:
@@ -38,6 +46,163 @@ paths:
                 $ref: '#/components/schemas/Health'
         default:
           $ref: '#/components/responses/Error'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Sign in with username and password
+      description: Returns a short-lived access token. Every attempt, successful or not, writes an audit row.
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  maxLength: 100
+                password:
+                  type: string
+                  maxLength: 200
+      responses:
+        '200':
+          description: Signed in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResult'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          description: Wrong username or password, or the account is deactivated (INVALID_CREDENTIALS).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sync/push:
+    post:
+      tags: [Sync]
+      summary: Push a batch of outbox records from an LHW device
+      description: |
+        LHW only. Applies up to 100 records in one transaction. The server sets area_id (the LHW's area),
+        created_by, server_seq and synced_at. Resending an identical record is harmless (status
+        `unchanged`). A record that belongs to another area is not changed (status `rejected`).
+        Every create, edit and delete writes an audit row. The device is registered on first use.
+      operationId: syncPush
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncPushRequest'
+      responses:
+        '200':
+          description: One result per record, in the order sent.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SyncPushResult'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          description: Not an LHW, no assigned area (NO_AREA), or the device belongs to another account (DEVICE_NOT_ALLOWED).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sync/pull:
+    get:
+      tags: [Sync]
+      summary: Pull changes in the LHW's area since a sequence number
+      description: |
+        LHW only. Returns records with server_seq greater than `since`, oldest first, read from one
+        consistent snapshot. Store `nextSince` and send it as `since` next time; repeat while
+        `hasMore` is true. Device clocks are never used for ordering (LI-7).
+      operationId: syncPull
+      parameters:
+        - name: since
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+      responses:
+        '200':
+          description: Changed records.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [records, nextSince, hasMore]
+                properties:
+                  records:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SyncRecord'
+                  nextSince:
+                    type: integer
+                  hasMore:
+                    type: boolean
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+
+  /households:
+    get:
+      tags: [Households]
+      summary: Households visible to a supervisor or admin
+      description: A supervisor sees only their assigned areas; an admin sees all. Newest first; deleted households are left out.
+      operationId: listHouseholds
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 200
+      responses:
+        '200':
+          description: Households.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [households]
+                properties:
+                  households:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Household'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -68,6 +233,161 @@ components:
         uptimeSeconds:
           type: integer
           minimum: 0
+
+    LoginResult:
+      type: object
+      required: [accessToken, tokenType, expiresIn, user]
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string
+          const: Bearer
+        expiresIn:
+          type: string
+          example: 15m
+        user:
+          type: object
+          required: [id, role, fullName]
+          properties:
+            id:
+              type: string
+              format: uuid
+            role:
+              type: string
+              enum: [lhw, supervisor, admin]
+            fullName:
+              type: string
+
+    HouseholdData:
+      type: object
+      description: Fields of a household (M2 FE-3). Missing or empty fields are stored as null.
+      properties:
+        householdNumber:
+          type: [string, 'null']
+          maxLength: 50
+        address:
+          type: [string, 'null']
+          maxLength: 500
+        village:
+          type: [string, 'null']
+          maxLength: 200
+        latitude:
+          type: [number, 'null']
+          minimum: -90
+          maximum: 90
+          description: Rounded to 6 decimal places. Give latitude and longitude together.
+        longitude:
+          type: [number, 'null']
+          minimum: -180
+          maximum: 180
+
+    SyncPushRequest:
+      type: object
+      required: [deviceId, records]
+      properties:
+        deviceId:
+          type: string
+          format: uuid
+          description: UUID v4 generated once per app installation.
+        records:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: object
+            required: [table, id, createdOnDevice, data]
+            properties:
+              table:
+                type: string
+                enum: [households]
+                description: Tables are added as their modules are built.
+              id:
+                type: string
+                format: uuid
+                description: UUID v4 generated on the device.
+              createdOnDevice:
+                type: string
+                format: date-time
+                description: Device clock at creation; informational only.
+              deleted:
+                type: boolean
+                default: false
+              data:
+                $ref: '#/components/schemas/HouseholdData'
+
+    SyncPushResult:
+      type: object
+      required: [table, id, status]
+      properties:
+        table:
+          type: string
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [created, updated, unchanged, rejected]
+        serverSeq:
+          type: integer
+          description: Absent when rejected.
+        reason:
+          type: string
+          enum: [OUT_OF_AREA]
+
+    SyncRecord:
+      type: object
+      required: [table, id, serverSeq, deleted, data]
+      properties:
+        table:
+          type: string
+        id:
+          type: string
+          format: uuid
+        serverSeq:
+          type: integer
+        createdOnDevice:
+          type: [string, 'null']
+          format: date-time
+        syncedAt:
+          type: string
+          format: date-time
+        deleted:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/HouseholdData'
+
+    Household:
+      type: object
+      required: [id, areaId, areaName, serverSeq, syncedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        householdNumber:
+          type: [string, 'null']
+        village:
+          type: [string, 'null']
+        address:
+          type: [string, 'null']
+        latitude:
+          type: [number, 'null']
+        longitude:
+          type: [number, 'null']
+        areaId:
+          type: string
+          format: uuid
+        areaName:
+          type: string
+        serverSeq:
+          type: integer
+        syncedAt:
+          type: string
+          format: date-time
+        createdOnDevice:
+          type: [string, 'null']
+          format: date-time
+
     Error:
       type: object
       required: [error]
@@ -79,7 +399,17 @@ components:
             code:
               type: string
               description: Stable machine-readable code.
-              enum: [VALIDATION_ERROR, INVALID_JSON, PAYLOAD_TOO_LARGE, NOT_FOUND, INTERNAL_ERROR]
+              enum:
+                - VALIDATION_ERROR
+                - INVALID_JSON
+                - PAYLOAD_TOO_LARGE
+                - NOT_FOUND
+                - UNAUTHORIZED
+                - INVALID_CREDENTIALS
+                - FORBIDDEN
+                - NO_AREA
+                - DEVICE_NOT_ALLOWED
+                - INTERNAL_ERROR
             message:
               type: string
             details:

@@ -15,6 +15,10 @@ PostgreSQL 15 schema for all ten modules (roadmap P0-4), managed with node-pg-mi
 
 - `migrations/`: plain SQL migrations, one file per table group of the roadmap's data model. Each file has an `-- Up Migration` section and an `-- Down Migration` section.
 - `tests/schema.test.js`: checks the schema against the rules below. It runs against `DATABASE_URL` after the migrations, and every test rolls back its data.
+- `seeds/demo.js` (`npm run seed:demo`): minimal synthetic accounts for local end-to-end testing.
+  - It creates one area, `admin.demo`, `supervisor.demo` (assigned to the area) and `lhw.demo` (in the area).
+  - The password is `demo-password` unless you set `DEMO_PASSWORD`. It is for local development only.
+  - Safe to re-run. The full synthetic data generator is P0-8.
 - `docs/schema-v1.md`: overview of schema v1 and the design decisions to review.
 
 ## Key rules
@@ -28,6 +32,7 @@ PostgreSQL 15 schema for all ten modules (roadmap P0-4), managed with node-pg-mi
   
   Add the new table to `SYNCED_TABLES` in `tests/schema.test.js`.
 - `server_seq` and `synced_at` come only from the trigger. Whatever a device sends is overwritten.
+- The trigger also takes a transaction-level advisory lock, so concurrent writers to synced tables are numbered in commit order. Without it, a pull could skip a row that commits late. Keep transactions that write synced rows short.
 - Store vitals in the unit named by the column (`_mmhg`, `_kg`, `_c`, `_mmol_l`, `_mm`, `_cm`, `_bpm`).
 - `audit_log` is append-only. Rows elsewhere are soft-deleted with `deleted_at`. `TRUNCATE` is the only way to empty a table, for example in a local seed reset.
 
@@ -42,4 +47,5 @@ npm run migrate:up                   # apply all pending migrations
 npm run migrate:down                 # roll back the latest migration
 npm run migrate:create -- add-thing  # new SQL migration in migrations/
 npm test                             # schema tests (needs the migrations applied)
+npm run seed:demo                    # demo accounts for local end-to-end testing
 ```
