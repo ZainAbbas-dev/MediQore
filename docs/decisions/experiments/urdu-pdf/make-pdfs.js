@@ -16,7 +16,7 @@ const OUT = path.join(__dirname, 'out');
 const VERSIONS = require('./package.json').dependencies;
 
 // One synthetic patient summary: Urdu with embedded IDs, numbers and units, as in
-// the M7 FE-3 progress report.
+// the M6 FE-3 progress report.
 const REPORT = {
   title: 'ماہانہ صحت رپورٹ',
   englishTitle: 'Monthly health report (synthetic data)',

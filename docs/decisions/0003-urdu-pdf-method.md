@@ -2,7 +2,7 @@
 
 - **Status:** Proposed
 - **Date:** 2026-10-03
-- **Scope:** M7 FE-3 (bilingual progress report with an Urdu summary), M10 FE-2 (weekly and monthly PDF reports); Tools table: "pdfkit + ExcelJS"
+- **Scope:** M6 FE-3 (bilingual progress report with an Urdu summary), M10 FE-2 (weekly and monthly PDF reports); Tools table: "pdfkit + ExcelJS"
 - **Roadmap:** Risks and decisions, row 3: "Test a one-page Urdu PDF in Phase 0; if it breaks, render the report as HTML with the Urdu font and print it to PDF with headless Chrome (Puppeteer)"
 
 ## The test
@@ -42,7 +42,7 @@ The page holds an Urdu title, five label–value lines that mix Urdu with an ID,
 
 ## Proposed decision
 
-**Option 3, for every PDF report** (M7 FE-3 and M10 FE-2), so the API has one PDF method. ExcelJS stays for Excel reports.
+**Option 3, for every PDF report** (M6 FE-3 and M10 FE-2), so the API has one PDF method. ExcelJS stays for Excel reports.
 
 - Use `puppeteer-core` with a Chrome or Chromium that is already installed, found through a `CHROME_PATH` setting in `api/.env`. Do not use `puppeteer`, which downloads its own browser on every `npm install`.
   - Windows development uses the installed Google Chrome.
@@ -64,5 +64,5 @@ The page holds an Urdu title, five label–value lines that mix Urdu with an ID,
 | Name | Role | Decision | Date |
 |---|---|---|---|
 | Muhammad Zain Abbas | Team (M10 reports owner) | | |
-| Zain Ali | Team (M7 report owner) | | |
+| Zain Ali | Team (M6 progress report owner) | | |
 | Ma'am Sajida Kalsoom | Supervisor (Tools table change) | | |

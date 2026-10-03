@@ -64,6 +64,8 @@ Every feature references its scope ID:
 
 - Never commit secrets: no `.env` files, keys, keystores, signing configs or Firebase service-account files. Each part commits only a `.env.example` with placeholder values. This repository is public.
 - Never use real patient data. Use synthetic data only (LI-10): no real data until IEC approval, and real patient data never goes into this repository. Seeds, test fixtures, screenshots and demo scripts all use the synthetic data generator (P0-8).
+- Nothing collected from usability-study participants goes into this repository either: no consent forms, names, notes, answers or recordings (`docs/iec/`).
+- The UCI training dataset is public, but it stays out of git too: `ml/scripts/download_uci.py` fetches it into the git-ignored `ml/data/`.
 
 ## Definition of done
 
