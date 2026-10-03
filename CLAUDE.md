@@ -81,4 +81,12 @@ Each FE is done only when its tests pass in CI and it works on a real phone in a
 
 ## Commands
 
-<!-- Fill this in as each part is built (install, run, lint, test, migrate, seed). -->
+Run each from its folder; the part's own `CLAUDE.md` has details. Parts not listed are not built yet.
+
+| Part | Install | Run | Lint | Test |
+|---|---|---|---|---|
+| `api/` | `npm install` | `npm run dev` | `npm run lint` | `npm test` |
+| `db/` | `npm install` | `npm run migrate:up` / `npm run migrate:down` | — | `npm test` (after `migrate:up`) |
+| `mobile/` | `flutter pub get` | `flutter run` | `flutter analyze` | `flutter test` |
+
+<!-- Add web/ (P0-5) and ml/ (P0-10) rows when they are built. -->

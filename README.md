@@ -13,7 +13,7 @@ MediQore replaces the LHW's paper registers with an Urdu Android app that works 
 
 The app syncs with a central server whenever a connection is available. Supervisors and admins use a web portal for a live dashboard and map, alerts, PDF/Excel reports and administration.
 
-> **Status:** Phase 0 (Foundation). The repository skeleton is in place; the application parts below are **coming soon**.
+> **Status:** Phase 0 (Foundation). Done so far: the Flutter app shell with its Urdu widget kit (P0-2), the API skeleton (P0-3) and database schema v1 (P0-4). The portal and the ML track are **coming soon**.
 >
 > **Data notice:** MediQore is developed and demonstrated on synthetic data only. No real patient data is used before IEC approval (LI-10). AI results are decision support, not a clinical diagnosis (LI-5).
 
@@ -21,9 +21,9 @@ The app syncs with a central server whenever a connection is available. Supervis
 
 | Part | Folder | Stack | Status |
 |---|---|---|---|
-| LHW Android app (Modules 1–9) | [`mobile/`](mobile/) | Flutter 3.x, Drift + SQLCipher, ONNX Runtime | Coming soon (P0-2) |
-| REST API | [`api/`](api/) | Node.js 20 + Express, JWT, Joi | Coming soon (P0-3) |
-| Database | [`db/`](db/) | PostgreSQL 15 migrations and synthetic seed scripts | Coming soon (P0-4, P0-8) |
+| LHW Android app (Modules 1–9) | [`mobile/`](mobile/) | Flutter 3.x, Drift + SQLCipher, ONNX Runtime | App shell, Urdu localisation, widget kit (P0-2) |
+| REST API | [`api/`](api/) | Node.js 20 + Express, JWT, Joi | Skeleton with `/api/v1/health` (P0-3) |
+| Database | [`db/`](db/) | PostgreSQL 15 migrations and synthetic seed scripts | Schema v1 migrations (P0-4); seeds coming soon (P0-8) |
 | Supervisor and admin portal (Module 10) | [`web/`](web/) | React 18 + Leaflet.js | Coming soon (P0-5) |
 | ML pipeline and analytics worker | [`ml/`](ml/) | Python 3.11, scikit-learn, SHAP, sklearn2onnx | Coming soon (P0-10) |
 
@@ -69,15 +69,33 @@ git checkout dev
 
 Each part reads its settings from a local `.env` file that you create from the committed example, for example `Copy-Item api\.env.example api\.env`. The `.env` files are git-ignored; never commit them.
 
-### How each part will run
+### How to run each part
 
-The exact commands will be added to each part's `CLAUDE.md` and to this README as the part is built.
+Each part's `CLAUDE.md` lists its full set of commands.
 
-- **API (`api/`):** coming soon. It will be a Node.js 20 server installed and started with npm from `api/`, serving `/api/v1`. It needs a local PostgreSQL 15 database and `api/.env`.
-- **Database (`db/`):** coming soon. Migrations (Knex or node-pg-migrate, chosen in P0-4) will create the schema in your local PostgreSQL. The synthetic data generator (P0-8) will seed it.
-- **Portal (`web/`):** coming soon. It will be a React 18 app started with npm from `web/`, pointing at the API through `web/.env`.
-- **Mobile app (`mobile/`):** coming soon. It will be started with `flutter run` on an Android phone or emulator, with the API address passed via `--dart-define` (see `mobile/.env.example`).
-- **ML (`ml/`):** coming soon. It will be a Python 3.11 virtual environment with `pip install -r requirements.txt`, notebooks and scripts that export the ONNX model and Urdu SHAP lookup for the app.
+- **Database (`db/`):** needs a local PostgreSQL 15 database.
+  ```powershell
+  cd db; npm install; Copy-Item .env.example .env   # set DATABASE_URL
+  npm run migrate:up                                  # create or upgrade the schema
+  npm test                                            # schema checks
+  ```
+  Schema overview and design decisions: [docs/schema-v1.md](docs/schema-v1.md). The synthetic data generator (P0-8) is coming soon.
+- **API (`api/`):**
+  ```powershell
+  cd api; npm install; Copy-Item .env.example .env
+  npm run dev                                         # http://localhost:3000/api/v1/health
+  npm test
+  ```
+  API contract: [docs/openapi.yaml](docs/openapi.yaml).
+- **Mobile app (`mobile/`):** connect an Android phone with USB debugging, or start an emulator.
+  ```powershell
+  cd mobile; flutter pub get
+  flutter run
+  flutter test
+  ```
+  The Jameel Noori Nastaleeq font file still has to be added; see [mobile/assets/fonts/README.md](mobile/assets/fonts/README.md).
+- **Portal (`web/`):** coming soon (P0-5). It will be a React 18 app started with npm from `web/`, pointing at the API through `web/.env`.
+- **ML (`ml/`):** coming soon (P0-10). It will be a Python 3.11 virtual environment with `pip install -r requirements.txt`, notebooks and scripts that export the ONNX model and Urdu SHAP lookup for the app.
 
 ## Branches and pull requests
 
