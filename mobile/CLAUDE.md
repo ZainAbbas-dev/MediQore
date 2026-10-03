@@ -49,9 +49,27 @@ From the roadmap:
   - `AppTextField`, `VitalField` (numbers and unit always left to right, digits only), `CheckboxField`, `DropdownField`
   - `RiskChip` with `RiskLevel`
   - `OfflineStatusBar`
-- `lib/screens/widget_kit_screen.dart`: the P0-2 preview screen. The Phase 1 login screen replaces it as home.
+- `lib/app_services.dart`: the database, API client, repositories and sync service, created once in `main()`. Tests build them with an in-memory database (`testServices()` in `test/helpers.dart`).
+- `lib/data/`:
+  - `app_database.dart`: the Drift database with `households`, `outbox` and `sync_state`.
+    - `app_database.g.dart` is generated and committed. After changing tables, run `dart run build_runner build` and bump `schemaVersion` with a migration.
+    - Encryption (sqflite_sqlcipher, M3 FE-2) comes in Phase 1.
+  - `household_repository.dart`: every write saves the record and its outbox entry in one transaction, with a UUID v4 made on the device.
+- `lib/sync/`:
+  - `sync_api.dart`: the `/auth/login` and `/sync` client. Responses are always decoded as UTF-8.
+  - `sync_service.dart`:
+    - push sends the outbox in batches of up to 100, highest priority first, then stores each `serverSeq`;
+    - pull fetches everything after the last server number seen;
+    - records the server refuses stay on the phone, marked with `lastError`.
+- `lib/screens/`: temporary Phase 0 screens. The Phase 1 login screen replaces `DevHomeScreen` as home.
+  - `dev_home_screen.dart`: the Phase 0 home.
+  - `widget_kit_screen.dart`: the P0-2 kit preview.
+  - `sync_test_screen.dart`: the P0-6 end-to-end check (sign in as an LHW, create a synthetic household offline, sync).
+- `android/app/src/debug/AndroidManifest.xml` allows plain HTTP to a development server in debug builds only; release builds are HTTPS-only.
 - `assets/fonts/JameelNooriNastaleeq.ttf`: the bundled Urdu font, declared in `pubspec.yaml` as family `JameelNooriNastaleeq`.
-- `test/`: widget tests. `test/helpers.dart` wraps a widget in the app theme and the Urdu locale.
+- `test/`: unit and widget tests.
+  - `test/helpers.dart` wraps a widget in the app theme and the Urdu locale.
+  - `test/support/fake_sync_server.dart` imitates the API's `/auth` and `/sync` endpoints.
 
 ## Commands
 
@@ -59,8 +77,11 @@ Run from `mobile/`:
 
 ```powershell
 flutter pub get             # also generates AppLocalizations from the ARB files
-flutter run                 # on a connected Android phone or emulator
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/api/v1   # once sync exists (P0-6)
+dart run build_runner build # regenerate Drift code after changing lib/data tables
 flutter analyze             # lint (CI)
 flutter test                # unit and widget tests (CI)
+
+# Run against the API on your laptop (find its Wi-Fi address with ipconfig):
+flutter run --dart-define=API_BASE_URL=http://192.168.1.10:3000/api/v1   # real phone, same Wi-Fi
+flutter run                                                              # emulator: defaults to http://10.0.2.2:3000/api/v1
 ```

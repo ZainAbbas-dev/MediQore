@@ -27,6 +27,7 @@ class AppTextField extends StatelessWidget {
     this.validator,
     this.onChanged,
     this.keyboardType,
+    this.obscureText = false,
   });
 
   final String label;
@@ -34,6 +35,9 @@ class AppTextField extends StatelessWidget {
   final FormFieldValidator<String>? validator;
   final ValueChanged<String>? onChanged;
   final TextInputType? keyboardType;
+
+  /// Hides the text, for passwords.
+  final bool obscureText;
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +50,7 @@ class AppTextField extends StatelessWidget {
           validator: validator,
           onChanged: onChanged,
           keyboardType: keyboardType,
+          obscureText: obscureText,
           style: const TextStyle(fontSize: 20),
         ),
       ],

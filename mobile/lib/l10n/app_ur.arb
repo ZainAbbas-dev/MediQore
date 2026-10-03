@@ -1,23 +1,18 @@
 {
   "@@locale": "ur",
-
   "appTitle": "MediQore",
-
   "riskGreen": "کم خطرہ",
   "riskYellow": "درمیانہ خطرہ",
   "riskRed": "زیادہ خطرہ",
-
   "statusOffline": "آف لائن: انٹرنیٹ ملنے پر ڈیٹا بھیج دیا جائے گا",
   "statusOnlinePending": "{count, plural, =1{آن لائن: 1 ریکارڈ بھیجا جانا باقی ہے} other{آن لائن: {count} ریکارڈ بھیجے جانے باقی ہیں}}",
   "statusOnlineSynced": "آن لائن: تمام ڈیٹا بھیج دیا گیا ہے",
-
   "kitTitle": "ویجٹ کٹ",
   "kitButtonsSection": "بٹن",
   "kitFormSection": "فارم کے خانے",
   "kitRiskSection": "خطرے کی سطح",
   "kitSaveButton": "محفوظ کریں",
   "kitCancelButton": "منسوخ کریں",
-
   "fieldName": "نام",
   "fieldSystolicBp": "اوپر والا بلڈ پریشر",
   "fieldBleeding": "خون آنا",
@@ -25,6 +20,22 @@
   "fetalMovementNormal": "معمول کے مطابق",
   "fetalMovementReduced": "کم",
   "fetalMovementAbsent": "بالکل نہیں",
-
-  "unitMmHg": "mmHg"
+  "unitMmHg": "mmHg",
+  "devHomeTitle": "فیز 0 کی جانچ",
+  "syncTestTitle": "ڈیٹا سنک کی جانچ",
+  "fieldUsername": "یوزر نیم",
+  "fieldPassword": "پاس ورڈ",
+  "signInButton": "سائن ان کریں",
+  "signedInAs": "{username} کے طور پر سائن ان",
+  "signInFirst": "سنک کے لیے سائن ان کریں",
+  "signInFailed": "سائن ان نہیں ہو سکا: {reason}",
+  "createTestHousehold": "ٹیسٹ گھرانہ بنائیں",
+  "testHouseholdVillage": "ٹیسٹ گاؤں",
+  "syncNowButton": "ابھی سنک کریں",
+  "syncResult": "بھیجے گئے {pushed}، موصول {pulled}، مسترد {rejected}",
+  "syncFailed": "سنک نہیں ہو سکا: {reason}",
+  "localHouseholdCount": "{count, plural, =1{اس فون پر 1 گھرانہ} other{اس فون پر {count} گھرانے}}",
+  "lastServerSeq": "سرور کا آخری نمبر: {seq}",
+  "householdWaiting": "سنک کا انتظار ہے",
+  "householdSynced": "سرور نمبر {seq}"
 }

@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Sync with the server (M3 FE-2). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="MediQore"
         android:name="${applicationName}"

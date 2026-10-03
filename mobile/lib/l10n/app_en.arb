@@ -1,54 +1,203 @@
 {
   "@@locale": "en",
-
   "appTitle": "MediQore",
-  "@appTitle": { "description": "App name shown in the app bar and the Android task switcher." },
-
+  "@appTitle": {
+    "description": "App name shown in the app bar and the Android task switcher."
+  },
   "riskGreen": "Low risk",
-  "@riskGreen": { "description": "Risk chip label for the Green level." },
+  "@riskGreen": {
+    "description": "Risk chip label for the Green level."
+  },
   "riskYellow": "Moderate risk",
-  "@riskYellow": { "description": "Risk chip label for the Yellow level." },
+  "@riskYellow": {
+    "description": "Risk chip label for the Yellow level."
+  },
   "riskRed": "High risk",
-  "@riskRed": { "description": "Risk chip label for the Red level." },
-
+  "@riskRed": {
+    "description": "Risk chip label for the Red level."
+  },
   "statusOffline": "Offline: data will be sent when the internet is available",
-  "@statusOffline": { "description": "Offline status bar text when the phone has no connection." },
+  "@statusOffline": {
+    "description": "Offline status bar text when the phone has no connection."
+  },
   "statusOnlinePending": "{count, plural, =1{Online: 1 record waiting to sync} other{Online: {count} records waiting to sync}}",
   "@statusOnlinePending": {
     "description": "Status bar text when online with records still in the outbox.",
-    "placeholders": { "count": { "type": "int", "format": "decimalPattern" } }
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
   },
   "statusOnlineSynced": "Online: all data synced",
-  "@statusOnlineSynced": { "description": "Status bar text when online and the outbox is empty." },
-
+  "@statusOnlineSynced": {
+    "description": "Status bar text when online and the outbox is empty."
+  },
   "kitTitle": "Widget kit",
-  "@kitTitle": { "description": "Title of the P0-2 preview screen that shows the shared widgets." },
+  "@kitTitle": {
+    "description": "Title of the P0-2 preview screen that shows the shared widgets."
+  },
   "kitButtonsSection": "Buttons",
-  "@kitButtonsSection": { "description": "Preview screen section heading." },
+  "@kitButtonsSection": {
+    "description": "Preview screen section heading."
+  },
   "kitFormSection": "Form fields",
-  "@kitFormSection": { "description": "Preview screen section heading." },
+  "@kitFormSection": {
+    "description": "Preview screen section heading."
+  },
   "kitRiskSection": "Risk levels",
-  "@kitRiskSection": { "description": "Preview screen section heading." },
+  "@kitRiskSection": {
+    "description": "Preview screen section heading."
+  },
   "kitSaveButton": "Save",
-  "@kitSaveButton": { "description": "Example primary button label." },
+  "@kitSaveButton": {
+    "description": "Example primary button label."
+  },
   "kitCancelButton": "Cancel",
-  "@kitCancelButton": { "description": "Example secondary button label." },
-
+  "@kitCancelButton": {
+    "description": "Example secondary button label."
+  },
   "fieldName": "Name",
-  "@fieldName": { "description": "Example text field label: patient name." },
+  "@fieldName": {
+    "description": "Example text field label: patient name."
+  },
   "fieldSystolicBp": "Systolic BP",
-  "@fieldSystolicBp": { "description": "Example vital field label: systolic blood pressure." },
+  "@fieldSystolicBp": {
+    "description": "Example vital field label: systolic blood pressure."
+  },
   "fieldBleeding": "Bleeding",
-  "@fieldBleeding": { "description": "Example checkbox label: vaginal bleeding symptom." },
+  "@fieldBleeding": {
+    "description": "Example checkbox label: vaginal bleeding symptom."
+  },
   "fieldFetalMovement": "Fetal movement",
-  "@fieldFetalMovement": { "description": "Example dropdown label." },
+  "@fieldFetalMovement": {
+    "description": "Example dropdown label."
+  },
   "fetalMovementNormal": "Normal",
-  "@fetalMovementNormal": { "description": "Fetal movement option." },
+  "@fetalMovementNormal": {
+    "description": "Fetal movement option."
+  },
   "fetalMovementReduced": "Reduced",
-  "@fetalMovementReduced": { "description": "Fetal movement option." },
+  "@fetalMovementReduced": {
+    "description": "Fetal movement option."
+  },
   "fetalMovementAbsent": "Absent",
-  "@fetalMovementAbsent": { "description": "Fetal movement option." },
-
+  "@fetalMovementAbsent": {
+    "description": "Fetal movement option."
+  },
   "unitMmHg": "mmHg",
-  "@unitMmHg": { "description": "Blood pressure unit, shown left to right after the number." }
+  "@unitMmHg": {
+    "description": "Blood pressure unit, shown left to right after the number."
+  },
+  "devHomeTitle": "Phase 0 checks",
+  "@devHomeTitle": {
+    "description": "Title of the temporary Phase 0 home screen; the login screen replaces it in Phase 1."
+  },
+  "syncTestTitle": "Sync test",
+  "@syncTestTitle": {
+    "description": "Title of the P0-6 sync test screen."
+  },
+  "fieldUsername": "Username",
+  "@fieldUsername": {
+    "description": "Sign-in field label."
+  },
+  "fieldPassword": "Password",
+  "@fieldPassword": {
+    "description": "Sign-in field label."
+  },
+  "signInButton": "Sign in",
+  "@signInButton": {
+    "description": "Button that signs in to the server."
+  },
+  "signedInAs": "Signed in as {username}",
+  "@signedInAs": {
+    "description": "Shown after signing in.",
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "signInFirst": "Sign in to sync",
+  "@signInFirst": {
+    "description": "Shown when sync is not possible yet."
+  },
+  "signInFailed": "Sign-in failed: {reason}",
+  "@signInFailed": {
+    "description": "Shown when sign-in fails; reason is a short error code.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "createTestHousehold": "Create test household",
+  "@createTestHousehold": {
+    "description": "Button that saves one synthetic household on the phone."
+  },
+  "testHouseholdVillage": "Test village",
+  "@testHouseholdVillage": {
+    "description": "Village name used for synthetic test households."
+  },
+  "syncNowButton": "Sync now",
+  "@syncNowButton": {
+    "description": "Button that sends waiting records and fetches new ones."
+  },
+  "syncResult": "Sent {pushed}, received {pulled}, refused {rejected}",
+  "@syncResult": {
+    "description": "Result of one sync run.",
+    "placeholders": {
+      "pushed": {
+        "type": "int"
+      },
+      "pulled": {
+        "type": "int"
+      },
+      "rejected": {
+        "type": "int"
+      }
+    }
+  },
+  "syncFailed": "Sync failed: {reason}",
+  "@syncFailed": {
+    "description": "Shown when the server cannot be reached; reason is a short error.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "localHouseholdCount": "{count, plural, =1{1 household on this phone} other{{count} households on this phone}}",
+  "@localHouseholdCount": {
+    "description": "Number of households stored locally.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "lastServerSeq": "Last server number: {seq}",
+  "@lastServerSeq": {
+    "description": "Last sequence number received from the server.",
+    "placeholders": {
+      "seq": {
+        "type": "int"
+      }
+    }
+  },
+  "householdWaiting": "Waiting to sync",
+  "@householdWaiting": {
+    "description": "List item status for a household not yet accepted by the server."
+  },
+  "householdSynced": "Server number {seq}",
+  "@householdSynced": {
+    "description": "List item status for a household the server accepted.",
+    "placeholders": {
+      "seq": {
+        "type": "int"
+      }
+    }
+  }
 }
