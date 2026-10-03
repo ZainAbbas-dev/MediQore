@@ -21,7 +21,8 @@ The app syncs with a central server whenever a connection is available. Supervis
 > - the offline sync skeleton (P0-6);
 > - the Phase 1 screen spec and wireframes (P0-7);
 > - the synthetic data generator (P0-8);
-> - the start of the ML track: UCI dataset download and exploratory notebook (P0-10).
+> - the start of the ML track: UCI dataset download and exploratory notebook (P0-10);
+> - proposed decisions with evidence for the P0-11 open items, including an Urdu PDF test and a voice check screen in the app.
 >
 > One test record now runs end to end: created on the phone, synced, stored in PostgreSQL and shown on the portal.
 >
@@ -57,6 +58,7 @@ mediqore/
 - [Schema v1](docs/schema-v1.md): the database, how sync works in it, and the decisions to review.
 - [API contract](docs/openapi.yaml): OpenAPI 3.1.
 - [Phase 1 screens](docs/design/phase1-screens.md): screen spec and Figma-ready wireframes (P0-7).
+- [Decision records](docs/decisions/README.md): the P0-11 open items (model inputs, OTP channel, Urdu PDF method, Urdu voice), with evidence; awaiting team sign-off.
 - [CLAUDE.md](CLAUDE.md): permanent project rules for contributors and AI coding sessions.
 
 ## Getting started (Windows)

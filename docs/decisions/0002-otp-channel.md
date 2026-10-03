@@ -1,0 +1,63 @@
+# 0002. OTP channel
+
+- **Status:** Proposed
+- **Date:** 2026-10-03
+- **Scope:** M1 FE-2, LI-4
+- **Roadmap:** Risks and decisions, row 2 ("OTP channel"); Phase 1 task "OTP verification on first login and on a new device (channel decided in P0-11)"
+
+## Context
+
+M1 FE-2 asks for "OTP verification" as part of login. The roadmap requires it on first login and on a new device.
+
+SMS OTP needs a paid gateway, and LI-4 keeps server-side SMS out of the prototype. The roadmap therefore suggests email OTP or an admin-issued one-time code, behind a swappable OTP service.
+
+Schema v1 already has `otp_codes`, which stores a hashed code, its purpose (`first_login`, `new_device`), attempts, expiry, consumption, and a free-text `channel` column.
+
+## Options
+
+| | Email OTP | Admin-issued one-time code | SMS OTP | Authenticator app |
+|---|---|---|---|---|
+| How it works | The server emails a code to the user | An admin or supervisor issues a code on the portal and gives it to the LHW | A gateway texts the code | The user's app generates codes |
+| Cost | Free tier of a mail service, or the team's mailbox | None | Paid gateway | None |
+| New library or secret | A mail library (not in the Tools table) and SMTP credentials | None | Gateway SDK and API key | A TOTP library; app setup per user |
+| Works for LHWs without email | No | Yes | Yes | Needs a second app on the phone |
+| Allowed in the prototype | Yes | Yes | **No (LI-4)** | Yes, but not in the scope or roadmap |
+| Main weakness | Many LHWs may have no email address they use; mail can be late or land in spam | Relies on the handover process; a code read out over a call can be overheard | Excluded | Hard to set up in the field |
+
+## Proposed decision
+
+**Use an admin-issued one-time code for the prototype, behind a swappable OTP service.**
+
+1. **When it is needed:** the first login on a phone and every login from a new device (M1 FE-2), for any account that signs in on the app. The roadmap does not ask for OTP on the web portal, so the portal keeps password login. Confirm this with the supervisor.
+2. **Flow:**
+   1. The LHW signs in online with a username and password on a new phone.
+   2. The API registers the device as pending and creates a code with `channel = 'admin_issued'`.
+   3. The admin or supervisor sees the pending device on the portal (Admin lists → Accounts, P0-7 screen 6) and reads out or hands over the code.
+   4. The LHW types the code on the OTP screen (P0-7 screen 1), and the device is approved.
+3. **Rules:** these are proposals; the team decides the exact numbers in Phase 1.
+   - The code is 6 digits and hashed in `otp_codes.code_hash`. Each code can be used once.
+   - It expires after 24 hours, because it is handed over by people rather than texted.
+   - After 5 wrong attempts a new code is needed.
+   - Issuing and using a code each write an audit row (M10 FE-3).
+4. **Swappable service:** the API reaches channels only through an `OtpService` with `issue(user, device, purpose)` and `verify(user, device, code)`.
+   - Admin-issued is the only channel built in the prototype.
+   - Email or an SMS gateway (production, LI-4) can be added later as another channel, without changing the login flow or the table.
+
+## Consequences
+
+- No new library, no secret and no running cost.
+- The admin portal needs a "pending devices / issue code" action. This fits the accounts tab already in the P0-7 spec.
+- The supervisor's onboarding must include the code handover. The user guide (definition of done) must describe it.
+- This is weaker than SMS against someone who learns the code. That is acceptable for a prototype on synthetic data (LI-10); say so in the report as a production item.
+
+## Open questions
+
+- Does the supervisor agree that an admin-issued code meets "OTP verification" in the approved scope?
+- Should the portal (supervisor and admin) also require OTP? The roadmap does not ask for it.
+
+## Sign-off
+
+| Name | Role | Decision | Date |
+|---|---|---|---|
+| Muhammad Zain Abbas | Team | | |
+| Zain Ali | Team (M1 owner) | | |

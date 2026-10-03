@@ -57,4 +57,4 @@ The scope and roadmap name the tables but not every column. These choices were m
 9. **`audit_log.action` values** are `create`, `edit`, `delete`, `referral`, `alert`, `login` and `sync_conflict`. Alert attempts are logged with their channel and status in `details`.
 10. **Zero-dose (M7 FE-3)** needs per-child OPV records in each round. The roadmap's polio tables only hold per-household counts, so how to record per-child doses is left to Phase 3, in a new migration.
 11. **Wasting** is stored as a flag next to the weight-for-age and height-for-age Z-scores that the scope names (M9 FE-1). No weight-for-height Z-score is stored.
-12. **The OTP channel** column is free text until P0-11 decides it.
+12. **The OTP channel** column is free text until P0-11 decides it. The proposal is `admin_issued` ([decision 0002](decisions/0002-otp-channel.md)).

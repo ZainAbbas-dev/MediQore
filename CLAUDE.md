@@ -20,7 +20,10 @@ Five components, one monorepo:
 
 - `docs/scope.md`: the approved scope. It defines the module and feature IDs (M1–M10, FE-n), objectives BO-1 to BO-6, limitations LI-1 to LI-12 and the Tools table. It is a Markdown copy of the Word document.
 - `docs/roadmap.md`: the implementation plan (phases 0–4, task IDs such as P0-3, architecture, data model, risks, definition of done). It is a Markdown copy of `docs/roadmap.pdf`.
-- Build only what these two documents describe. Do not add features, tables, endpoints or libraries they do not call for. If something is ambiguous or the documents disagree, ask instead of guessing.
+- `docs/decisions/`: decision records for the roadmap's open items (P0-11).
+  - An **Accepted** record binds like the roadmap.
+  - A **Proposed** record is not decided yet: ask before building on it.
+- Build only what the scope and roadmap describe. Do not add features, tables, endpoints or libraries they do not call for. If something is ambiguous or the documents disagree, ask instead of guessing.
 - Respect the limitations, for example: Android only (LI-1); the prototype sends SMS and places calls from the LHW's phone, with no server SMS gateway (LI-4); AI output is decision support only, and the app says so (LI-5).
 
 ## Architecture and conventions
