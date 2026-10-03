@@ -1,0 +1,54 @@
+name: Feature
+description: Track one feature (FE) from the approved scope.
+title: "M<module> FE-<n>: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One issue per scope feature. Look up the feature in `docs/scope.md` and the matching tasks in `docs/roadmap.md`.
+        Build only what the scope and roadmap describe. After creating the issue, add its `phase-*` and `module-*` labels.
+
+  - type: input
+    id: scope-id
+    attributes:
+      label: Scope ID
+      description: Module and feature ID from the scope document. Use the same ID in the issue title, the PR title and a comment at the feature's main entry point.
+      placeholder: M3 FE-2
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What the feature does, taken from the scope, plus the related roadmap tasks and their owners.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: Checkable conditions, taken from the scope, the roadmap tasks and the phase exit gate.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: definition-of-done
+    attributes:
+      label: Definition of done
+      description: From docs/roadmap.md. Leave the boxes unticked now and tick them in the issue as each item becomes true.
+      options:
+        - label: Every FE in the scope document for that module works on a real Android phone
+        - label: Works fully offline where the scope says so, and syncs correctly afterwards
+        - label: All screens in Urdu with no text overflow; numeric values display left to right
+        - label: API routes validated with Joi, role-checked and area-scoped
+        - label: Every create, edit and delete writes an audit row
+        - label: Unit and API tests written and passing in CI
+        - label: Module 10 shows the module's data (dashboard, map or report, as the scope says)
+        - label: Synthetic data for the module added to the seed script
+        - label: Reviewed and merged by the other team member
+        - label: Short note added to the user guide and test report

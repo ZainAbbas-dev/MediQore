@@ -1,0 +1,156 @@
+name: CI
+
+# Lint and tests for each part of the monorepo (roadmap P0-1).
+# Each job first looks for its part's manifest (package.json, requirements.txt or
+# pubspec.yaml) and skips the remaining steps until that part has been created,
+# so CI stays green while the parts are built one by one.
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node:
+    name: ${{ matrix.part }} (Node.js 20)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [api, web]
+    defaults:
+      run:
+        working-directory: ${{ matrix.part }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for ${{ matrix.part }}/package.json
+        id: manifest
+        working-directory: .
+        run: |
+          if [ -f "${{ matrix.part }}/package.json" ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::${{ matrix.part }}/package.json not found; skipping lint and tests until the part is created."
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.manifest.outputs.found == 'true'
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        if: steps.manifest.outputs.found == 'true'
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+      - name: Lint
+        if: steps.manifest.outputs.found == 'true'
+        run: npm run lint --if-present
+
+      - name: Test
+        if: steps.manifest.outputs.found == 'true'
+        run: npm run test --if-present
+
+  ml:
+    name: ml (Python 3.11)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ml
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for ml/requirements.txt
+        id: manifest
+        working-directory: .
+        run: |
+          if [ -f ml/requirements.txt ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::ml/requirements.txt not found; skipping lint and tests until the part is created."
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.manifest.outputs.found == 'true'
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        if: steps.manifest.outputs.found == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint
+        if: steps.manifest.outputs.found == 'true'
+        run: |
+          if python -m ruff --version >/dev/null 2>&1; then
+            python -m ruff check .
+          else
+            echo "::notice::ruff is not in ml/requirements.txt; skipping lint."
+          fi
+
+      - name: Test
+        if: steps.manifest.outputs.found == 'true'
+        run: |
+          if ! python -m pytest --version >/dev/null 2>&1; then
+            echo "::notice::pytest is not in ml/requirements.txt; skipping tests."
+            exit 0
+          fi
+          status=0
+          python -m pytest || status=$?
+          if [ "$status" -eq 5 ]; then
+            echo "::notice::pytest found no tests yet."
+          else
+            exit "$status"
+          fi
+
+  mobile:
+    name: mobile (Flutter stable)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for mobile/pubspec.yaml
+        id: manifest
+        working-directory: .
+        run: |
+          if [ -f mobile/pubspec.yaml ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::mobile/pubspec.yaml not found; skipping lint and tests until the part is created."
+          fi
+
+      - uses: subosito/flutter-action@v2
+        if: steps.manifest.outputs.found == 'true'
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        if: steps.manifest.outputs.found == 'true'
+        run: flutter pub get
+
+      - name: Lint
+        if: steps.manifest.outputs.found == 'true'
+        run: flutter analyze
+
+      - name: Test
+        if: steps.manifest.outputs.found == 'true'
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "::notice::mobile/test not found; skipping tests."
+          fi

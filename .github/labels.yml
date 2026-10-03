@@ -1,0 +1,59 @@
+# Repository labels. .github/workflows/labels.yml creates or updates these on GitHub
+# whenever this file changes on main or dev. Labels missing from this file are left alone.
+
+- name: phase-0
+  color: "c2e0c6"
+  description: "Phase 0: Foundation (weeks 1–2)"
+- name: phase-1
+  color: "bfdadc"
+  description: "Phase 1: Core field workflow, M1 M2 M3 M10 base (weeks 3–9)"
+- name: phase-2
+  color: "c5def5"
+  description: "Phase 2: Intelligence and emergency, M4 M5 M6 M10 update (weeks 10–17)"
+- name: phase-3
+  color: "d4c5f9"
+  description: "Phase 3: Child health and campaigns, M7 M8 M9 M10 final (weeks 18–24)"
+- name: phase-4
+  color: "f9d0c4"
+  description: "Phase 4: Hardening and delivery (weeks 25–28)"
+
+- name: module-1
+  color: "1d76db"
+  description: "M1: LHW onboarding and access control"
+- name: module-2
+  color: "1d76db"
+  description: "M2: Expecting woman registration"
+- name: module-3
+  color: "1d76db"
+  description: "M3: Field visit and vitals collection"
+- name: module-4
+  color: "1d76db"
+  description: "M4: AI-based maternal risk assessment"
+- name: module-5
+  color: "1d76db"
+  description: "M5: Emergency referral coordination"
+- name: module-6
+  color: "1d76db"
+  description: "M6: Pregnancy journey, health records and ANC monitoring"
+- name: module-7
+  color: "1d76db"
+  description: "M7: Polio campaign field operations"
+- name: module-8
+  color: "1d76db"
+  description: "M8: Child immunisation and EPI management"
+- name: module-9
+  color: "1d76db"
+  description: "M9: Child nutrition and growth screening"
+- name: module-10
+  color: "1d76db"
+  description: "M10: Supervisor dashboard, reporting and administration"
+
+- name: human-task
+  color: "fbca04"
+  description: "Done by a team member, not in code (design, paperwork, decisions)"
+- name: bug
+  color: "d73a4a"
+  description: "Something isn't working"
+- name: docs
+  color: "0075ca"
+  description: "Documentation"
