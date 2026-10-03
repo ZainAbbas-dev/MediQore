@@ -85,8 +85,9 @@ Run each from its folder; the part's own `CLAUDE.md` has details. Parts not list
 
 | Part | Install | Run | Lint | Test |
 |---|---|---|---|---|
-| `api/` | `npm install` | `npm run dev` | `npm run lint` | `npm test` |
-| `db/` | `npm install` | `npm run migrate:up` / `npm run migrate:down` | — | `npm test` (after `migrate:up`) |
-| `mobile/` | `flutter pub get` | `flutter run` | `flutter analyze` | `flutter test` |
+| `db/` | `npm install` | `npm run migrate:up` / `npm run migrate:down`; `npm run seed:demo` | — | `npm test` (after `migrate:up`) |
+| `api/` | `npm install` | `npm run dev` | `npm run lint` | `npm test` (database tests need `TEST_DATABASE_URL`, a migrated `*_test` database) |
+| `web/` | `npm install` | `npm run dev` (needs the API) | `npm run lint` | `npm test`; `npm run build` |
+| `mobile/` | `flutter pub get` | `flutter run --dart-define=API_BASE_URL=...` | `flutter analyze` | `flutter test`; `dart run build_runner build` after changing Drift tables |
 
-<!-- Add web/ (P0-5) and ml/ (P0-10) rows when they are built. -->
+<!-- Add the ml/ (P0-10) row when it is built. -->
