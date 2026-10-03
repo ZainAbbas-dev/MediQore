@@ -1,0 +1,20 @@
+{
+  "name": "mediqore-db",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MediQore PostgreSQL 15 migrations (node-pg-migrate) and synthetic seed scripts",
+  "scripts": {
+    "migrate:up": "node-pg-migrate up",
+    "migrate:down": "node-pg-migrate down",
+    "migrate:create": "node-pg-migrate create --migration-file-language sql",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "devDependencies": {
+    "dotenv": "^17.4.2",
+    "node-pg-migrate": "^9.0.0",
+    "pg": "^8.23.1"
+  }
+}

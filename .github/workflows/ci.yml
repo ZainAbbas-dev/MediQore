@@ -57,6 +57,70 @@ jobs:
         if: steps.manifest.outputs.found == 'true'
         run: npm run test --if-present
 
+  db:
+    name: db (PostgreSQL 15 migrations)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: db
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          # Throwaway database that only exists for this CI job.
+          POSTGRES_USER: mediqore
+          POSTGRES_PASSWORD: ci-only
+          POSTGRES_DB: mediqore
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mediqore"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://mediqore:ci-only@localhost:5432/mediqore
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for db/package.json
+        id: manifest
+        working-directory: .
+        run: |
+          if [ -f db/package.json ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::db/package.json not found; skipping migrations and tests until the part is created."
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.manifest.outputs.found == 'true'
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        if: steps.manifest.outputs.found == 'true'
+        run: npm ci
+
+      - name: Lint
+        if: steps.manifest.outputs.found == 'true'
+        run: npm run lint --if-present
+
+      - name: Apply all migrations
+        if: steps.manifest.outputs.found == 'true'
+        run: npm run migrate:up
+
+      - name: Test
+        if: steps.manifest.outputs.found == 'true'
+        run: npm run test --if-present
+
+      - name: Roll back all migrations and apply them again
+        if: steps.manifest.outputs.found == 'true'
+        run: |
+          npx node-pg-migrate down "$(ls migrations | wc -l)"
+          npm run migrate:up
+
   ml:
     name: ml (Python 3.11)
     runs-on: ubuntu-latest

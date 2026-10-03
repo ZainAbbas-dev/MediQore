@@ -16,7 +16,7 @@ Node.js + Express REST API: auth, sync endpoints, conflict detection, alerts, re
 From the roadmap:
 
 - Tests use Jest + Supertest.
-- The migration tool (Knex or node-pg-migrate) is chosen in P0-4.
+- Migrations use node-pg-migrate, chosen in P0-4, and live in `db/` (see `db/CLAUDE.md` and `docs/schema-v1.md`). The API never changes the schema itself.
 - Urdu PDF rendering is tested in P0-11; if pdfkit breaks Nastaliq, the fallback is HTML printed to PDF with headless Chrome (Puppeteer).
 
 ## Key rules
