@@ -1,0 +1,6 @@
+# MediQore ML: runtime packages (Python 3.11). Pinned so every run gives the same numbers.
+# P0-10 exploratory analysis. Phase 2 adds scikit-learn 1.4, imbalanced-learn,
+# SHAP and sklearn2onnx (scope Tools table) when model training starts.
+numpy==1.26.4
+pandas==2.2.3       # data loading and summaries for the exploratory notebook
+matplotlib==3.9.2   # notebook charts

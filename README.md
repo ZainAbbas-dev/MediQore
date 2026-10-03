@@ -20,9 +20,10 @@ The app syncs with a central server whenever a connection is available. Supervis
 > - the portal skeleton (P0-5);
 > - the offline sync skeleton (P0-6);
 > - the Phase 1 screen spec and wireframes (P0-7);
-> - the synthetic data generator (P0-8).
+> - the synthetic data generator (P0-8);
+> - the start of the ML track: UCI dataset download and exploratory notebook (P0-10).
 >
-> One test record now runs end to end: created on the phone, synced, stored in PostgreSQL and shown on the portal. The ML track is **coming soon**.
+> One test record now runs end to end: created on the phone, synced, stored in PostgreSQL and shown on the portal.
 >
 > **Data notice:** MediQore is developed and demonstrated on synthetic data only. No real patient data is used before IEC approval (LI-10). AI results are decision support, not a clinical diagnosis (LI-5).
 
@@ -34,7 +35,7 @@ The app syncs with a central server whenever a connection is available. Supervis
 | REST API | [`api/`](api/) | Node.js 20 + Express, JWT, Joi | Skeleton (P0-3); login and `/sync` push/pull (P0-6) |
 | Database | [`db/`](db/) | PostgreSQL 15 migrations and synthetic seed scripts | Schema v1 for all ten modules (P0-4); demo seed; synthetic data generator (P0-8) |
 | Supervisor and admin portal (Module 10) | [`web/`](web/) | React 18 + Leaflet.js | Login, auth guard, sidebar layout, map dashboard (P0-5) |
-| ML pipeline and analytics worker | [`ml/`](ml/) | Python 3.11, scikit-learn, SHAP, sklearn2onnx | Coming soon (P0-10) |
+| ML pipeline and analytics worker | [`ml/`](ml/) | Python 3.11, scikit-learn, SHAP, sklearn2onnx | Dataset download and exploratory notebook (P0-10); training in Phase 2 |
 
 ## Repository layout
 
@@ -114,7 +115,14 @@ Each part's `CLAUDE.md` lists its full set of commands.
   npm run dev                                         # http://localhost:5173, forwards /api to the API
   npm test
   ```
-- **ML (`ml/`):** coming soon (P0-10). It will be a Python 3.11 virtual environment with `pip install -r requirements.txt`, notebooks and scripts that export the ONNX model and Urdu SHAP lookup for the app.
+- **ML (`ml/`):** Python 3.11.
+  ```powershell
+  cd ml; py -3.11 -m venv .venv; .venv\Scripts\Activate.ps1
+  pip install -r requirements-dev.txt
+  python scripts/download_uci.py                      # UCI dataset into ml/data/raw/ (git-ignored)
+  pytest
+  ```
+  Findings so far: [notebooks/01_uci_exploration.ipynb](ml/notebooks/01_uci_exploration.ipynb).
 
 ### Phase 0 end-to-end check
 

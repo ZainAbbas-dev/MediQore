@@ -53,6 +53,10 @@ venv/
 .coverage
 htmlcov/
 
+# Downloaded datasets (UCI Maternal Health Risk): fetched with ml/scripts/download_uci.py,
+# never committed.
+ml/data/
+
 # ---------------------------------------------------------------------------
 # Flutter / Dart (mobile/)
 # ---------------------------------------------------------------------------
