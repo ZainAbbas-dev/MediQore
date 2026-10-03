@@ -1,0 +1,37 @@
+name: mediqore
+description: "MediQore LHW app: offline, Urdu, Android only (LI-1)."
+publish_to: 'none'
+
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Generates AppLocalizations from lib/l10n/*.arb (see l10n.yaml).
+  generate: true
+
+  # Jameel Noori Nastaleeq (scope Tools table: bundled Urdu font).
+  # The font file is not in the repository yet. To bundle it:
+  #   1. copy the .ttf to assets/fonts/JameelNooriNastaleeq.ttf
+  #      (see assets/fonts/README.md);
+  #   2. uncomment the four lines below and run `flutter pub get`.
+  # Until then the app falls back to the phone's default Urdu font.
+  # fonts:
+  #   - family: JameelNooriNastaleeq
+  #     fonts:
+  #       - asset: assets/fonts/JameelNooriNastaleeq.ttf

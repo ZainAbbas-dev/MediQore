@@ -1,0 +1,30 @@
+{
+  "@@locale": "ur",
+
+  "appTitle": "MediQore",
+
+  "riskGreen": "کم خطرہ",
+  "riskYellow": "درمیانہ خطرہ",
+  "riskRed": "زیادہ خطرہ",
+
+  "statusOffline": "آف لائن: انٹرنیٹ ملنے پر ڈیٹا بھیج دیا جائے گا",
+  "statusOnlinePending": "{count, plural, =1{آن لائن: 1 ریکارڈ بھیجا جانا باقی ہے} other{آن لائن: {count} ریکارڈ بھیجے جانے باقی ہیں}}",
+  "statusOnlineSynced": "آن لائن: تمام ڈیٹا بھیج دیا گیا ہے",
+
+  "kitTitle": "ویجٹ کٹ",
+  "kitButtonsSection": "بٹن",
+  "kitFormSection": "فارم کے خانے",
+  "kitRiskSection": "خطرے کی سطح",
+  "kitSaveButton": "محفوظ کریں",
+  "kitCancelButton": "منسوخ کریں",
+
+  "fieldName": "نام",
+  "fieldSystolicBp": "اوپر والا بلڈ پریشر",
+  "fieldBleeding": "خون آنا",
+  "fieldFetalMovement": "بچے کی حرکت",
+  "fetalMovementNormal": "معمول کے مطابق",
+  "fetalMovementReduced": "کم",
+  "fetalMovementAbsent": "بالکل نہیں",
+
+  "unitMmHg": "mmHg"
+}
