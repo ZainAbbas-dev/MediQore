@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="780" viewBox="0 0 360 780">
+  <title>P0-7 wireframe 2: LHW home</title>
+  <style>@font-face{font-family:'Jameel Noori Nastaleeq';src:url('../../../mobile/assets/fonts/JameelNooriNastaleeq.ttf');}</style>
+  <rect width="360" height="780" fill="#F5F7F6"/>
+  <rect x="0" y="0" width="360" height="56" rx="0" fill="#00695C"/>
+  <text x="344" y="37" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="22" fill="#fff" text-anchor="end" font-weight="normal">MediQore</text>
+  <rect x="0" y="56" width="360" height="34" rx="0" fill="#616161"/>
+  <text x="344" y="79" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="15" fill="#fff" text-anchor="end" font-weight="normal">آن لائن: 3 ریکارڈ بھیجے جانے باقی ہیں</text>
+  <rect x="0" y="56" width="360" height="34" fill="#EF6C00"/>
+  <text x="344" y="79" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="15" fill="#fff" text-anchor="end" font-weight="normal">آن لائن: 3 ریکارڈ بھیجے جانے باقی ہیں</text>
+  <text x="344" y="132" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="22" fill="#1F2933" text-anchor="end" font-weight="bold">السلام علیکم، فاطمہ</text>
+  <text x="344" y="162" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="16" fill="#5F6B76" text-anchor="end" font-weight="normal">علاقہ: ڈیمو ایریا 1</text>
+  <rect x="16" y="196" width="328" height="58" rx="12" fill="#00695C"/>
+  <text x="180.0" y="234" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="20" fill="#fff" text-anchor="middle" font-weight="normal">نئی حاملہ خاتون کا اندراج</text>
+  <rect x="16" y="268" width="328" height="58" rx="12" fill="#fff" stroke="#00695C" stroke-width="1.5"/>
+  <text x="180.0" y="306" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="20" fill="#00695C" text-anchor="middle" font-weight="normal">مریضوں کی فہرست</text>
+  <rect x="16" y="340" width="328" height="58" rx="12" fill="#fff" stroke="#00695C" stroke-width="1.5"/>
+  <text x="180.0" y="378" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="20" fill="#00695C" text-anchor="middle" font-weight="normal">ابھی سنک کریں</text>
+  <text x="344" y="446" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="19" fill="#00695C" text-anchor="end" font-weight="bold">تلاش</text>
+  <line x1="16" y1="456" x2="344" y2="456" stroke="#C9D3D6"/>
+  <rect x="16" y="466" width="328" height="48" rx="10" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="330" y="498" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="17" fill="#5F6B76" text-anchor="end" font-weight="normal">نام یا گاؤں سے تلاش کریں</text>
+  <rect x="16" y="534" width="328" height="60" rx="10" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="332" y="560" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="16" fill="#1F2933" text-anchor="end" font-weight="normal">عائشہ بی بی · گاؤں ڈیمو</text>
+  <text x="332" y="584" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="13" fill="#5F6B76" text-anchor="end" font-weight="normal">آخری وزٹ: 2 دن پہلے</text>
+  <rect x="16" y="600" width="328" height="60" rx="10" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="332" y="626" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="16" fill="#1F2933" text-anchor="end" font-weight="normal">زینب · گاؤں ڈیمو</text>
+  <text x="332" y="650" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="13" fill="#5F6B76" text-anchor="end" font-weight="normal">آخری وزٹ: 5 دن پہلے</text>
+  <text x="344" y="700" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="15" fill="#00695C" text-anchor="end" font-weight="normal">ترتیبات (آواز سے رہنمائی بند / چالو)</text>
+  <line x1="16" y1="714" x2="344" y2="714" stroke="#C9D3D6" stroke-dasharray="4 3"/>
+  <text x="16" y="732" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#5F6B76" text-anchor="start" font-weight="normal">M2 FE-3: area patient list sorted by village · M3 FE-2: sync</text>
+  <text x="16" y="748" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#5F6B76" text-anchor="start" font-weight="normal">M3 FE-3: voice mute in settings · synthetic names (LI-10)</text>
+</svg>

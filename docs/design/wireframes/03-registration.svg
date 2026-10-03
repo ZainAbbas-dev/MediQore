@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="1280" viewBox="0 0 360 1280">
+  <title>P0-7 wireframe 3: Registration (Mockup 1; M2 FE-1, FE-2, FE-3)</title>
+  <style>@font-face{font-family:'Jameel Noori Nastaleeq';src:url('../../../mobile/assets/fonts/JameelNooriNastaleeq.ttf');}</style>
+  <rect width="360" height="1280" fill="#F5F7F6"/>
+  <rect x="0" y="0" width="360" height="56" rx="0" fill="#00695C"/>
+  <text x="344" y="37" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="22" fill="#fff" text-anchor="end" font-weight="normal">نئی حاملہ خاتون کا اندراج</text>
+  <text x="20" y="36" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="22" fill="#fff" text-anchor="start" font-weight="normal">→</text>
+  <rect x="0" y="56" width="360" height="34" rx="0" fill="#616161"/>
+  <text x="344" y="79" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="15" fill="#fff" text-anchor="end" font-weight="normal">آف لائن: انٹرنیٹ ملنے پر ڈیٹا بھیج دیا جائے گا</text>
+  <text x="344" y="124" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="17" fill="#1F2933" text-anchor="end" font-weight="normal">نام</text>
+  <rect x="16" y="134" width="328" height="48" rx="10" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="344" y="206" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="17" fill="#1F2933" text-anchor="end" font-weight="normal">عمر</text>
+  <rect x="16" y="216" width="328" height="48" rx="10" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="30" y="247" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="18" fill="#1F2933" text-anchor="start" font-weight="normal">24</text>
+  <text x="344" y="288" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="17" fill="#1F2933" text-anchor="end" font-weight="normal">شوہر کا نام</text>
+  <rect x="16" y="298" width="328" height="48" rx="10" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="344" y="370" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="17" fill="#1F2933" text-anchor="end" font-weight="normal">رابطہ نمبر</text>
+  <rect x="16" y="380" width="328" height="48" rx="10" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="30" y="411" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="18" fill="#1F2933" text-anchor="start" font-weight="normal">0300 0000000</text>
+  <text x="344" y="452" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="17" fill="#1F2933" text-anchor="end" font-weight="normal">پتہ</text>
+  <rect x="16" y="462" width="328" height="48" rx="10" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="344" y="534" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="17" fill="#1F2933" text-anchor="end" font-weight="normal">گاؤں</text>
+  <rect x="16" y="544" width="328" height="48" rx="10" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="330" y="576" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="17" fill="#5F6B76" text-anchor="end" font-weight="normal">گاؤں منتخب کریں</text>
+  <text x="32" y="575" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="18" fill="#5F6B76" text-anchor="start" font-weight="normal">▾</text>
+  <text x="344" y="616" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="17" fill="#1F2933" text-anchor="end" font-weight="normal">حمل کا مہینہ</text>
+  <rect x="16" y="626" width="328" height="48" rx="10" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="330" y="658" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="17" fill="#5F6B76" text-anchor="end" font-weight="normal">4</text>
+  <text x="32" y="657" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="18" fill="#5F6B76" text-anchor="start" font-weight="normal">▾</text>
+  <text x="344" y="716" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="19" fill="#00695C" text-anchor="end" font-weight="bold">پچھلی تاریخ (حمل کی ہسٹری)</text>
+  <line x1="16" y1="726" x2="344" y2="726" stroke="#C9D3D6"/>
+  <text x="344" y="768" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="17" fill="#1F2933" text-anchor="end" font-weight="normal">پچھلے حمل</text>
+  <rect x="16" y="742" width="84" height="40" rx="8" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="58" y="768" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="18" fill="#1F2933" text-anchor="middle" font-weight="normal">2</text>
+  <text x="344" y="824" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="17" fill="#1F2933" text-anchor="end" font-weight="normal">آپریشن سے پیدائش (سی سیکشن)</text>
+  <rect x="16" y="798" width="84" height="40" rx="8" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="58" y="824" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="18" fill="#1F2933" text-anchor="middle" font-weight="normal">0</text>
+  <text x="344" y="880" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="17" fill="#1F2933" text-anchor="end" font-weight="normal">مردہ پیدائش</text>
+  <rect x="16" y="854" width="84" height="40" rx="8" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="58" y="880" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="18" fill="#1F2933" text-anchor="middle" font-weight="normal">0</text>
+  <text x="344" y="928" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="17" fill="#1F2933" text-anchor="end" font-weight="normal">معلوم بیماریاں</text>
+  <rect x="16" y="938" width="328" height="48" rx="10" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="344" y="1018" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="19" fill="#00695C" text-anchor="end" font-weight="bold">گھر کی جگہ</text>
+  <line x1="16" y1="1028" x2="344" y2="1028" stroke="#C9D3D6"/>
+  <rect x="16" y="1038" width="328" height="52" rx="10" fill="#E0F2F1" stroke="#00695C" stroke-width="1.5"/>
+  <text x="180.0" y="1072" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="18" fill="#00695C" text-anchor="middle" font-weight="normal">جی پی ایس لوکیشن لیں</text>
+  <rect x="16" y="1110" width="328" height="58" rx="12" fill="#00695C"/>
+  <text x="180.0" y="1148" font-family="'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif" font-size="20" fill="#fff" text-anchor="middle" font-weight="normal">محفوظ کریں</text>
+  <line x1="16" y1="1188" x2="344" y2="1188" stroke="#C9D3D6" stroke-dasharray="4 3"/>
+  <text x="16" y="1206" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#5F6B76" text-anchor="start" font-weight="normal">Scrolling form: one tall frame. Numbers (age, phone) stay LTR.</text>
+  <text x="16" y="1222" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#5F6B76" text-anchor="start" font-weight="normal">After save: Patient ID = LHW code + local counter (M2 FE-1),</text>
+  <text x="16" y="1238" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#5F6B76" text-anchor="start" font-weight="normal">saved on the phone and synced later. Decide: history as step 2?</text>
+</svg>

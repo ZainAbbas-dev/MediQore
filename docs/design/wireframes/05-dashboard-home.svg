@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <title>P0-7 wireframe 5: Dashboard home (Mockup 6 base; M10 FE-1)</title>
+  <style>@font-face{font-family:'Jameel Noori Nastaleeq';src:url('../../../mobile/assets/fonts/JameelNooriNastaleeq.ttf');}</style>
+  <rect width="1440" height="900" fill="#F5F7F6"/>
+  <rect x="0" y="0" width="220" height="900" rx="0" fill="#004D40"/>
+  <text x="24" y="44" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="22" fill="#fff" text-anchor="start" font-weight="bold">MediQore</text>
+  <rect x="12" y="70" width="196" height="36" rx="6" fill="#2E6B63"/>
+  <text x="24" y="94" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="15" fill="#E0F2F1" text-anchor="start" font-weight="normal">Dashboard</text>
+  <text x="24" y="138" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="15" fill="#E0F2F1" text-anchor="start" font-weight="normal">Admin</text>
+  <text x="24" y="182" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="15" fill="#E0F2F1" text-anchor="start" font-weight="normal">Audit log</text>
+  <text x="24" y="226" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="15" fill="#E0F2F1" text-anchor="start" font-weight="normal">Sync conflicts</text>
+  <text x="24" y="840" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#fff" text-anchor="start" font-weight="normal">Demo Supervisor</text>
+  <text x="24" y="862" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="13" fill="#B2DFDB" text-anchor="start" font-weight="normal">Sign out</text>
+  <text x="260" y="60" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="26" fill="#1F2933" text-anchor="start" font-weight="bold">Dashboard</text>
+  <rect x="260" y="90" width="270" height="96" rx="8" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="278" y="136" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="28" fill="#1F2933" text-anchor="start" font-weight="bold">128</text>
+  <text x="278" y="166" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#5F6B76" text-anchor="start" font-weight="normal">Registered patients</text>
+  <rect x="550" y="90" width="270" height="96" rx="8" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="568" y="136" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="28" fill="#1F2933" text-anchor="start" font-weight="bold">46</text>
+  <text x="568" y="166" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#5F6B76" text-anchor="start" font-weight="normal">Visits this week</text>
+  <rect x="840" y="90" width="270" height="96" rx="8" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="858" y="136" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="28" fill="#1F2933" text-anchor="start" font-weight="bold">12</text>
+  <text x="858" y="166" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#5F6B76" text-anchor="start" font-weight="normal">LHWs with visits this week</text>
+  <rect x="1130" y="90" width="270" height="96" rx="8" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="1148" y="136" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="28" fill="#1F2933" text-anchor="start" font-weight="bold">Today 09:12</text>
+  <text x="1148" y="166" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#5F6B76" text-anchor="start" font-weight="normal">Latest LHW login</text>
+  <rect x="260" y="212" width="180" height="36" rx="6" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="272" y="235" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#5F6B76" text-anchor="start" font-weight="normal">District</text>
+  <text x="426" y="235" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#5F6B76" text-anchor="end" font-weight="normal">▾</text>
+  <rect x="452" y="212" width="200" height="36" rx="6" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="464" y="235" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#5F6B76" text-anchor="start" font-weight="normal">Union Council</text>
+  <text x="638" y="235" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#5F6B76" text-anchor="end" font-weight="normal">▾</text>
+  <rect x="664" y="212" width="180" height="36" rx="6" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="676" y="235" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#5F6B76" text-anchor="start" font-weight="normal">LHW</text>
+  <text x="830" y="235" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#5F6B76" text-anchor="end" font-weight="normal">▾</text>
+  <rect x="856" y="212" width="180" height="36" rx="6" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="868" y="235" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#5F6B76" text-anchor="start" font-weight="normal">Last 7 days</text>
+  <text x="1022" y="235" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#5F6B76" text-anchor="end" font-weight="normal">▾</text>
+  <rect x="1260" y="212" width="140" height="36" rx="6" fill="#00695C"/>
+  <text x="1330" y="235" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#fff" text-anchor="middle" font-weight="normal">Reload</text>
+  <text x="1400" y="270" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="12" fill="#5F6B76" text-anchor="end" font-weight="normal">Auto-refresh every 5 minutes</text>
+  <rect x="260" y="280" width="1140" height="420" rx="8" fill="#E8EEEC" stroke="#C9D3D6" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="830" y="480" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="18" fill="#5F6B76" text-anchor="middle" font-weight="normal">Leaflet map: registered households (GPS from Module 2)</text>
+  <circle cx="700" cy="420" r="8" fill="none" stroke="#00695C" stroke-width="3"/>
+  <circle cx="760" cy="450" r="8" fill="none" stroke="#00695C" stroke-width="3"/>
+  <circle cx="720" cy="520" r="8" fill="none" stroke="#00695C" stroke-width="3"/>
+  <circle cx="980" cy="380" r="8" fill="none" stroke="#00695C" stroke-width="3"/>
+  <circle cx="1010" cy="410" r="8" fill="none" stroke="#00695C" stroke-width="3"/>
+  <text x="260" y="740" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="18" fill="#1F2933" text-anchor="start" font-weight="bold">LHW activity</text>
+  <rect x="260" y="756" width="1140" height="36" rx="0" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="276" y="779" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#5F6B76" text-anchor="start" font-weight="normal">LHW</text>
+  <text x="560" y="779" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#5F6B76" text-anchor="start" font-weight="normal">Area</text>
+  <text x="840" y="779" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#5F6B76" text-anchor="start" font-weight="normal">Visits this week</text>
+  <text x="1120" y="779" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#5F6B76" text-anchor="start" font-weight="normal">Last login</text>
+  <rect x="260" y="792" width="1140" height="36" rx="0" fill="#fff" stroke="#C9D3D6" stroke-width="1.5"/>
+  <text x="276" y="815" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#1F2933" text-anchor="start" font-weight="normal">Demo LHW</text>
+  <text x="560" y="815" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#1F2933" text-anchor="start" font-weight="normal">Demo Area 1</text>
+  <text x="840" y="815" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#1F2933" text-anchor="start" font-weight="normal">5</text>
+  <text x="1120" y="815" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="14" fill="#1F2933" text-anchor="start" font-weight="normal">Today 09:12</text>
+  <text x="260" y="880" font-family="'Segoe UI',Roboto,Arial,sans-serif" font-size="12" fill="#5F6B76" text-anchor="start" font-weight="normal">States: no data yet · loading · API unreachable.  Phase 2 adds: risk distribution, referral rate, alerts panel.</text>
+</svg>
