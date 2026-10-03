@@ -19,7 +19,8 @@ The app syncs with a central server whenever a connection is available. Supervis
 > - database schema v1 (P0-4);
 > - the portal skeleton (P0-5);
 > - the offline sync skeleton (P0-6);
-> - the Phase 1 screen spec and wireframes (P0-7).
+> - the Phase 1 screen spec and wireframes (P0-7);
+> - the synthetic data generator (P0-8).
 >
 > One test record now runs end to end: created on the phone, synced, stored in PostgreSQL and shown on the portal. The ML track is **coming soon**.
 >
@@ -31,7 +32,7 @@ The app syncs with a central server whenever a connection is available. Supervis
 |---|---|---|---|
 | LHW Android app (Modules 1–9) | [`mobile/`](mobile/) | Flutter 3.x, Drift + SQLCipher, ONNX Runtime | Urdu shell and widget kit (P0-2); local database, outbox and sync (P0-6) |
 | REST API | [`api/`](api/) | Node.js 20 + Express, JWT, Joi | Skeleton (P0-3); login and `/sync` push/pull (P0-6) |
-| Database | [`db/`](db/) | PostgreSQL 15 migrations and synthetic seed scripts | Schema v1 for all ten modules (P0-4); demo seed; full generator coming (P0-8) |
+| Database | [`db/`](db/) | PostgreSQL 15 migrations and synthetic seed scripts | Schema v1 for all ten modules (P0-4); demo seed; synthetic data generator (P0-8) |
 | Supervisor and admin portal (Module 10) | [`web/`](web/) | React 18 + Leaflet.js | Login, auth guard, sidebar layout, map dashboard (P0-5) |
 | ML pipeline and analytics worker | [`ml/`](ml/) | Python 3.11, scikit-learn, SHAP, sklearn2onnx | Coming soon (P0-10) |
 
@@ -88,9 +89,11 @@ Each part's `CLAUDE.md` lists its full set of commands.
   ```powershell
   cd db; npm install; Copy-Item .env.example .env   # set DATABASE_URL
   npm run migrate:up                                  # create or upgrade the schema
-  npm test                                            # schema checks
+  npm test                                            # schema and generator checks
+  npm run seed:synthetic                              # synthetic districts, LHWs, households, pregnancies and visits
   ```
-  Schema overview and design decisions: [docs/schema-v1.md](docs/schema-v1.md). The synthetic data generator (P0-8) is coming soon.
+  - Schema overview and design decisions: [docs/schema-v1.md](docs/schema-v1.md).
+  - The generator signs in as `syn.admin`, `syn.sup.01` or `syn.lhw.001` (password `demo-password`); `npm run seed:synthetic -- --help` lists the options.
 - **API (`api/`):**
   ```powershell
   cd api; npm install; Copy-Item .env.example .env

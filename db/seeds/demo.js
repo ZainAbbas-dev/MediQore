@@ -1,6 +1,6 @@
 // Minimal synthetic accounts for the Phase 0 end-to-end check (P0-6): one area,
 // an admin, a supervisor assigned to that area and one LHW in it. All names are
-// made up (LI-10). The full synthetic data generator is P0-8.
+// made up (LI-10). The full synthetic data set is seeds/synthetic (P0-8).
 //
 //   npm run seed:demo                      (uses DATABASE_URL from db/.env)
 //   DEMO_PASSWORD=... npm run seed:demo    (choose the demo password)

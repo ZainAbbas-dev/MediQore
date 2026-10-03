@@ -8,7 +8,8 @@
     "migrate:down": "node-pg-migrate down",
     "migrate:create": "node-pg-migrate create --migration-file-language sql",
     "test": "node --test",
-    "seed:demo": "node seeds/demo.js"
+    "seed:demo": "node seeds/demo.js",
+    "seed:synthetic": "node seeds/synthetic/index.js"
   },
   "engines": {
     "node": ">=20.19"
