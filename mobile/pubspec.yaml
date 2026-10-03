@@ -25,13 +25,9 @@ flutter:
   # Generates AppLocalizations from lib/l10n/*.arb (see l10n.yaml).
   generate: true
 
-  # Jameel Noori Nastaleeq (scope Tools table: bundled Urdu font).
-  # The font file is not in the repository yet. To bundle it:
-  #   1. copy the .ttf to assets/fonts/JameelNooriNastaleeq.ttf
-  #      (see assets/fonts/README.md);
-  #   2. uncomment the four lines below and run `flutter pub get`.
-  # Until then the app falls back to the phone's default Urdu font.
-  # fonts:
-  #   - family: JameelNooriNastaleeq
-  #     fonts:
-  #       - asset: assets/fonts/JameelNooriNastaleeq.ttf
+  # Jameel Noori Nastaleeq (scope Tools table: bundled Urdu font), used by
+  # AppTheme for all text. See assets/fonts/README.md.
+  fonts:
+    - family: JameelNooriNastaleeq
+      fonts:
+        - asset: assets/fonts/JameelNooriNastaleeq.ttf

@@ -1,10 +1,9 @@
 # Urdu font
 
-The scope bundles **Jameel Noori Nastaleeq** with the app for all Urdu text (Tools table; M3 FE-1). The font file is not in the repository yet. Add it like this:
+`JameelNooriNastaleeq.ttf` is the Jameel Noori Nastaleeq font that the scope bundles with the app for all Urdu text (Tools table; M3 FE-1). The team added it in P0-2.
 
-1. Check that its licence allows bundling the font in the app and publishing it in this public repository.
-2. Copy the file here as `JameelNooriNastaleeq.ttf` (that exact name).
-3. In `mobile/pubspec.yaml`, uncomment the `fonts:` block at the end of the `flutter:` section.
-4. Run `flutter pub get` and restart the app.
+- `pubspec.yaml` declares it as the font family `JameelNooriNastaleeq`.
+- `lib/theme/app_theme.dart` uses it as the app-wide font, with a taller line height for Nastaliq.
+- `test/app_test.dart` loads the real font in the small-phone overflow test, so the test measures real Nastaliq line heights.
 
-The theme already uses the family name `JameelNooriNastaleeq` (`lib/theme/app_theme.dart`). Until the file is added, Android falls back to the phone's default Urdu font.
+Keep the file name unchanged. If the font is ever replaced, re-run `flutter test` and check every screen on a small phone.

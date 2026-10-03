@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mediqore/app.dart';
 import 'package:mediqore/screens/widget_kit_screen.dart';
@@ -31,6 +32,13 @@ void main() {
   });
 
   testWidgets('widget kit fits a small phone without overflow', (tester) async {
+    // Use the real Nastaliq font so the test sees its tall glyphs.
+    await tester.runAsync(() async {
+      final font = FontLoader(AppTheme.urduFontFamily)
+        ..addFont(rootBundle.load('assets/fonts/JameelNooriNastaleeq.ttf'));
+      await font.load();
+    });
+
     // 320 x 640 logical pixels: a small, low-cost Android phone.
     tester.view.physicalSize = const Size(640, 1280);
     tester.view.devicePixelRatio = 2;

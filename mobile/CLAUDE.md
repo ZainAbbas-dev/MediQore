@@ -50,7 +50,7 @@ From the roadmap:
   - `RiskChip` with `RiskLevel`
   - `OfflineStatusBar`
 - `lib/screens/widget_kit_screen.dart`: the P0-2 preview screen. The Phase 1 login screen replaces it as home.
-- `assets/fonts/`: Jameel Noori Nastaleeq goes here (see its README); the `fonts:` block in `pubspec.yaml` stays commented out until the file is added.
+- `assets/fonts/JameelNooriNastaleeq.ttf`: the bundled Urdu font, declared in `pubspec.yaml` as family `JameelNooriNastaleeq`.
 - `test/`: widget tests. `test/helpers.dart` wraps a widget in the app theme and the Urdu locale.
 
 ## Commands
