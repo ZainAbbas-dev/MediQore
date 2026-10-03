@@ -1,0 +1,97 @@
+# ---------------------------------------------------------------------------
+# Secrets and environment files: NEVER commit these (see CLAUDE.md).
+# Each part keeps a committed .env.example that lists the variables it needs.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+*.env
+!.env.example
+
+# Keys, certificates and signing material
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+key.properties
+
+# Firebase / Google service credentials (FCM, Phase 2)
+google-services.json
+GoogleService-Info.plist
+*firebase-adminsdk*.json
+service-account*.json
+
+# ---------------------------------------------------------------------------
+# Node.js (api/, web/)
+# ---------------------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+.eslintcache
+*.tsbuildinfo
+coverage/
+dist/
+build/
+.vite/
+
+# ---------------------------------------------------------------------------
+# Python (ml/)
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.coverage
+htmlcov/
+
+# ---------------------------------------------------------------------------
+# Flutter / Dart (mobile/)
+# ---------------------------------------------------------------------------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+**/android/.gradle/
+**/android/captures/
+**/android/local.properties
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+*.apk
+*.aab
+
+# ---------------------------------------------------------------------------
+# IDEs and editors (VS Code is the team IDE; shared settings may be committed)
+# ---------------------------------------------------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+.idea/
+*.iml
+*.swp
+*~
+
+# ---------------------------------------------------------------------------
+# Operating systems
+# ---------------------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Logs
+*.log
+logs/

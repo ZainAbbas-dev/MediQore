@@ -1,0 +1,22 @@
+# Both team members work on Windows: store text files with LF line endings in the repo
+# so CI (Linux) and .editorconfig agree, whatever core.autocrlf is set to locally.
+* text=auto eol=lf
+
+# Windows scripts (for example the Gradle wrapper gradlew.bat) must keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files: never touch line endings or try to diff them.
+*.pdf binary
+*.docx binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.onnx binary
+*.jar binary
