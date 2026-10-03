@@ -1,0 +1,98 @@
+openapi: 3.1.0
+info:
+  title: MediQore REST API
+  version: 0.1.0
+  description: |
+    REST API for the MediQore LHW app and the supervisor/admin portal (roadmap P0-3, M1 FE-2).
+
+    Conventions (see CLAUDE.md):
+    - Every route is under `/api/v1` and exchanges JSON.
+    - Every request body is validated with Joi before any database call.
+    - Errors always use the `Error` shape below.
+    - Authentication is a JWT access token plus a refresh token (M1 FE-2, Phase 1). Every route
+      requires it by default; public routes such as /health set `security: []`.
+
+    Document every new route here in the same pull request that adds it.
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local development
+# Routes need a JWT unless they say otherwise (security: [] marks a public route).
+security:
+  - bearerAuth: []
+tags:
+  - name: System
+    description: Service health
+paths:
+  /health:
+    get:
+      tags: [System]
+      summary: API liveness check
+      operationId: getHealth
+      security: []
+      responses:
+        '200':
+          description: The API process is running.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        default:
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    Error:
+      description: Error response in the standard shape.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Health:
+      type: object
+      required: [status, service, version, uptimeSeconds]
+      properties:
+        status:
+          type: string
+          const: ok
+        service:
+          type: string
+          example: mediqore-api
+        version:
+          type: string
+          example: 0.1.0
+        uptimeSeconds:
+          type: integer
+          minimum: 0
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Stable machine-readable code.
+              enum: [VALIDATION_ERROR, INVALID_JSON, PAYLOAD_TOO_LARGE, NOT_FOUND, INTERNAL_ERROR]
+            message:
+              type: string
+            details:
+              type: array
+              description: Present for VALIDATION_ERROR, one entry per problem.
+              items:
+                type: object
+                required: [in, path, message]
+                properties:
+                  in:
+                    type: string
+                    enum: [params, query, body]
+                  path:
+                    type: string
+                  message:
+                    type: string

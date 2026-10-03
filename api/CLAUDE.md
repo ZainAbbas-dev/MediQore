@@ -25,6 +25,30 @@ From the roadmap:
 - Parameterised SQL only. Hash passwords with bcrypt.
 - Assign `server_seq` on accept and never trust device clocks. Soft deletes only. Write an audit row for every create, edit, delete, referral, alert and login.
 
+## Layout
+
+- `src/app.js` builds the Express app. `src/server.js` starts it.
+- Each request flows route → controller → service:
+  - `src/routes/<name>.routes.js` holds the paths and the `validate(...)` call. Mount it in `src/routes/index.js`.
+  - `src/controllers/` reads `req` and writes `res`. Keep controllers thin.
+  - `src/services/` holds the business logic and database calls.
+- `src/middleware/`:
+  - `validate.js`: Joi middleware. It replaces `req.body`, `req.query` and `req.params` with the validated values, or answers 400 `VALIDATION_ERROR`.
+  - `error-handler.js`: 404 and the central error handler. Throw `AppError(status, code, message, details)` from `src/utils/app-error.js` for expected errors; anything else becomes a generic 500.
+  - `request-logger.js`: one JSON log line per request, path only (no query string or body).
+- Error shape: `{ "error": { "code", "message", "details"? } }`.
+- `docs/openapi.yaml` is the API contract. Update it in the same pull request as any route change.
+- `tests/` holds the Jest + Supertest tests. Import `createApp()`; never start a real server in tests.
+
 ## Commands
 
-<!-- Fill in when P0-3 creates the project. -->
+Run from `api/`:
+
+```powershell
+npm install                     # first time (CI uses npm ci with package-lock.json)
+Copy-Item .env.example .env     # then edit values
+npm run dev                     # start with auto-reload at http://localhost:3000/api/v1
+npm start                       # start without reload
+npm run lint                    # ESLint
+npm test                        # Jest + Supertest
+```
