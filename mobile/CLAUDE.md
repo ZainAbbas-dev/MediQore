@@ -65,11 +65,16 @@ From the roadmap:
   - `dev_home_screen.dart`: the Phase 0 home.
   - `widget_kit_screen.dart`: the P0-2 kit preview.
   - `sync_test_screen.dart`: the P0-6 end-to-end check (sign in as an LHW, create a synthetic household offline, sync).
+  - `voice_check_screen.dart`: the P0-11 Urdu voice check (flutter_tts).
+    - It reports whether the phone's text-to-speech supports Urdu offline and speaks a sample label.
+    - Results go in `docs/decisions/0004-urdu-voice-source.md`.
 - `android/app/src/debug/AndroidManifest.xml` allows plain HTTP to a development server in debug builds only; release builds are HTTPS-only.
+- `android/app/src/main/AndroidManifest.xml` declares the `TTS_SERVICE` query, so flutter_tts can find the phone's text-to-speech engines on Android 11 and later.
 - `assets/fonts/JameelNooriNastaleeq.ttf`: the bundled Urdu font, declared in `pubspec.yaml` as family `JameelNooriNastaleeq`.
 - `test/`: unit and widget tests.
   - `test/helpers.dart` wraps a widget in the app theme and the Urdu locale.
   - `test/support/fake_sync_server.dart` imitates the API's `/auth` and `/sync` endpoints.
+  - Plugins are faked at their method channel, for example the `flutter_tts` channel in `test/screens/voice_check_screen_test.dart`.
 
 ## Commands
 

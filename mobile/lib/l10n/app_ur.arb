@@ -37,5 +37,21 @@
   "localHouseholdCount": "{count, plural, =1{اس فون پر 1 گھرانہ} other{اس فون پر {count} گھرانے}}",
   "lastServerSeq": "سرور کا آخری نمبر: {seq}",
   "householdWaiting": "سنک کا انتظار ہے",
-  "householdSynced": "سرور نمبر {seq}"
+  "householdSynced": "سرور نمبر {seq}",
+  "voiceCheckTitle": "اردو آواز کی جانچ",
+  "voiceCheckIntro": "یہ جانچ دیکھتی ہے کہ کیا یہ فون اردو لیبل بول کر سنا سکتا ہے۔ نتائج فون کے ماڈل اور اینڈرائیڈ ورژن کے ساتھ لکھ لیں۔",
+  "voiceCheckLanguageAvailable": "آواز کا انجن اردو (ur-PK) کو سپورٹ کرتا ہے",
+  "voiceCheckLanguageInstalled": "اردو آواز کا ڈیٹا فون پر موجود ہے (آف لائن چلتا ہے)",
+  "voiceCheckUrduVoices": "اردو آوازیں",
+  "voiceCheckDefaultEngine": "بنیادی آواز کا انجن",
+  "voiceCheckEngines": "فون پر موجود آواز کے انجن",
+  "voiceCheckYes": "ہاں",
+  "voiceCheckNo": "نہیں",
+  "voiceCheckUnknown": "معلوم نہیں",
+  "voiceCheckNone": "کوئی نہیں",
+  "voiceCheckSpeak": "نمونے کا لیبل سنائیں",
+  "voiceCheckSpoken": "نمونہ آواز کے انجن کو بھیج دیا گیا۔ کیا آپ نے صاف اردو سنی؟",
+  "voiceCheckSpeakFailed": "آواز کا انجن نمونہ نہیں سنا سکا۔",
+  "voiceCheckAgain": "دوبارہ جانچیں",
+  "voiceCheckError": "آواز کی جانچ ناکام ہو گئی: {reason}"
 }

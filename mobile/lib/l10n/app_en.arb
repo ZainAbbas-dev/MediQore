@@ -199,5 +199,74 @@
         "type": "int"
       }
     }
+  },
+  "voiceCheckTitle": "Urdu voice check",
+  "@voiceCheckTitle": {
+    "description": "Title of the Phase 0 screen that checks the phone's Urdu text-to-speech (P0-11)."
+  },
+  "voiceCheckIntro": "Checks whether this phone can read Urdu labels aloud. Note the results with the phone model and Android version.",
+  "@voiceCheckIntro": {
+    "description": "Explanation at the top of the voice check screen."
+  },
+  "voiceCheckLanguageAvailable": "Voice engine supports Urdu (ur-PK)",
+  "@voiceCheckLanguageAvailable": {
+    "description": "Voice check result: whether the text-to-speech engine supports Urdu."
+  },
+  "voiceCheckLanguageInstalled": "Urdu voice data is on the phone (works offline)",
+  "@voiceCheckLanguageInstalled": {
+    "description": "Voice check result: whether the Urdu voice data is installed, so it works without internet."
+  },
+  "voiceCheckUrduVoices": "Urdu voices",
+  "@voiceCheckUrduVoices": {
+    "description": "Voice check heading for the list of Urdu voices on the phone."
+  },
+  "voiceCheckDefaultEngine": "Default voice engine",
+  "@voiceCheckDefaultEngine": {
+    "description": "Voice check heading for the phone's default text-to-speech engine."
+  },
+  "voiceCheckEngines": "Voice engines on the phone",
+  "@voiceCheckEngines": {
+    "description": "Voice check heading for the list of installed text-to-speech engines."
+  },
+  "voiceCheckYes": "Yes",
+  "@voiceCheckYes": {
+    "description": "Voice check answer: yes."
+  },
+  "voiceCheckNo": "No",
+  "@voiceCheckNo": {
+    "description": "Voice check answer: no."
+  },
+  "voiceCheckUnknown": "Unknown",
+  "@voiceCheckUnknown": {
+    "description": "Voice check answer when the phone does not report a value."
+  },
+  "voiceCheckNone": "None",
+  "@voiceCheckNone": {
+    "description": "Voice check: shown when a list is empty."
+  },
+  "voiceCheckSpeak": "Speak a sample label",
+  "@voiceCheckSpeak": {
+    "description": "Button that reads a field label aloud in Urdu."
+  },
+  "voiceCheckSpoken": "Sample sent to the voice engine. Did you hear clear Urdu?",
+  "@voiceCheckSpoken": {
+    "description": "Shown after the sample label was sent to the voice engine."
+  },
+  "voiceCheckSpeakFailed": "The voice engine could not speak the sample.",
+  "@voiceCheckSpeakFailed": {
+    "description": "Shown when the voice engine refused to speak the sample."
+  },
+  "voiceCheckAgain": "Check again",
+  "@voiceCheckAgain": {
+    "description": "Button that repeats the voice check, for example after installing a voice."
+  },
+  "voiceCheckError": "Voice check failed: {reason}",
+  "@voiceCheckError": {
+    "description": "Shown when the voice engine could not be asked.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
   }
 }
