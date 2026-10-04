@@ -1,7 +1,7 @@
 const { randomUUID } = require('node:crypto');
 const request = require('supertest');
 const { createApp } = require('../src/app');
-const { describeDb, resetDatabase, createFixtures, tokenFor, closePool, query } = require('./db');
+const { describeDb, resetDatabase, createFixtures, tokenFor, closePool, query, PASSWORD } = require('./db');
 
 const app = createApp();
 
@@ -210,6 +210,21 @@ describeDb('Module 2: registration records through sync, and the portal list', (
       const res = await list(lhwA);
 
       expect(res.status).toBe(403);
+    });
+  });
+
+  describe('patient numbers at sign-in (M2 FE-1)', () => {
+    it("tells the app the LHW's highest patient number, so a new phone continues after it", async () => {
+      await pushA(registration({ code: 'LHW-A-0041' }).all);
+      await pushA(registration({ code: 'LHW-AX-0099' }).all); // another code that starts the same way
+      await pushA(registration({ code: 'LHW-A-X7' }).all); // not a number
+
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ username: 'lhw.a', password: PASSWORD, deviceId: ids.deviceA });
+
+      expect(res.status).toBe(200);
+      expect(res.body.user.lastPatientNumber).toBe(41);
     });
   });
 });

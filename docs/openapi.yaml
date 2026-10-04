@@ -736,6 +736,12 @@ components:
           description: LHWs only. The app resets its local area data when this changes.
         areaName:
           type: string
+        lastPatientNumber:
+          type: integer
+          minimum: 0
+          description: |
+            LHWs only. The highest number already used in a patient ID with this LHW code (M2 FE-1),
+            0 if none. The app's patient counter continues after it, so a new phone never reuses an ID.
 
     OtpRequired:
       type: object
