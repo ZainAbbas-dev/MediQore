@@ -52,14 +52,18 @@ void main() {
       expect(controller.text, '120');
     });
 
-    testWidgets('accepts one decimal point when allowed', (tester) async {
+    testWidgets('accepts a decimal point and up to the allowed decimals', (tester) async {
       final controller = TextEditingController();
       addTearDown(controller.dispose);
       await tester.pumpWidget(
-        wrapInApp(VitalField(label: 'T', unit: '°C', allowDecimal: true, controller: controller)),
+        wrapInApp(VitalField(label: 'T', unit: '°C', decimals: 1, controller: controller)),
       );
 
       await tester.enterText(find.byType(TextField), '37.5');
+      expect(controller.text, '37.5');
+      await tester.enterText(find.byType(TextField), '37.55');
+      expect(controller.text, '37.5', reason: 'a second decimal is not typed');
+      await tester.enterText(find.byType(TextField), '37.5.1');
       expect(controller.text, '37.5');
     });
   });

@@ -40,6 +40,10 @@ flutter:
   # Generates AppLocalizations from lib/l10n/*.arb (see l10n.yaml).
   generate: true
 
+  # Versioned clinical config (CLAUDE.md: clinical rules live in JSON config).
+  assets:
+    - assets/clinical/
+
   # Jameel Noori Nastaleeq (scope Tools table: bundled Urdu font), used by
   # AppTheme for all text. See assets/fonts/README.md.
   fonts:

@@ -13,11 +13,9 @@
 // A new password means a new key: the old database cannot be read any more and
 // is replaced by an empty one, filled again from the server.
 import 'dart:async';
-import 'dart:io';
 
 import 'package:drift/drift.dart' show TableUpdateQuery;
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 
 import '../data/app_database.dart';
 import '../data/database_opener.dart';
@@ -127,7 +125,7 @@ class Session extends ChangeNotifier {
       if (error.statusCode >= 500) return _signInOffline(local, username, password);
       return await _resultFor(error, local);
     } on Object catch (error) {
-      if (_isNetworkError(error)) return _signInOffline(local, username, password);
+      if (isNetworkError(error)) return _signInOffline(local, username, password);
       rethrow;
     }
   }
@@ -152,7 +150,7 @@ class Session extends ChangeNotifier {
         _ => await _resultFor(error, LocalAccount.read(_settings.store)),
       };
     } on Object catch (error) {
-      if (_isNetworkError(error)) return SignInResult.needsInternet;
+      if (isNetworkError(error)) return SignInResult.needsInternet;
       rethrow;
     }
   }
@@ -163,11 +161,15 @@ class Session extends ChangeNotifier {
   }
 
   /// Pushes and pulls with the session's tokens, refreshing them if needed.
-  Future<SyncReport> sync() => _withToken((token) {
+  /// A sync that starts while another is running joins it, so the refresh
+  /// token is never used twice (automatic sync, M3 FE-2, and the Sync button).
+  Future<SyncReport> sync() => _syncing ??= _withToken((token) {
         final data = _data;
         if (data == null) throw NeedsOnlineSignIn();
         return data.sync.syncNow(token);
-      });
+      }).whenComplete(() => _syncing = null);
+
+  Future<SyncReport>? _syncing;
 
   /// Forgets the tokens and the key and closes the database; the LHW signs in
   /// again to continue.
@@ -302,7 +304,7 @@ class Session extends ChangeNotifier {
         }
         await data.sync.pull(tokens.accessToken);
       } on Object catch (error) {
-        if (!_isNetworkError(error) && error is! ApiException) rethrow;
+        if (!isNetworkError(error) && error is! ApiException) rethrow;
         // Signed in anyway; the next sync downloads the rest.
       } finally {
         _downloading = false;
@@ -385,7 +387,4 @@ class Session extends ChangeNotifier {
     _refreshToken = tokens.refreshToken;
     return action(tokens.accessToken);
   }
-
-  static bool _isNetworkError(Object error) =>
-      error is SocketException || error is http.ClientException || error is TimeoutException || error is HandshakeException;
 }

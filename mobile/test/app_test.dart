@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mediqore/app.dart';
 import 'package:mediqore/app_services.dart';
+import 'package:mediqore/clinical/visit_ranges.dart';
 import 'package:mediqore/data/app_database.dart';
 import 'package:mediqore/data/patient_repository.dart';
+import 'package:mediqore/data/visit_repository.dart';
 import 'package:mediqore/l10n/app_localizations.dart';
 import 'package:mediqore/screens/dev_home_screen.dart';
 import 'package:mediqore/screens/home_screen.dart';
@@ -15,6 +17,7 @@ import 'package:mediqore/screens/patient_list_screen.dart';
 import 'package:mediqore/screens/register_screen.dart';
 import 'package:mediqore/screens/registration_saved_screen.dart';
 import 'package:mediqore/screens/sync_test_screen.dart';
+import 'package:mediqore/screens/visit_screen.dart';
 import 'package:mediqore/screens/widget_kit_screen.dart';
 import 'package:mediqore/settings/app_settings.dart';
 import 'package:mediqore/theme/app_theme.dart';
@@ -226,6 +229,92 @@ void main() {
         await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
         await tester.pumpAndSettle();
         await scrollToEnd(tester);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('the visit form fits, with errors and the range check dialog ($language)', (tester) async {
+        final l10n = lookupAppLocalizations(english ? AppSettings.english : AppSettings.urdu);
+        final woman = (await tester.runAsync(registerLongNames))!;
+        final file = (await tester.runAsync(() => services.patients.file(woman.id)))!;
+        final ranges = (await tester.runAsync(VisitRanges.load))!;
+        await pumpScreen(
+          tester,
+          VisitScreen(
+            services: services,
+            pregnancyId: file.pregnancy!.id,
+            title: '${woman.name} · ${woman.patientCode}',
+            ranges: ranges,
+          ),
+          english: english,
+        );
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+        await tester.pumpAndSettle();
+
+        // The keyboard closed, so no field scrolls itself back into view.
+        Future<void> tapSave() async {
+          await tester.pumpAndSettle();
+          FocusManager.instance.primaryFocus?.unfocus();
+          await tester.pumpAndSettle();
+          await tester.ensureVisible(find.text(l10n.visitSaveButton));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(l10n.visitSaveButton));
+          await tester.pumpAndSettle();
+        }
+
+        // Every vital refused at once: the longest error under each field.
+        for (final (index, text) in ['999', '999', '999', '99', '999', '99'].indexed) {
+          final field = find.byType(TextFormField).at(index);
+          await tester.ensureVisible(field);
+          await tester.enterText(field, text);
+        }
+        await tapSave();
+        expect(find.text(l10n.regErrorFix), findsOneWidget);
+        expect(tester.takeException(), isNull);
+
+        // Every vital unusual at once: the longest dialog.
+        for (final (index, text) in ['290', '190', '240', '43.5', '240', '45'].indexed) {
+          final field = find.byType(TextFormField).at(index);
+          await tester.ensureVisible(field);
+          await tester.enterText(field, text);
+        }
+        await tapSave();
+        expect(find.text(l10n.rangeCheckTitle), findsOneWidget);
+        await tester.drag(find.byType(Scrollable).last, const Offset(0, -3000));
+        await tester.pumpAndSettle();
+        expect(find.text(l10n.rangeCheckConfirm), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('the patient file with visits fits ($language)', (tester) async {
+        final woman = (await tester.runAsync(registerLongNames))!;
+        await tester.runAsync(() async {
+          final pregnancy = (await services.patients.file(woman.id))!.pregnancy!;
+          for (final systolic in [118, 165]) {
+            await services.visits.record(
+              VisitInput(
+                pregnancyId: pregnancy.id,
+                systolicBpMmhg: systolic,
+                diastolicBpMmhg: 112,
+                weightKg: 72.5,
+                temperatureC: 38.4,
+                pulseBpm: 124,
+                bloodSugarMmolL: 11.2,
+                fetalMovement: 'absent',
+                swelling: true,
+                bleeding: true,
+                fever: true,
+                anaemiaSigns: 'severe',
+                urineSymptoms: true,
+              ),
+              by: services.session.user!,
+            );
+          }
+        });
+        await pumpScreen(tester, PatientFileScreen(services: services, womanId: woman.id), english: english);
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+        await tester.pumpAndSettle();
+        await scrollToEnd(tester);
+        expect(find.textContaining('/112 '), findsWidgets);
         expect(tester.takeException(), isNull);
       });
 

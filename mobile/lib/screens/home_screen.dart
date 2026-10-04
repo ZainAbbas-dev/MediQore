@@ -1,20 +1,18 @@
 // M1 FE-2, FE-4: the first screen after sign-in (P0-7 screen 2). It shows who
 // is signed in and the sync status, opens registration and the patient list
-// (M2), and holds the language switch, lock and sign-out. M3 adds visits.
-import 'dart:async';
-import 'dart:io';
-
+// (M2), and holds the settings, lock and sign-out.
+// M3 FE-2: records also sync on their own while online (AutoSync); the status
+// bar follows. M3 FE-3: the voice guidance mute toggle is in the settings.
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 import '../app_services.dart';
-import '../auth/session.dart';
 import '../l10n/app_localizations.dart';
-import '../sync/sync_api.dart';
+import '../sync/auto_sync.dart';
 import '../widgets/language_switch.dart';
 import '../widgets/large_button.dart';
 import '../widgets/offline_status_bar.dart';
+import '../widgets/voice_setting.dart';
 import 'dev_home_screen.dart';
 import 'patient_list_screen.dart';
 import 'register_screen.dart';
@@ -40,7 +38,23 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _online = _services.session.isOnlineSession;
+    _online = _services.autoSync.online ?? _services.session.isOnlineSession;
+    _services.autoSync.addListener(_onAutoSync);
+    _refreshPending();
+  }
+
+  @override
+  void dispose() {
+    _services.autoSync.removeListener(_onAutoSync);
+    super.dispose();
+  }
+
+  // An automatic sync ran (M3 FE-2): show whether the server was reached and
+  // what is still waiting.
+  void _onAutoSync() {
+    if (!mounted) return;
+    final online = _services.autoSync.online;
+    if (online != null) setState(() => _online = online);
     _refreshPending();
   }
 
@@ -65,19 +79,23 @@ class _HomeScreenState extends State<HomeScreen> {
       _needsSignIn = false;
     });
     try {
-      final report = await _services.session.sync();
-      _online = true;
-      _message = l10n.syncResult(report.pushed, report.pulled, report.rejected);
-    } on NeedsOnlineSignIn {
-      _needsSignIn = true;
-      _message = l10n.homeSyncNeedsSignIn;
-    } on ApiException catch (error) {
-      if (error.code == 'ACCOUNT_INACTIVE') return; // the session is locked; the login screen explains
-      _message = l10n.syncFailed(error.code);
-    } on Object catch (error) {
-      if (error is! SocketException && error is! http.ClientException && error is! TimeoutException) rethrow;
-      _online = false;
-      _message = l10n.homeSyncOffline;
+      final outcome = await _services.autoSync.run();
+      switch (outcome.problem) {
+        case null:
+          final report = outcome.report!;
+          _message = [
+            l10n.syncResult(report.pushed, report.pulled, report.rejected),
+            if (report.held > 0) l10n.syncResultHeld(report.held),
+          ].join('\n');
+        case SyncProblem.needsSignIn:
+          _needsSignIn = true;
+          _message = l10n.homeSyncNeedsSignIn;
+        case SyncProblem.offline:
+          _message = l10n.homeSyncOffline;
+        case SyncProblem.failed:
+          if (outcome.errorCode == 'ACCOUNT_INACTIVE') return; // the session is locked; the login screen explains
+          _message = l10n.syncFailed(outcome.errorCode ?? '');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
       await _refreshPending();
@@ -126,6 +144,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     secondary: true,
                     onPressed: () => _open(PatientListScreen(services: _services)),
                   ),
+                  const SizedBox(height: 4),
+                  // M3 FE-1: a visit starts from the woman's file.
+                  Text(l10n.homeVisitHint, style: Theme.of(context).textTheme.bodyMedium),
                   const SizedBox(height: 12),
                 ],
                 LargeButton(label: l10n.syncNowButton, icon: Icons.sync, onPressed: _busy ? null : () => _sync(l10n)),
@@ -143,7 +164,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
                 const SizedBox(height: 24),
+                Text(l10n.homeSettingsSection, style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 8),
                 LanguageSwitch(settings: _services.settings),
+                if (user.lhwCode != null) ...[
+                  const SizedBox(height: 16),
+                  VoiceSetting(guidance: _services.voice),
+                ],
                 const SizedBox(height: 24),
                 LargeButton(label: l10n.homeLockButton, icon: Icons.lock, secondary: true, onPressed: () => session.lock(null)),
                 const SizedBox(height: 12),

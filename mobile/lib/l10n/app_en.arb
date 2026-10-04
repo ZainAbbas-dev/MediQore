@@ -711,5 +711,199 @@
   "homeLostUnsynced": "Your password was changed. Records on this phone that had not been synced could not be opened with the new password. Records already on the server have been downloaded again.",
   "@homeLostUnsynced": {
     "description": "Shown after an online sign-in with a new password when unsynced records under the old key were lost (LI-8)."
+  },
+  "visitTitle": "New visit",
+  "@visitTitle": {
+    "description": "Title of the visit form (M3 FE-1)."
+  },
+  "visitVitalsSection": "Measurements",
+  "@visitVitalsSection": {
+    "description": "Visit form section: vital signs."
+  },
+  "visitSymptomsSection": "Signs and symptoms",
+  "@visitSymptomsSection": {
+    "description": "Visit form section: symptoms."
+  },
+  "fieldDiastolicBp": "Diastolic BP",
+  "@fieldDiastolicBp": {
+    "description": "Visit field: diastolic blood pressure (the lower number)."
+  },
+  "fieldWeight": "Weight",
+  "@fieldWeight": {
+    "description": "Visit field: weight."
+  },
+  "fieldTemperature": "Temperature",
+  "@fieldTemperature": {
+    "description": "Visit field: body temperature."
+  },
+  "fieldPulse": "Pulse",
+  "@fieldPulse": {
+    "description": "Visit field: pulse (heart rate)."
+  },
+  "fieldBloodSugar": "Blood sugar (if tested)",
+  "@fieldBloodSugar": {
+    "description": "Visit field: blood sugar, optional."
+  },
+  "fieldSwelling": "Swelling",
+  "@fieldSwelling": {
+    "description": "Visit symptom checkbox."
+  },
+  "fieldFever": "Fever",
+  "@fieldFever": {
+    "description": "Visit symptom checkbox."
+  },
+  "fieldAnaemia": "Signs of anaemia",
+  "@fieldAnaemia": {
+    "description": "Visit field: anaemia signs (dropdown)."
+  },
+  "anaemiaNone": "None",
+  "@anaemiaNone": {
+    "description": "Anaemia signs option."
+  },
+  "anaemiaPresent": "Present",
+  "@anaemiaPresent": {
+    "description": "Anaemia signs option."
+  },
+  "anaemiaSevere": "Severe",
+  "@anaemiaSevere": {
+    "description": "Anaemia signs option."
+  },
+  "fieldUrineSymptoms": "Urine problems",
+  "@fieldUrineSymptoms": {
+    "description": "Visit symptom checkbox: urine symptoms."
+  },
+  "unitKg": "kg",
+  "@unitKg": {
+    "description": "Unit of weight; kept in Latin letters in both languages."
+  },
+  "unitCelsius": "°C",
+  "@unitCelsius": {
+    "description": "Unit of temperature."
+  },
+  "unitPerMinute": "/min",
+  "@unitPerMinute": {
+    "description": "Unit of pulse: beats per minute."
+  },
+  "unitMmolL": "mmol/L",
+  "@unitMmolL": {
+    "description": "Unit of blood sugar."
+  },
+  "visitErrorNotPossible": "Not possible. Enter a value from {min} to {max}",
+  "@visitErrorNotPossible": {
+    "description": "Validation: the value is outside what the server accepts (impossible values).",
+    "placeholders": {
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "visitErrorDiastolic": "Must be lower than the upper BP",
+  "@visitErrorDiastolic": {
+    "description": "Validation: diastolic BP must be lower than systolic BP."
+  },
+  "visitSaveButton": "Save visit",
+  "@visitSaveButton": {
+    "description": "Button that saves the visit."
+  },
+  "visitSaved": "Visit saved on this phone. It will be sent to the server at the next sync.",
+  "@visitSaved": {
+    "description": "Shown after a visit is saved offline."
+  },
+  "rangeCheckTitle": "Check these values",
+  "@rangeCheckTitle": {
+    "description": "Title of the dialog shown when values are outside the usual range."
+  },
+  "rangeCheckIntro": "These values are outside the usual range. Is this what you measured?",
+  "@rangeCheckIntro": {
+    "description": "Text of the range check dialog."
+  },
+  "rangeCheckUsual": "Usual range",
+  "@rangeCheckUsual": {
+    "description": "Label before the usual range of a value in the range check dialog."
+  },
+  "rangeCheckCorrect": "Correct them",
+  "@rangeCheckCorrect": {
+    "description": "Range check dialog: go back and correct the values."
+  },
+  "rangeCheckConfirm": "Yes, save",
+  "@rangeCheckConfirm": {
+    "description": "Range check dialog: the values are right, save the visit."
+  },
+  "fileVisitsSection": "Visits",
+  "@fileVisitsSection": {
+    "description": "Patient file section listing the visits."
+  },
+  "fileNoVisits": "No visits yet",
+  "@fileNoVisits": {
+    "description": "Shown in the patient file when no visit is recorded."
+  },
+  "fileNewVisitButton": "New visit",
+  "@fileNewVisitButton": {
+    "description": "Button in the patient file that opens the visit form."
+  },
+  "visitBloodPressure": "Blood pressure",
+  "@visitBloodPressure": {
+    "description": "Visit summary label: blood pressure (systolic/diastolic)."
+  },
+  "visitSigns": "Signs",
+  "@visitSigns": {
+    "description": "Visit summary label: the symptoms recorded."
+  },
+  "visitNoSigns": "None recorded",
+  "@visitNoSigns": {
+    "description": "Visit summary: no symptom was recorded."
+  },
+  "listSeparator": ", ",
+  "@listSeparator": {
+    "description": "Separator between items of a list, for example symptoms."
+  },
+  "syncHeld": "Waiting for the supervisor: another visit was recorded the same day",
+  "@syncHeld": {
+    "description": "A visit the server held for supervisor review (M3 FE-2)."
+  },
+  "syncResultHeld": "{count, plural, =1{1 visit is waiting for the supervisor, because another visit was recorded the same day.} other{{count} visits are waiting for the supervisor, because other visits were recorded the same day.}}",
+  "@syncResultHeld": {
+    "description": "After a sync: visits held for supervisor review (M3 FE-2).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "compact"
+      }
+    }
+  },
+  "voiceReadingAloud": "Read aloud",
+  "@voiceReadingAloud": {
+    "description": "Screen reader label of the speaker shown on the field whose label is read aloud."
+  },
+  "voiceGuidanceLabel": "Voice guidance",
+  "@voiceGuidanceLabel": {
+    "description": "Settings: voice guidance switch."
+  },
+  "voiceGuidanceHint": "Reads the name of each field aloud on the visit form",
+  "@voiceGuidanceHint": {
+    "description": "Settings: explanation under the voice guidance switch."
+  },
+  "voiceMute": "Mute voice guidance",
+  "@voiceMute": {
+    "description": "Tooltip of the visit form button that mutes voice guidance."
+  },
+  "voiceUnmute": "Turn voice guidance on",
+  "@voiceUnmute": {
+    "description": "Tooltip of the visit form button that turns voice guidance on."
+  },
+  "voiceNoUrduVoice": "This phone has no Urdu voice. Add one in the phone's text-to-speech settings.",
+  "@voiceNoUrduVoice": {
+    "description": "Settings: the phone cannot speak Urdu."
+  },
+  "homeSettingsSection": "Settings",
+  "@homeSettingsSection": {
+    "description": "Heading of the settings on the home screen."
+  },
+  "homeVisitHint": "To record a visit, open the woman's file from Registered women.",
+  "@homeVisitHint": {
+    "description": "Home screen hint: how to record a visit."
   }
 }

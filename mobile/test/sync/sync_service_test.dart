@@ -8,6 +8,7 @@ import 'package:mediqore/auth/local_account.dart';
 import 'package:mediqore/data/app_database.dart';
 import 'package:mediqore/data/household_repository.dart';
 import 'package:mediqore/data/patient_repository.dart';
+import 'package:mediqore/data/visit_repository.dart';
 import 'package:mediqore/sync/sync_api.dart';
 import 'package:mediqore/sync/sync_service.dart';
 
@@ -202,6 +203,94 @@ void main() {
       expect(await patients.file(synced.id), isNull);
       expect((await patients.file(waiting.id))!.history, isNotNull);
       expect(await sync.lastServerSeq(), 0);
+    });
+  });
+
+  group('visits (M3)', () {
+    const lhw = SessionUser(
+      id: 'user-1', username: 'lhw.demo', role: 'lhw', fullName: 'Demo LHW', lhwCode: 'LHW-DEMO-001', areaId: 'area-1');
+    late VisitRepository visits;
+    late String pregnancyId;
+
+    setUp(() async {
+      visits = VisitRepository(db);
+      final woman = await PatientRepository(db).register(
+        const RegistrationInput(name: 'Synthetic Woman', age: 26, pregnancyMonth: 5, village: 'Dhok Syedan'),
+        by: lhw,
+      );
+      pregnancyId = (await PatientRepository(db).file(woman.id))!.pregnancy!.id;
+    });
+
+    VisitInput input({int systolic = 118}) =>
+        VisitInput(pregnancyId: pregnancyId, systolicBpMmhg: systolic, diastolicBpMmhg: 76, temperatureC: 36.8, fever: true);
+
+    test('a visit is pushed after its pregnancy and stores its server number (M3 FE-2)', () async {
+      final visit = await visits.record(input(), by: lhw);
+
+      final report = await sync.syncNow('token-1');
+
+      expect(report.pushed, 5);
+      expect(server.pushedBatches.single.last, containsPair('table', 'visits'));
+      expect(server.pushedBatches.single.last['data'], containsPair('pregnancyId', pregnancyId));
+      final [summary] = await visits.forPregnancy(pregnancyId);
+      expect(summary.syncStatus, SyncStatus.synced);
+      expect(summary.visit.serverSeq, server.records[visit.id]!['serverSeq']);
+    });
+
+    test('a visit the server holds for review leaves the outbox, is marked held, and is not resent (M3 FE-2)', () async {
+      final visit = await visits.record(input(), by: lhw);
+      server.holdIds.add(visit.id);
+
+      final report = await sync.syncNow('token-1');
+
+      expect(report.held, 1);
+      expect(report.pushed, 4);
+      expect(report.rejected, 0);
+      expect(await db.pendingCount(), 0, reason: 'nothing is waiting: the server has it');
+      final [summary] = await visits.forPregnancy(pregnancyId);
+      expect(summary.syncStatus, SyncStatus.held);
+      expect(summary.visit.conflictId, 'conflict-${visit.id}');
+      expect(summary.visit.serverSeq, isNull);
+
+      await sync.syncNow('token-1');
+      expect(server.pushedBatches, hasLength(1), reason: 'a held visit is not pushed again');
+    });
+
+    test("the supervisor's decision arrives by pull: kept, or deleted as a duplicate (M3 FE-2)", () async {
+      final kept = await visits.record(input(), by: lhw);
+      final duplicate = await visits.record(input(systolic: 120), by: lhw);
+      server.holdIds.addAll([kept.id, duplicate.id]);
+      await sync.syncNow('token-1');
+      final pushed = {for (final r in server.pushedBatches.single) r['id']: r};
+
+      server
+        ..resolveHeld(pushed[kept.id]!, keep: true)
+        ..resolveHeld(pushed[duplicate.id]!, keep: false);
+      final report = await sync.syncNow('token-1');
+
+      expect(report.pulled, 2);
+      final [summary] = await visits.forPregnancy(pregnancyId);
+      expect(summary.visit.id, kept.id, reason: 'the duplicate is deleted and no longer listed');
+      expect(summary.syncStatus, SyncStatus.synced);
+      expect(summary.visit.conflictId, isNull);
+      expect(summary.visit.serverSeq, server.records[kept.id]!['serverSeq']);
+    });
+
+    test("another phone's visit is pulled with its vitals in their stored units", () async {
+      server.addRecord('visits', 'v-1', {
+        'pregnancyId': pregnancyId, 'visitedAt': '2026-10-02T06:30:00.000Z', 'systolicBpMmhg': 150, 'diastolicBpMmhg': 95,
+        'weightKg': 61.5, 'temperatureC': 37, 'pulseBpm': 96, 'bloodSugarMmolL': null, 'fetalMovement': 'reduced',
+        'swelling': true, 'bleeding': false, 'fever': false, 'anaemiaSigns': 'present', 'urineSymptoms': false,
+      });
+
+      await sync.syncNow('token-1');
+
+      final [summary] = await visits.forPregnancy(pregnancyId);
+      final v = summary.visit;
+      expect((v.systolicBpMmhg, v.diastolicBpMmhg, v.weightKg, v.temperatureC, v.pulseBpm), (150, 95, 61.5, 37.0, 96));
+      expect((v.fetalMovement, v.swelling, v.anaemiaSigns), ('reduced', true, 'present'));
+      expect(v.visitedAt.isAtSameMomentAs(DateTime.utc(2026, 10, 2, 6, 30)), isTrue);
+      expect(v.areaId, 'area-1');
     });
   });
 }

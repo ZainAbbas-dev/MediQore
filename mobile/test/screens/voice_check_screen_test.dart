@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mediqore/l10n/app_localizations.dart';
 import 'package:mediqore/screens/voice_check_screen.dart';
 import 'package:mediqore/theme/app_theme.dart';
+import 'package:mediqore/voice/voice_guide.dart' show urduLanguageTag;
 
 /// Stands in for the phone's text-to-speech engine behind flutter_tts.
 class FakeTtsEngine {

@@ -49,7 +49,15 @@ class RegistrationInput {
 }
 
 /// Whether a record has reached the server.
-enum SyncStatus { synced, waiting, refused }
+enum SyncStatus {
+  synced,
+  waiting,
+  refused,
+
+  /// The server holds the record for a supervisor's review: a visit on the same
+  /// day as another visit of the same pregnancy (M3 FE-2).
+  held,
+}
 
 /// One line of the patient list.
 class PatientSummary {

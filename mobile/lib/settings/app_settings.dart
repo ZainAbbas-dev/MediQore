@@ -72,12 +72,19 @@ class AppSettings extends ChangeNotifier {
   static const String _languageKey = 'interface_language';
   static const String _deviceIdKey = 'device_id';
   static const String _pendingRecordsKey = 'pending_records';
+  static const String _voiceMutedKey = 'voice_guidance_muted';
 
   /// Where the signed-in account is kept for offline login (see LocalAccount).
   static const String localAccountKey = 'local_account';
 
   /// Every key the app keeps in plain storage. Nothing patient-related.
-  static const Set<String> storedKeys = {_languageKey, _deviceIdKey, localAccountKey, _pendingRecordsKey};
+  static const Set<String> storedKeys = {
+    _languageKey,
+    _deviceIdKey,
+    localAccountKey,
+    _pendingRecordsKey,
+    _voiceMutedKey,
+  };
 
   static String _newDeviceId(SettingsStore store) {
     final id = const Uuid().v4();
@@ -105,6 +112,16 @@ class AppSettings extends ChangeNotifier {
 
   /// Whether voice guidance (M3 FE-3) may speak. Off in English.
   bool get voiceGuidanceAvailable => voiceGuidanceAvailableFor(_locale);
+
+  /// The LHW turned voice guidance off (M3 FE-3). It is on until she does.
+  bool get voiceMuted => _store.getString(_voiceMutedKey) == 'true';
+
+  /// Mutes or unmutes voice guidance and saves the choice on the phone.
+  Future<void> setVoiceMuted(bool muted) async {
+    if (muted == voiceMuted) return;
+    await _store.setString(_voiceMutedKey, '$muted');
+    notifyListeners();
+  }
 
   /// The same rule for a screen that only knows its locale, for example
   /// `Localizations.localeOf(context)`.

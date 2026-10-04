@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../app_services.dart';
 import '../data/patient_repository.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/sync_status_text.dart';
 import 'patient_file_screen.dart';
 import 'register_screen.dart';
 
@@ -145,9 +146,9 @@ class _PatientRow extends StatelessWidget {
                     Text(woman.name, style: theme.textTheme.titleMedium),
                     Text(woman.patientCode, textDirection: TextDirection.ltr, style: theme.textTheme.bodyMedium),
                     if (details.isNotEmpty) Text(details.join(' · '), style: theme.textTheme.bodySmall),
-                    if (patient.syncStatus != SyncStatus.synced)
+                    if (syncStatusText(l10n, patient.syncStatus) case final status?)
                       Text(
-                        patient.syncStatus == SyncStatus.waiting ? l10n.syncWaiting : l10n.syncRefused,
+                        status,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: patient.syncStatus == SyncStatus.refused ? theme.colorScheme.error : null,
                         ),
@@ -160,6 +161,7 @@ class _PatientRow extends StatelessWidget {
                   SyncStatus.synced => Icons.cloud_done,
                   SyncStatus.waiting => Icons.cloud_upload,
                   SyncStatus.refused => Icons.error,
+                  SyncStatus.held => Icons.hourglass_top,
                 },
                 color: patient.syncStatus == SyncStatus.refused ? theme.colorScheme.error : theme.colorScheme.outline,
               ),

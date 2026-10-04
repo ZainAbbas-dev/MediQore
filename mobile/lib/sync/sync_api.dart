@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -10,6 +12,11 @@ import '../auth/local_account.dart';
 const String apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:3000/api/v1');
 
 /// An error answer from the API, in its standard `{ "error": { code, message } }` shape.
+/// The server could not be reached: no connection, no answer in time, or a
+/// failed secure connection. Records stay on the phone and sync later.
+bool isNetworkError(Object error) =>
+    error is SocketException || error is http.ClientException || error is TimeoutException || error is HandshakeException;
+
 class ApiException implements Exception {
   ApiException(this.statusCode, this.code, this.message);
 

@@ -44,6 +44,10 @@ class FakeSyncServer {
   final Map<String, Map<String, dynamic>> records = {};
   final List<List<Map<String, dynamic>>> pushedBatches = [];
   final Set<String> rejectIds = {};
+
+  /// Records the server holds in its conflict queue instead of storing them,
+  /// like a second visit on the same day (M3 FE-2).
+  final Set<String> holdIds = {};
   int _seq = 0;
   int _tokens = 0;
 
@@ -134,6 +138,8 @@ class FakeSyncServer {
         for (final r in batch)
           if (rejectIds.contains(r['id']))
             {'table': r['table'], 'id': r['id'], 'status': 'rejected', 'reason': 'OUT_OF_AREA'}
+          else if (holdIds.contains(r['id']))
+            {'table': r['table'], 'id': r['id'], 'status': 'conflict', 'conflictId': 'conflict-${r['id']}'}
           else
             _store(r),
       ];
@@ -178,15 +184,24 @@ class FakeSyncServer {
       );
 
   /// Any record created by another phone; each call gets the next server number.
-  void addRecord(String table, String id, Map<String, dynamic> data, {String? inArea}) {
+  /// A [deleted] record arrives at the next pull as deleted.
+  void addRecord(String table, String id, Map<String, dynamic> data, {String? inArea, bool deleted = false}) {
     records[id] = {
       'table': table,
       'id': id,
       'areaId': inArea ?? areaId,
       'serverSeq': ++_seq,
       'createdOnDevice': '2026-10-01T08:00:00.000Z',
-      'deleted': false,
+      'deleted': deleted,
       'data': data,
     };
+  }
+
+  /// A supervisor's decision on a held record (M3 FE-2): the record is stored,
+  /// as deleted when it was a duplicate (keep_existing), and the phone gets it
+  /// at its next pull.
+  void resolveHeld(Map<String, dynamic> pushed, {required bool keep}) {
+    holdIds.remove(pushed['id']);
+    addRecord(pushed['table'] as String, pushed['id'] as String, pushed['data'] as Map<String, dynamic>, deleted: !keep);
   }
 }

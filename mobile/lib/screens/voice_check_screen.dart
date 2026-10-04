@@ -6,10 +6,8 @@ import 'package:flutter_tts/flutter_tts.dart';
 
 import '../l10n/app_localizations.dart';
 import '../settings/app_settings.dart';
+import '../voice/voice_guide.dart' show urduLanguageTag;
 import '../widgets/large_button.dart';
-
-/// The language tag the voice guidance will ask the engine for.
-const String urduLanguageTag = 'ur-PK';
 
 /// What the phone's text-to-speech reported for Urdu.
 class VoiceCheckResult {

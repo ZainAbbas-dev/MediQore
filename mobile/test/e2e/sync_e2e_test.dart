@@ -130,7 +130,7 @@ void main() {
   test(
     "the app's sign-in on a new phone: code, area download, sync, sign-out (M1 FE-2)",
     () async {
-      final services = AppServices(opener: MemoryDatabaseOpener(), api: SyncApi(baseUrl: apiBaseUrl));
+      final services = AppServices(opener: MemoryDatabaseOpener(), api: SyncApi(baseUrl: apiBaseUrl), autoSync: false);
       final session = services.session;
 
       expect(await session.signIn('lhw.demo', password), SignInResult.needsCode);
@@ -157,7 +157,7 @@ void main() {
     'a woman registered offline on one phone reaches the portal and the next phone, and patient IDs continue (M2)',
     () async {
       Future<AppServices> newPhone() async {
-        final services = AppServices(opener: MemoryDatabaseOpener(), api: SyncApi(baseUrl: apiBaseUrl));
+        final services = AppServices(opener: MemoryDatabaseOpener(), api: SyncApi(baseUrl: apiBaseUrl), autoSync: false);
         expect(await services.session.signIn('lhw.demo', password), SignInResult.needsCode);
         expect(await services.session.verifyCode(await issueCodeAsAdmin(services.settings.deviceId)), SignInResult.signedIn);
         return services;

@@ -6,11 +6,13 @@ import '../sync/sync_service.dart';
 import 'app_database.dart';
 import 'household_repository.dart';
 import 'patient_repository.dart';
+import 'visit_repository.dart';
 
 class LocalData {
   LocalData(this.db, {required SyncApi api, required String deviceId})
       : households = HouseholdRepository(db),
         patients = PatientRepository(db),
+        visits = VisitRepository(db),
         sync = SyncService(db: db, api: api, deviceId: deviceId);
 
   final AppDatabase db;
@@ -18,5 +20,8 @@ class LocalData {
 
   /// Registered women and their pregnancy files (M2).
   final PatientRepository patients;
+
+  /// Home visits with their vitals (M3 FE-1).
+  final VisitRepository visits;
   final SyncService sync;
 }

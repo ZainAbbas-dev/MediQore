@@ -2784,6 +2784,1217 @@ class ObstetricHistoryCompanion extends UpdateCompanion<LocalObstetricHistory> {
   }
 }
 
+class $VisitsTable extends Visits with TableInfo<$VisitsTable, LocalVisit> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VisitsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _serverSeqMeta = const VerificationMeta(
+    'serverSeq',
+  );
+  @override
+  late final GeneratedColumn<int> serverSeq = GeneratedColumn<int>(
+    'server_seq',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _areaIdMeta = const VerificationMeta('areaId');
+  @override
+  late final GeneratedColumn<String> areaId = GeneratedColumn<String>(
+    'area_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdByMeta = const VerificationMeta(
+    'createdBy',
+  );
+  @override
+  late final GeneratedColumn<String> createdBy = GeneratedColumn<String>(
+    'created_by',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdOnDeviceMeta = const VerificationMeta(
+    'createdOnDevice',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdOnDevice =
+      GeneratedColumn<DateTime>(
+        'created_on_device',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pregnancyIdMeta = const VerificationMeta(
+    'pregnancyId',
+  );
+  @override
+  late final GeneratedColumn<String> pregnancyId = GeneratedColumn<String>(
+    'pregnancy_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _visitedAtMeta = const VerificationMeta(
+    'visitedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> visitedAt = GeneratedColumn<DateTime>(
+    'visited_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _systolicBpMmhgMeta = const VerificationMeta(
+    'systolicBpMmhg',
+  );
+  @override
+  late final GeneratedColumn<int> systolicBpMmhg = GeneratedColumn<int>(
+    'systolic_bp_mmhg',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _diastolicBpMmhgMeta = const VerificationMeta(
+    'diastolicBpMmhg',
+  );
+  @override
+  late final GeneratedColumn<int> diastolicBpMmhg = GeneratedColumn<int>(
+    'diastolic_bp_mmhg',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _weightKgMeta = const VerificationMeta(
+    'weightKg',
+  );
+  @override
+  late final GeneratedColumn<double> weightKg = GeneratedColumn<double>(
+    'weight_kg',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _temperatureCMeta = const VerificationMeta(
+    'temperatureC',
+  );
+  @override
+  late final GeneratedColumn<double> temperatureC = GeneratedColumn<double>(
+    'temperature_c',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pulseBpmMeta = const VerificationMeta(
+    'pulseBpm',
+  );
+  @override
+  late final GeneratedColumn<int> pulseBpm = GeneratedColumn<int>(
+    'pulse_bpm',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _bloodSugarMmolLMeta = const VerificationMeta(
+    'bloodSugarMmolL',
+  );
+  @override
+  late final GeneratedColumn<double> bloodSugarMmolL = GeneratedColumn<double>(
+    'blood_sugar_mmol_l',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _fetalMovementMeta = const VerificationMeta(
+    'fetalMovement',
+  );
+  @override
+  late final GeneratedColumn<String> fetalMovement = GeneratedColumn<String>(
+    'fetal_movement',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _swellingMeta = const VerificationMeta(
+    'swelling',
+  );
+  @override
+  late final GeneratedColumn<bool> swelling = GeneratedColumn<bool>(
+    'swelling',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("swelling" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _bleedingMeta = const VerificationMeta(
+    'bleeding',
+  );
+  @override
+  late final GeneratedColumn<bool> bleeding = GeneratedColumn<bool>(
+    'bleeding',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("bleeding" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _feverMeta = const VerificationMeta('fever');
+  @override
+  late final GeneratedColumn<bool> fever = GeneratedColumn<bool>(
+    'fever',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("fever" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _anaemiaSignsMeta = const VerificationMeta(
+    'anaemiaSigns',
+  );
+  @override
+  late final GeneratedColumn<String> anaemiaSigns = GeneratedColumn<String>(
+    'anaemia_signs',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('none'),
+  );
+  static const VerificationMeta _urineSymptomsMeta = const VerificationMeta(
+    'urineSymptoms',
+  );
+  @override
+  late final GeneratedColumn<bool> urineSymptoms = GeneratedColumn<bool>(
+    'urine_symptoms',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("urine_symptoms" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _conflictIdMeta = const VerificationMeta(
+    'conflictId',
+  );
+  @override
+  late final GeneratedColumn<String> conflictId = GeneratedColumn<String>(
+    'conflict_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    serverSeq,
+    areaId,
+    createdBy,
+    createdOnDevice,
+    deletedAt,
+    pregnancyId,
+    visitedAt,
+    systolicBpMmhg,
+    diastolicBpMmhg,
+    weightKg,
+    temperatureC,
+    pulseBpm,
+    bloodSugarMmolL,
+    fetalMovement,
+    swelling,
+    bleeding,
+    fever,
+    anaemiaSigns,
+    urineSymptoms,
+    conflictId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'visits';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalVisit> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('server_seq')) {
+      context.handle(
+        _serverSeqMeta,
+        serverSeq.isAcceptableOrUnknown(data['server_seq']!, _serverSeqMeta),
+      );
+    }
+    if (data.containsKey('area_id')) {
+      context.handle(
+        _areaIdMeta,
+        areaId.isAcceptableOrUnknown(data['area_id']!, _areaIdMeta),
+      );
+    }
+    if (data.containsKey('created_by')) {
+      context.handle(
+        _createdByMeta,
+        createdBy.isAcceptableOrUnknown(data['created_by']!, _createdByMeta),
+      );
+    }
+    if (data.containsKey('created_on_device')) {
+      context.handle(
+        _createdOnDeviceMeta,
+        createdOnDevice.isAcceptableOrUnknown(
+          data['created_on_device']!,
+          _createdOnDeviceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdOnDeviceMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('pregnancy_id')) {
+      context.handle(
+        _pregnancyIdMeta,
+        pregnancyId.isAcceptableOrUnknown(
+          data['pregnancy_id']!,
+          _pregnancyIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_pregnancyIdMeta);
+    }
+    if (data.containsKey('visited_at')) {
+      context.handle(
+        _visitedAtMeta,
+        visitedAt.isAcceptableOrUnknown(data['visited_at']!, _visitedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_visitedAtMeta);
+    }
+    if (data.containsKey('systolic_bp_mmhg')) {
+      context.handle(
+        _systolicBpMmhgMeta,
+        systolicBpMmhg.isAcceptableOrUnknown(
+          data['systolic_bp_mmhg']!,
+          _systolicBpMmhgMeta,
+        ),
+      );
+    }
+    if (data.containsKey('diastolic_bp_mmhg')) {
+      context.handle(
+        _diastolicBpMmhgMeta,
+        diastolicBpMmhg.isAcceptableOrUnknown(
+          data['diastolic_bp_mmhg']!,
+          _diastolicBpMmhgMeta,
+        ),
+      );
+    }
+    if (data.containsKey('weight_kg')) {
+      context.handle(
+        _weightKgMeta,
+        weightKg.isAcceptableOrUnknown(data['weight_kg']!, _weightKgMeta),
+      );
+    }
+    if (data.containsKey('temperature_c')) {
+      context.handle(
+        _temperatureCMeta,
+        temperatureC.isAcceptableOrUnknown(
+          data['temperature_c']!,
+          _temperatureCMeta,
+        ),
+      );
+    }
+    if (data.containsKey('pulse_bpm')) {
+      context.handle(
+        _pulseBpmMeta,
+        pulseBpm.isAcceptableOrUnknown(data['pulse_bpm']!, _pulseBpmMeta),
+      );
+    }
+    if (data.containsKey('blood_sugar_mmol_l')) {
+      context.handle(
+        _bloodSugarMmolLMeta,
+        bloodSugarMmolL.isAcceptableOrUnknown(
+          data['blood_sugar_mmol_l']!,
+          _bloodSugarMmolLMeta,
+        ),
+      );
+    }
+    if (data.containsKey('fetal_movement')) {
+      context.handle(
+        _fetalMovementMeta,
+        fetalMovement.isAcceptableOrUnknown(
+          data['fetal_movement']!,
+          _fetalMovementMeta,
+        ),
+      );
+    }
+    if (data.containsKey('swelling')) {
+      context.handle(
+        _swellingMeta,
+        swelling.isAcceptableOrUnknown(data['swelling']!, _swellingMeta),
+      );
+    }
+    if (data.containsKey('bleeding')) {
+      context.handle(
+        _bleedingMeta,
+        bleeding.isAcceptableOrUnknown(data['bleeding']!, _bleedingMeta),
+      );
+    }
+    if (data.containsKey('fever')) {
+      context.handle(
+        _feverMeta,
+        fever.isAcceptableOrUnknown(data['fever']!, _feverMeta),
+      );
+    }
+    if (data.containsKey('anaemia_signs')) {
+      context.handle(
+        _anaemiaSignsMeta,
+        anaemiaSigns.isAcceptableOrUnknown(
+          data['anaemia_signs']!,
+          _anaemiaSignsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('urine_symptoms')) {
+      context.handle(
+        _urineSymptomsMeta,
+        urineSymptoms.isAcceptableOrUnknown(
+          data['urine_symptoms']!,
+          _urineSymptomsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('conflict_id')) {
+      context.handle(
+        _conflictIdMeta,
+        conflictId.isAcceptableOrUnknown(data['conflict_id']!, _conflictIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalVisit map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalVisit(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      serverSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}server_seq'],
+      ),
+      areaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}area_id'],
+      ),
+      createdBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_by'],
+      ),
+      createdOnDevice: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_on_device'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      pregnancyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pregnancy_id'],
+      )!,
+      visitedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}visited_at'],
+      )!,
+      systolicBpMmhg: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}systolic_bp_mmhg'],
+      ),
+      diastolicBpMmhg: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}diastolic_bp_mmhg'],
+      ),
+      weightKg: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}weight_kg'],
+      ),
+      temperatureC: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}temperature_c'],
+      ),
+      pulseBpm: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}pulse_bpm'],
+      ),
+      bloodSugarMmolL: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}blood_sugar_mmol_l'],
+      ),
+      fetalMovement: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fetal_movement'],
+      ),
+      swelling: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}swelling'],
+      )!,
+      bleeding: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}bleeding'],
+      )!,
+      fever: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}fever'],
+      )!,
+      anaemiaSigns: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}anaemia_signs'],
+      )!,
+      urineSymptoms: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}urine_symptoms'],
+      )!,
+      conflictId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}conflict_id'],
+      ),
+    );
+  }
+
+  @override
+  $VisitsTable createAlias(String alias) {
+    return $VisitsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalVisit extends DataClass implements Insertable<LocalVisit> {
+  final String id;
+  final int? serverSeq;
+  final String? areaId;
+  final String? createdBy;
+  final DateTime createdOnDevice;
+  final DateTime? deletedAt;
+  final String pregnancyId;
+
+  /// Device clock: shown and counted, never used to order or resolve records (LI-7).
+  final DateTime visitedAt;
+  final int? systolicBpMmhg;
+  final int? diastolicBpMmhg;
+  final double? weightKg;
+  final double? temperatureC;
+  final int? pulseBpm;
+  final double? bloodSugarMmolL;
+
+  /// normal, reduced or absent; null when not assessed.
+  final String? fetalMovement;
+  final bool swelling;
+  final bool bleeding;
+  final bool fever;
+
+  /// none, present or severe.
+  final String anaemiaSigns;
+  final bool urineSymptoms;
+
+  /// Set when the server held this visit for supervisor review, because the
+  /// same pregnancy already had a visit that day (M3 FE-2). Cleared when the
+  /// supervisor's decision arrives by pull.
+  final String? conflictId;
+  const LocalVisit({
+    required this.id,
+    this.serverSeq,
+    this.areaId,
+    this.createdBy,
+    required this.createdOnDevice,
+    this.deletedAt,
+    required this.pregnancyId,
+    required this.visitedAt,
+    this.systolicBpMmhg,
+    this.diastolicBpMmhg,
+    this.weightKg,
+    this.temperatureC,
+    this.pulseBpm,
+    this.bloodSugarMmolL,
+    this.fetalMovement,
+    required this.swelling,
+    required this.bleeding,
+    required this.fever,
+    required this.anaemiaSigns,
+    required this.urineSymptoms,
+    this.conflictId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || serverSeq != null) {
+      map['server_seq'] = Variable<int>(serverSeq);
+    }
+    if (!nullToAbsent || areaId != null) {
+      map['area_id'] = Variable<String>(areaId);
+    }
+    if (!nullToAbsent || createdBy != null) {
+      map['created_by'] = Variable<String>(createdBy);
+    }
+    map['created_on_device'] = Variable<DateTime>(createdOnDevice);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['pregnancy_id'] = Variable<String>(pregnancyId);
+    map['visited_at'] = Variable<DateTime>(visitedAt);
+    if (!nullToAbsent || systolicBpMmhg != null) {
+      map['systolic_bp_mmhg'] = Variable<int>(systolicBpMmhg);
+    }
+    if (!nullToAbsent || diastolicBpMmhg != null) {
+      map['diastolic_bp_mmhg'] = Variable<int>(diastolicBpMmhg);
+    }
+    if (!nullToAbsent || weightKg != null) {
+      map['weight_kg'] = Variable<double>(weightKg);
+    }
+    if (!nullToAbsent || temperatureC != null) {
+      map['temperature_c'] = Variable<double>(temperatureC);
+    }
+    if (!nullToAbsent || pulseBpm != null) {
+      map['pulse_bpm'] = Variable<int>(pulseBpm);
+    }
+    if (!nullToAbsent || bloodSugarMmolL != null) {
+      map['blood_sugar_mmol_l'] = Variable<double>(bloodSugarMmolL);
+    }
+    if (!nullToAbsent || fetalMovement != null) {
+      map['fetal_movement'] = Variable<String>(fetalMovement);
+    }
+    map['swelling'] = Variable<bool>(swelling);
+    map['bleeding'] = Variable<bool>(bleeding);
+    map['fever'] = Variable<bool>(fever);
+    map['anaemia_signs'] = Variable<String>(anaemiaSigns);
+    map['urine_symptoms'] = Variable<bool>(urineSymptoms);
+    if (!nullToAbsent || conflictId != null) {
+      map['conflict_id'] = Variable<String>(conflictId);
+    }
+    return map;
+  }
+
+  VisitsCompanion toCompanion(bool nullToAbsent) {
+    return VisitsCompanion(
+      id: Value(id),
+      serverSeq: serverSeq == null && nullToAbsent
+          ? const Value.absent()
+          : Value(serverSeq),
+      areaId: areaId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(areaId),
+      createdBy: createdBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdBy),
+      createdOnDevice: Value(createdOnDevice),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      pregnancyId: Value(pregnancyId),
+      visitedAt: Value(visitedAt),
+      systolicBpMmhg: systolicBpMmhg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(systolicBpMmhg),
+      diastolicBpMmhg: diastolicBpMmhg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(diastolicBpMmhg),
+      weightKg: weightKg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(weightKg),
+      temperatureC: temperatureC == null && nullToAbsent
+          ? const Value.absent()
+          : Value(temperatureC),
+      pulseBpm: pulseBpm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pulseBpm),
+      bloodSugarMmolL: bloodSugarMmolL == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bloodSugarMmolL),
+      fetalMovement: fetalMovement == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fetalMovement),
+      swelling: Value(swelling),
+      bleeding: Value(bleeding),
+      fever: Value(fever),
+      anaemiaSigns: Value(anaemiaSigns),
+      urineSymptoms: Value(urineSymptoms),
+      conflictId: conflictId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(conflictId),
+    );
+  }
+
+  factory LocalVisit.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalVisit(
+      id: serializer.fromJson<String>(json['id']),
+      serverSeq: serializer.fromJson<int?>(json['serverSeq']),
+      areaId: serializer.fromJson<String?>(json['areaId']),
+      createdBy: serializer.fromJson<String?>(json['createdBy']),
+      createdOnDevice: serializer.fromJson<DateTime>(json['createdOnDevice']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      pregnancyId: serializer.fromJson<String>(json['pregnancyId']),
+      visitedAt: serializer.fromJson<DateTime>(json['visitedAt']),
+      systolicBpMmhg: serializer.fromJson<int?>(json['systolicBpMmhg']),
+      diastolicBpMmhg: serializer.fromJson<int?>(json['diastolicBpMmhg']),
+      weightKg: serializer.fromJson<double?>(json['weightKg']),
+      temperatureC: serializer.fromJson<double?>(json['temperatureC']),
+      pulseBpm: serializer.fromJson<int?>(json['pulseBpm']),
+      bloodSugarMmolL: serializer.fromJson<double?>(json['bloodSugarMmolL']),
+      fetalMovement: serializer.fromJson<String?>(json['fetalMovement']),
+      swelling: serializer.fromJson<bool>(json['swelling']),
+      bleeding: serializer.fromJson<bool>(json['bleeding']),
+      fever: serializer.fromJson<bool>(json['fever']),
+      anaemiaSigns: serializer.fromJson<String>(json['anaemiaSigns']),
+      urineSymptoms: serializer.fromJson<bool>(json['urineSymptoms']),
+      conflictId: serializer.fromJson<String?>(json['conflictId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'serverSeq': serializer.toJson<int?>(serverSeq),
+      'areaId': serializer.toJson<String?>(areaId),
+      'createdBy': serializer.toJson<String?>(createdBy),
+      'createdOnDevice': serializer.toJson<DateTime>(createdOnDevice),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'pregnancyId': serializer.toJson<String>(pregnancyId),
+      'visitedAt': serializer.toJson<DateTime>(visitedAt),
+      'systolicBpMmhg': serializer.toJson<int?>(systolicBpMmhg),
+      'diastolicBpMmhg': serializer.toJson<int?>(diastolicBpMmhg),
+      'weightKg': serializer.toJson<double?>(weightKg),
+      'temperatureC': serializer.toJson<double?>(temperatureC),
+      'pulseBpm': serializer.toJson<int?>(pulseBpm),
+      'bloodSugarMmolL': serializer.toJson<double?>(bloodSugarMmolL),
+      'fetalMovement': serializer.toJson<String?>(fetalMovement),
+      'swelling': serializer.toJson<bool>(swelling),
+      'bleeding': serializer.toJson<bool>(bleeding),
+      'fever': serializer.toJson<bool>(fever),
+      'anaemiaSigns': serializer.toJson<String>(anaemiaSigns),
+      'urineSymptoms': serializer.toJson<bool>(urineSymptoms),
+      'conflictId': serializer.toJson<String?>(conflictId),
+    };
+  }
+
+  LocalVisit copyWith({
+    String? id,
+    Value<int?> serverSeq = const Value.absent(),
+    Value<String?> areaId = const Value.absent(),
+    Value<String?> createdBy = const Value.absent(),
+    DateTime? createdOnDevice,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    String? pregnancyId,
+    DateTime? visitedAt,
+    Value<int?> systolicBpMmhg = const Value.absent(),
+    Value<int?> diastolicBpMmhg = const Value.absent(),
+    Value<double?> weightKg = const Value.absent(),
+    Value<double?> temperatureC = const Value.absent(),
+    Value<int?> pulseBpm = const Value.absent(),
+    Value<double?> bloodSugarMmolL = const Value.absent(),
+    Value<String?> fetalMovement = const Value.absent(),
+    bool? swelling,
+    bool? bleeding,
+    bool? fever,
+    String? anaemiaSigns,
+    bool? urineSymptoms,
+    Value<String?> conflictId = const Value.absent(),
+  }) => LocalVisit(
+    id: id ?? this.id,
+    serverSeq: serverSeq.present ? serverSeq.value : this.serverSeq,
+    areaId: areaId.present ? areaId.value : this.areaId,
+    createdBy: createdBy.present ? createdBy.value : this.createdBy,
+    createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    pregnancyId: pregnancyId ?? this.pregnancyId,
+    visitedAt: visitedAt ?? this.visitedAt,
+    systolicBpMmhg: systolicBpMmhg.present
+        ? systolicBpMmhg.value
+        : this.systolicBpMmhg,
+    diastolicBpMmhg: diastolicBpMmhg.present
+        ? diastolicBpMmhg.value
+        : this.diastolicBpMmhg,
+    weightKg: weightKg.present ? weightKg.value : this.weightKg,
+    temperatureC: temperatureC.present ? temperatureC.value : this.temperatureC,
+    pulseBpm: pulseBpm.present ? pulseBpm.value : this.pulseBpm,
+    bloodSugarMmolL: bloodSugarMmolL.present
+        ? bloodSugarMmolL.value
+        : this.bloodSugarMmolL,
+    fetalMovement: fetalMovement.present
+        ? fetalMovement.value
+        : this.fetalMovement,
+    swelling: swelling ?? this.swelling,
+    bleeding: bleeding ?? this.bleeding,
+    fever: fever ?? this.fever,
+    anaemiaSigns: anaemiaSigns ?? this.anaemiaSigns,
+    urineSymptoms: urineSymptoms ?? this.urineSymptoms,
+    conflictId: conflictId.present ? conflictId.value : this.conflictId,
+  );
+  LocalVisit copyWithCompanion(VisitsCompanion data) {
+    return LocalVisit(
+      id: data.id.present ? data.id.value : this.id,
+      serverSeq: data.serverSeq.present ? data.serverSeq.value : this.serverSeq,
+      areaId: data.areaId.present ? data.areaId.value : this.areaId,
+      createdBy: data.createdBy.present ? data.createdBy.value : this.createdBy,
+      createdOnDevice: data.createdOnDevice.present
+          ? data.createdOnDevice.value
+          : this.createdOnDevice,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      pregnancyId: data.pregnancyId.present
+          ? data.pregnancyId.value
+          : this.pregnancyId,
+      visitedAt: data.visitedAt.present ? data.visitedAt.value : this.visitedAt,
+      systolicBpMmhg: data.systolicBpMmhg.present
+          ? data.systolicBpMmhg.value
+          : this.systolicBpMmhg,
+      diastolicBpMmhg: data.diastolicBpMmhg.present
+          ? data.diastolicBpMmhg.value
+          : this.diastolicBpMmhg,
+      weightKg: data.weightKg.present ? data.weightKg.value : this.weightKg,
+      temperatureC: data.temperatureC.present
+          ? data.temperatureC.value
+          : this.temperatureC,
+      pulseBpm: data.pulseBpm.present ? data.pulseBpm.value : this.pulseBpm,
+      bloodSugarMmolL: data.bloodSugarMmolL.present
+          ? data.bloodSugarMmolL.value
+          : this.bloodSugarMmolL,
+      fetalMovement: data.fetalMovement.present
+          ? data.fetalMovement.value
+          : this.fetalMovement,
+      swelling: data.swelling.present ? data.swelling.value : this.swelling,
+      bleeding: data.bleeding.present ? data.bleeding.value : this.bleeding,
+      fever: data.fever.present ? data.fever.value : this.fever,
+      anaemiaSigns: data.anaemiaSigns.present
+          ? data.anaemiaSigns.value
+          : this.anaemiaSigns,
+      urineSymptoms: data.urineSymptoms.present
+          ? data.urineSymptoms.value
+          : this.urineSymptoms,
+      conflictId: data.conflictId.present
+          ? data.conflictId.value
+          : this.conflictId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalVisit(')
+          ..write('id: $id, ')
+          ..write('serverSeq: $serverSeq, ')
+          ..write('areaId: $areaId, ')
+          ..write('createdBy: $createdBy, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('pregnancyId: $pregnancyId, ')
+          ..write('visitedAt: $visitedAt, ')
+          ..write('systolicBpMmhg: $systolicBpMmhg, ')
+          ..write('diastolicBpMmhg: $diastolicBpMmhg, ')
+          ..write('weightKg: $weightKg, ')
+          ..write('temperatureC: $temperatureC, ')
+          ..write('pulseBpm: $pulseBpm, ')
+          ..write('bloodSugarMmolL: $bloodSugarMmolL, ')
+          ..write('fetalMovement: $fetalMovement, ')
+          ..write('swelling: $swelling, ')
+          ..write('bleeding: $bleeding, ')
+          ..write('fever: $fever, ')
+          ..write('anaemiaSigns: $anaemiaSigns, ')
+          ..write('urineSymptoms: $urineSymptoms, ')
+          ..write('conflictId: $conflictId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    serverSeq,
+    areaId,
+    createdBy,
+    createdOnDevice,
+    deletedAt,
+    pregnancyId,
+    visitedAt,
+    systolicBpMmhg,
+    diastolicBpMmhg,
+    weightKg,
+    temperatureC,
+    pulseBpm,
+    bloodSugarMmolL,
+    fetalMovement,
+    swelling,
+    bleeding,
+    fever,
+    anaemiaSigns,
+    urineSymptoms,
+    conflictId,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalVisit &&
+          other.id == this.id &&
+          other.serverSeq == this.serverSeq &&
+          other.areaId == this.areaId &&
+          other.createdBy == this.createdBy &&
+          other.createdOnDevice == this.createdOnDevice &&
+          other.deletedAt == this.deletedAt &&
+          other.pregnancyId == this.pregnancyId &&
+          other.visitedAt == this.visitedAt &&
+          other.systolicBpMmhg == this.systolicBpMmhg &&
+          other.diastolicBpMmhg == this.diastolicBpMmhg &&
+          other.weightKg == this.weightKg &&
+          other.temperatureC == this.temperatureC &&
+          other.pulseBpm == this.pulseBpm &&
+          other.bloodSugarMmolL == this.bloodSugarMmolL &&
+          other.fetalMovement == this.fetalMovement &&
+          other.swelling == this.swelling &&
+          other.bleeding == this.bleeding &&
+          other.fever == this.fever &&
+          other.anaemiaSigns == this.anaemiaSigns &&
+          other.urineSymptoms == this.urineSymptoms &&
+          other.conflictId == this.conflictId);
+}
+
+class VisitsCompanion extends UpdateCompanion<LocalVisit> {
+  final Value<String> id;
+  final Value<int?> serverSeq;
+  final Value<String?> areaId;
+  final Value<String?> createdBy;
+  final Value<DateTime> createdOnDevice;
+  final Value<DateTime?> deletedAt;
+  final Value<String> pregnancyId;
+  final Value<DateTime> visitedAt;
+  final Value<int?> systolicBpMmhg;
+  final Value<int?> diastolicBpMmhg;
+  final Value<double?> weightKg;
+  final Value<double?> temperatureC;
+  final Value<int?> pulseBpm;
+  final Value<double?> bloodSugarMmolL;
+  final Value<String?> fetalMovement;
+  final Value<bool> swelling;
+  final Value<bool> bleeding;
+  final Value<bool> fever;
+  final Value<String> anaemiaSigns;
+  final Value<bool> urineSymptoms;
+  final Value<String?> conflictId;
+  final Value<int> rowid;
+  const VisitsCompanion({
+    this.id = const Value.absent(),
+    this.serverSeq = const Value.absent(),
+    this.areaId = const Value.absent(),
+    this.createdBy = const Value.absent(),
+    this.createdOnDevice = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.pregnancyId = const Value.absent(),
+    this.visitedAt = const Value.absent(),
+    this.systolicBpMmhg = const Value.absent(),
+    this.diastolicBpMmhg = const Value.absent(),
+    this.weightKg = const Value.absent(),
+    this.temperatureC = const Value.absent(),
+    this.pulseBpm = const Value.absent(),
+    this.bloodSugarMmolL = const Value.absent(),
+    this.fetalMovement = const Value.absent(),
+    this.swelling = const Value.absent(),
+    this.bleeding = const Value.absent(),
+    this.fever = const Value.absent(),
+    this.anaemiaSigns = const Value.absent(),
+    this.urineSymptoms = const Value.absent(),
+    this.conflictId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  VisitsCompanion.insert({
+    required String id,
+    this.serverSeq = const Value.absent(),
+    this.areaId = const Value.absent(),
+    this.createdBy = const Value.absent(),
+    required DateTime createdOnDevice,
+    this.deletedAt = const Value.absent(),
+    required String pregnancyId,
+    required DateTime visitedAt,
+    this.systolicBpMmhg = const Value.absent(),
+    this.diastolicBpMmhg = const Value.absent(),
+    this.weightKg = const Value.absent(),
+    this.temperatureC = const Value.absent(),
+    this.pulseBpm = const Value.absent(),
+    this.bloodSugarMmolL = const Value.absent(),
+    this.fetalMovement = const Value.absent(),
+    this.swelling = const Value.absent(),
+    this.bleeding = const Value.absent(),
+    this.fever = const Value.absent(),
+    this.anaemiaSigns = const Value.absent(),
+    this.urineSymptoms = const Value.absent(),
+    this.conflictId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       createdOnDevice = Value(createdOnDevice),
+       pregnancyId = Value(pregnancyId),
+       visitedAt = Value(visitedAt);
+  static Insertable<LocalVisit> custom({
+    Expression<String>? id,
+    Expression<int>? serverSeq,
+    Expression<String>? areaId,
+    Expression<String>? createdBy,
+    Expression<DateTime>? createdOnDevice,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? pregnancyId,
+    Expression<DateTime>? visitedAt,
+    Expression<int>? systolicBpMmhg,
+    Expression<int>? diastolicBpMmhg,
+    Expression<double>? weightKg,
+    Expression<double>? temperatureC,
+    Expression<int>? pulseBpm,
+    Expression<double>? bloodSugarMmolL,
+    Expression<String>? fetalMovement,
+    Expression<bool>? swelling,
+    Expression<bool>? bleeding,
+    Expression<bool>? fever,
+    Expression<String>? anaemiaSigns,
+    Expression<bool>? urineSymptoms,
+    Expression<String>? conflictId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (serverSeq != null) 'server_seq': serverSeq,
+      if (areaId != null) 'area_id': areaId,
+      if (createdBy != null) 'created_by': createdBy,
+      if (createdOnDevice != null) 'created_on_device': createdOnDevice,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (pregnancyId != null) 'pregnancy_id': pregnancyId,
+      if (visitedAt != null) 'visited_at': visitedAt,
+      if (systolicBpMmhg != null) 'systolic_bp_mmhg': systolicBpMmhg,
+      if (diastolicBpMmhg != null) 'diastolic_bp_mmhg': diastolicBpMmhg,
+      if (weightKg != null) 'weight_kg': weightKg,
+      if (temperatureC != null) 'temperature_c': temperatureC,
+      if (pulseBpm != null) 'pulse_bpm': pulseBpm,
+      if (bloodSugarMmolL != null) 'blood_sugar_mmol_l': bloodSugarMmolL,
+      if (fetalMovement != null) 'fetal_movement': fetalMovement,
+      if (swelling != null) 'swelling': swelling,
+      if (bleeding != null) 'bleeding': bleeding,
+      if (fever != null) 'fever': fever,
+      if (anaemiaSigns != null) 'anaemia_signs': anaemiaSigns,
+      if (urineSymptoms != null) 'urine_symptoms': urineSymptoms,
+      if (conflictId != null) 'conflict_id': conflictId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  VisitsCompanion copyWith({
+    Value<String>? id,
+    Value<int?>? serverSeq,
+    Value<String?>? areaId,
+    Value<String?>? createdBy,
+    Value<DateTime>? createdOnDevice,
+    Value<DateTime?>? deletedAt,
+    Value<String>? pregnancyId,
+    Value<DateTime>? visitedAt,
+    Value<int?>? systolicBpMmhg,
+    Value<int?>? diastolicBpMmhg,
+    Value<double?>? weightKg,
+    Value<double?>? temperatureC,
+    Value<int?>? pulseBpm,
+    Value<double?>? bloodSugarMmolL,
+    Value<String?>? fetalMovement,
+    Value<bool>? swelling,
+    Value<bool>? bleeding,
+    Value<bool>? fever,
+    Value<String>? anaemiaSigns,
+    Value<bool>? urineSymptoms,
+    Value<String?>? conflictId,
+    Value<int>? rowid,
+  }) {
+    return VisitsCompanion(
+      id: id ?? this.id,
+      serverSeq: serverSeq ?? this.serverSeq,
+      areaId: areaId ?? this.areaId,
+      createdBy: createdBy ?? this.createdBy,
+      createdOnDevice: createdOnDevice ?? this.createdOnDevice,
+      deletedAt: deletedAt ?? this.deletedAt,
+      pregnancyId: pregnancyId ?? this.pregnancyId,
+      visitedAt: visitedAt ?? this.visitedAt,
+      systolicBpMmhg: systolicBpMmhg ?? this.systolicBpMmhg,
+      diastolicBpMmhg: diastolicBpMmhg ?? this.diastolicBpMmhg,
+      weightKg: weightKg ?? this.weightKg,
+      temperatureC: temperatureC ?? this.temperatureC,
+      pulseBpm: pulseBpm ?? this.pulseBpm,
+      bloodSugarMmolL: bloodSugarMmolL ?? this.bloodSugarMmolL,
+      fetalMovement: fetalMovement ?? this.fetalMovement,
+      swelling: swelling ?? this.swelling,
+      bleeding: bleeding ?? this.bleeding,
+      fever: fever ?? this.fever,
+      anaemiaSigns: anaemiaSigns ?? this.anaemiaSigns,
+      urineSymptoms: urineSymptoms ?? this.urineSymptoms,
+      conflictId: conflictId ?? this.conflictId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (serverSeq.present) {
+      map['server_seq'] = Variable<int>(serverSeq.value);
+    }
+    if (areaId.present) {
+      map['area_id'] = Variable<String>(areaId.value);
+    }
+    if (createdBy.present) {
+      map['created_by'] = Variable<String>(createdBy.value);
+    }
+    if (createdOnDevice.present) {
+      map['created_on_device'] = Variable<DateTime>(createdOnDevice.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (pregnancyId.present) {
+      map['pregnancy_id'] = Variable<String>(pregnancyId.value);
+    }
+    if (visitedAt.present) {
+      map['visited_at'] = Variable<DateTime>(visitedAt.value);
+    }
+    if (systolicBpMmhg.present) {
+      map['systolic_bp_mmhg'] = Variable<int>(systolicBpMmhg.value);
+    }
+    if (diastolicBpMmhg.present) {
+      map['diastolic_bp_mmhg'] = Variable<int>(diastolicBpMmhg.value);
+    }
+    if (weightKg.present) {
+      map['weight_kg'] = Variable<double>(weightKg.value);
+    }
+    if (temperatureC.present) {
+      map['temperature_c'] = Variable<double>(temperatureC.value);
+    }
+    if (pulseBpm.present) {
+      map['pulse_bpm'] = Variable<int>(pulseBpm.value);
+    }
+    if (bloodSugarMmolL.present) {
+      map['blood_sugar_mmol_l'] = Variable<double>(bloodSugarMmolL.value);
+    }
+    if (fetalMovement.present) {
+      map['fetal_movement'] = Variable<String>(fetalMovement.value);
+    }
+    if (swelling.present) {
+      map['swelling'] = Variable<bool>(swelling.value);
+    }
+    if (bleeding.present) {
+      map['bleeding'] = Variable<bool>(bleeding.value);
+    }
+    if (fever.present) {
+      map['fever'] = Variable<bool>(fever.value);
+    }
+    if (anaemiaSigns.present) {
+      map['anaemia_signs'] = Variable<String>(anaemiaSigns.value);
+    }
+    if (urineSymptoms.present) {
+      map['urine_symptoms'] = Variable<bool>(urineSymptoms.value);
+    }
+    if (conflictId.present) {
+      map['conflict_id'] = Variable<String>(conflictId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VisitsCompanion(')
+          ..write('id: $id, ')
+          ..write('serverSeq: $serverSeq, ')
+          ..write('areaId: $areaId, ')
+          ..write('createdBy: $createdBy, ')
+          ..write('createdOnDevice: $createdOnDevice, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('pregnancyId: $pregnancyId, ')
+          ..write('visitedAt: $visitedAt, ')
+          ..write('systolicBpMmhg: $systolicBpMmhg, ')
+          ..write('diastolicBpMmhg: $diastolicBpMmhg, ')
+          ..write('weightKg: $weightKg, ')
+          ..write('temperatureC: $temperatureC, ')
+          ..write('pulseBpm: $pulseBpm, ')
+          ..write('bloodSugarMmolL: $bloodSugarMmolL, ')
+          ..write('fetalMovement: $fetalMovement, ')
+          ..write('swelling: $swelling, ')
+          ..write('bleeding: $bleeding, ')
+          ..write('fever: $fever, ')
+          ..write('anaemiaSigns: $anaemiaSigns, ')
+          ..write('urineSymptoms: $urineSymptoms, ')
+          ..write('conflictId: $conflictId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxEntry> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -3516,6 +4727,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ObstetricHistoryTable obstetricHistory = $ObstetricHistoryTable(
     this,
   );
+  late final $VisitsTable visits = $VisitsTable(this);
   late final $OutboxTable outbox = $OutboxTable(this);
   late final $SyncStateTable syncState = $SyncStateTable(this);
   @override
@@ -3527,6 +4739,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     women,
     pregnancies,
     obstetricHistory,
+    visits,
     outbox,
     syncState,
   ];
@@ -4874,6 +6087,531 @@ typedef $$ObstetricHistoryTableProcessedTableManager =
       LocalObstetricHistory,
       PrefetchHooks Function()
     >;
+typedef $$VisitsTableCreateCompanionBuilder = VisitsCompanion Function({
+  required String id,
+  Value<int?> serverSeq,
+  Value<String?> areaId,
+  Value<String?> createdBy,
+  required DateTime createdOnDevice,
+  Value<DateTime?> deletedAt,
+  required String pregnancyId,
+  required DateTime visitedAt,
+  Value<int?> systolicBpMmhg,
+  Value<int?> diastolicBpMmhg,
+  Value<double?> weightKg,
+  Value<double?> temperatureC,
+  Value<int?> pulseBpm,
+  Value<double?> bloodSugarMmolL,
+  Value<String?> fetalMovement,
+  Value<bool> swelling,
+  Value<bool> bleeding,
+  Value<bool> fever,
+  Value<String> anaemiaSigns,
+  Value<bool> urineSymptoms,
+  Value<String?> conflictId,
+  Value<int> rowid,
+});
+typedef $$VisitsTableUpdateCompanionBuilder = VisitsCompanion Function({
+  Value<String> id,
+  Value<int?> serverSeq,
+  Value<String?> areaId,
+  Value<String?> createdBy,
+  Value<DateTime> createdOnDevice,
+  Value<DateTime?> deletedAt,
+  Value<String> pregnancyId,
+  Value<DateTime> visitedAt,
+  Value<int?> systolicBpMmhg,
+  Value<int?> diastolicBpMmhg,
+  Value<double?> weightKg,
+  Value<double?> temperatureC,
+  Value<int?> pulseBpm,
+  Value<double?> bloodSugarMmolL,
+  Value<String?> fetalMovement,
+  Value<bool> swelling,
+  Value<bool> bleeding,
+  Value<bool> fever,
+  Value<String> anaemiaSigns,
+  Value<bool> urineSymptoms,
+  Value<String?> conflictId,
+  Value<int> rowid,
+});
+
+class $$VisitsTableFilterComposer
+    extends Composer<_$AppDatabase, $VisitsTable> {
+  $$VisitsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get serverSeq => $composableBuilder(
+    column: $table.serverSeq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get areaId => $composableBuilder(
+    column: $table.areaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdBy => $composableBuilder(
+    column: $table.createdBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pregnancyId => $composableBuilder(
+    column: $table.pregnancyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get visitedAt => $composableBuilder(
+    column: $table.visitedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get systolicBpMmhg => $composableBuilder(
+    column: $table.systolicBpMmhg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get diastolicBpMmhg => $composableBuilder(
+    column: $table.diastolicBpMmhg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get weightKg => $composableBuilder(
+    column: $table.weightKg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get temperatureC => $composableBuilder(
+    column: $table.temperatureC,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get pulseBpm => $composableBuilder(
+    column: $table.pulseBpm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get bloodSugarMmolL => $composableBuilder(
+    column: $table.bloodSugarMmolL,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fetalMovement => $composableBuilder(
+    column: $table.fetalMovement,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get swelling => $composableBuilder(
+    column: $table.swelling,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get bleeding => $composableBuilder(
+    column: $table.bleeding,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get fever => $composableBuilder(
+    column: $table.fever,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get anaemiaSigns => $composableBuilder(
+    column: $table.anaemiaSigns,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get urineSymptoms => $composableBuilder(
+    column: $table.urineSymptoms,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get conflictId => $composableBuilder(
+    column: $table.conflictId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$VisitsTableOrderingComposer
+    extends Composer<_$AppDatabase, $VisitsTable> {
+  $$VisitsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get serverSeq => $composableBuilder(
+    column: $table.serverSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get areaId => $composableBuilder(
+    column: $table.areaId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdBy => $composableBuilder(
+    column: $table.createdBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pregnancyId => $composableBuilder(
+    column: $table.pregnancyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get visitedAt => $composableBuilder(
+    column: $table.visitedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get systolicBpMmhg => $composableBuilder(
+    column: $table.systolicBpMmhg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get diastolicBpMmhg => $composableBuilder(
+    column: $table.diastolicBpMmhg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get weightKg => $composableBuilder(
+    column: $table.weightKg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get temperatureC => $composableBuilder(
+    column: $table.temperatureC,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get pulseBpm => $composableBuilder(
+    column: $table.pulseBpm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get bloodSugarMmolL => $composableBuilder(
+    column: $table.bloodSugarMmolL,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fetalMovement => $composableBuilder(
+    column: $table.fetalMovement,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get swelling => $composableBuilder(
+    column: $table.swelling,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get bleeding => $composableBuilder(
+    column: $table.bleeding,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get fever => $composableBuilder(
+    column: $table.fever,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get anaemiaSigns => $composableBuilder(
+    column: $table.anaemiaSigns,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get urineSymptoms => $composableBuilder(
+    column: $table.urineSymptoms,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get conflictId => $composableBuilder(
+    column: $table.conflictId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$VisitsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $VisitsTable> {
+  $$VisitsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get serverSeq =>
+      $composableBuilder(column: $table.serverSeq, builder: (column) => column);
+
+  GeneratedColumn<String> get areaId =>
+      $composableBuilder(column: $table.areaId, builder: (column) => column);
+
+  GeneratedColumn<String> get createdBy =>
+      $composableBuilder(column: $table.createdBy, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdOnDevice => $composableBuilder(
+    column: $table.createdOnDevice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get pregnancyId => $composableBuilder(
+    column: $table.pregnancyId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get visitedAt =>
+      $composableBuilder(column: $table.visitedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get systolicBpMmhg => $composableBuilder(
+    column: $table.systolicBpMmhg,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get diastolicBpMmhg => $composableBuilder(
+    column: $table.diastolicBpMmhg,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get weightKg =>
+      $composableBuilder(column: $table.weightKg, builder: (column) => column);
+
+  GeneratedColumn<double> get temperatureC => $composableBuilder(
+    column: $table.temperatureC,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get pulseBpm =>
+      $composableBuilder(column: $table.pulseBpm, builder: (column) => column);
+
+  GeneratedColumn<double> get bloodSugarMmolL => $composableBuilder(
+    column: $table.bloodSugarMmolL,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get fetalMovement => $composableBuilder(
+    column: $table.fetalMovement,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get swelling =>
+      $composableBuilder(column: $table.swelling, builder: (column) => column);
+
+  GeneratedColumn<bool> get bleeding =>
+      $composableBuilder(column: $table.bleeding, builder: (column) => column);
+
+  GeneratedColumn<bool> get fever =>
+      $composableBuilder(column: $table.fever, builder: (column) => column);
+
+  GeneratedColumn<String> get anaemiaSigns => $composableBuilder(
+    column: $table.anaemiaSigns,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get urineSymptoms => $composableBuilder(
+    column: $table.urineSymptoms,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get conflictId => $composableBuilder(
+    column: $table.conflictId,
+    builder: (column) => column,
+  );
+}
+
+class $$VisitsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $VisitsTable,
+          LocalVisit,
+          $$VisitsTableFilterComposer,
+          $$VisitsTableOrderingComposer,
+          $$VisitsTableAnnotationComposer,
+          $$VisitsTableCreateCompanionBuilder,
+          $$VisitsTableUpdateCompanionBuilder,
+          (LocalVisit, BaseReferences<_$AppDatabase, $VisitsTable, LocalVisit>),
+          LocalVisit,
+          PrefetchHooks Function()
+        > {
+  $$VisitsTableTableManager(_$AppDatabase db, $VisitsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$VisitsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$VisitsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$VisitsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<int?> serverSeq = const Value.absent(),
+                Value<String?> areaId = const Value.absent(),
+                Value<String?> createdBy = const Value.absent(),
+                Value<DateTime> createdOnDevice = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String> pregnancyId = const Value.absent(),
+                Value<DateTime> visitedAt = const Value.absent(),
+                Value<int?> systolicBpMmhg = const Value.absent(),
+                Value<int?> diastolicBpMmhg = const Value.absent(),
+                Value<double?> weightKg = const Value.absent(),
+                Value<double?> temperatureC = const Value.absent(),
+                Value<int?> pulseBpm = const Value.absent(),
+                Value<double?> bloodSugarMmolL = const Value.absent(),
+                Value<String?> fetalMovement = const Value.absent(),
+                Value<bool> swelling = const Value.absent(),
+                Value<bool> bleeding = const Value.absent(),
+                Value<bool> fever = const Value.absent(),
+                Value<String> anaemiaSigns = const Value.absent(),
+                Value<bool> urineSymptoms = const Value.absent(),
+                Value<String?> conflictId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => VisitsCompanion(
+                id: id,
+                serverSeq: serverSeq,
+                areaId: areaId,
+                createdBy: createdBy,
+                createdOnDevice: createdOnDevice,
+                deletedAt: deletedAt,
+                pregnancyId: pregnancyId,
+                visitedAt: visitedAt,
+                systolicBpMmhg: systolicBpMmhg,
+                diastolicBpMmhg: diastolicBpMmhg,
+                weightKg: weightKg,
+                temperatureC: temperatureC,
+                pulseBpm: pulseBpm,
+                bloodSugarMmolL: bloodSugarMmolL,
+                fetalMovement: fetalMovement,
+                swelling: swelling,
+                bleeding: bleeding,
+                fever: fever,
+                anaemiaSigns: anaemiaSigns,
+                urineSymptoms: urineSymptoms,
+                conflictId: conflictId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<int?> serverSeq = const Value.absent(),
+                Value<String?> areaId = const Value.absent(),
+                Value<String?> createdBy = const Value.absent(),
+                required DateTime createdOnDevice,
+                Value<DateTime?> deletedAt = const Value.absent(),
+                required String pregnancyId,
+                required DateTime visitedAt,
+                Value<int?> systolicBpMmhg = const Value.absent(),
+                Value<int?> diastolicBpMmhg = const Value.absent(),
+                Value<double?> weightKg = const Value.absent(),
+                Value<double?> temperatureC = const Value.absent(),
+                Value<int?> pulseBpm = const Value.absent(),
+                Value<double?> bloodSugarMmolL = const Value.absent(),
+                Value<String?> fetalMovement = const Value.absent(),
+                Value<bool> swelling = const Value.absent(),
+                Value<bool> bleeding = const Value.absent(),
+                Value<bool> fever = const Value.absent(),
+                Value<String> anaemiaSigns = const Value.absent(),
+                Value<bool> urineSymptoms = const Value.absent(),
+                Value<String?> conflictId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => VisitsCompanion.insert(
+                id: id,
+                serverSeq: serverSeq,
+                areaId: areaId,
+                createdBy: createdBy,
+                createdOnDevice: createdOnDevice,
+                deletedAt: deletedAt,
+                pregnancyId: pregnancyId,
+                visitedAt: visitedAt,
+                systolicBpMmhg: systolicBpMmhg,
+                diastolicBpMmhg: diastolicBpMmhg,
+                weightKg: weightKg,
+                temperatureC: temperatureC,
+                pulseBpm: pulseBpm,
+                bloodSugarMmolL: bloodSugarMmolL,
+                fetalMovement: fetalMovement,
+                swelling: swelling,
+                bleeding: bleeding,
+                fever: fever,
+                anaemiaSigns: anaemiaSigns,
+                urineSymptoms: urineSymptoms,
+                conflictId: conflictId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$VisitsTable, LocalVisit>(table),
+                  BaseReferences<_$AppDatabase, $VisitsTable, LocalVisit>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$VisitsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $VisitsTable,
+      LocalVisit,
+      $$VisitsTableFilterComposer,
+      $$VisitsTableOrderingComposer,
+      $$VisitsTableAnnotationComposer,
+      $$VisitsTableCreateCompanionBuilder,
+      $$VisitsTableUpdateCompanionBuilder,
+      (LocalVisit, BaseReferences<_$AppDatabase, $VisitsTable, LocalVisit>),
+      LocalVisit,
+      PrefetchHooks Function()
+    >;
 typedef $$OutboxTableCreateCompanionBuilder = OutboxCompanion Function({
   Value<int> id,
   required String entityTable,
@@ -5283,6 +7021,8 @@ class $AppDatabaseManager {
       $$PregnanciesTableTableManager(_db, _db.pregnancies);
   $$ObstetricHistoryTableTableManager get obstetricHistory =>
       $$ObstetricHistoryTableTableManager(_db, _db.obstetricHistory);
+  $$VisitsTableTableManager get visits =>
+      $$VisitsTableTableManager(_db, _db.visits);
   $$OutboxTableTableManager get outbox =>
       $$OutboxTableTableManager(_db, _db.outbox);
   $$SyncStateTableTableManager get syncState =>

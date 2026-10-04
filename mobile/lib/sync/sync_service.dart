@@ -8,12 +8,22 @@ import 'sync_api.dart';
 
 /// What one sync run did, for the status shown to the LHW.
 class SyncReport {
-  const SyncReport({required this.pushed, required this.rejected, required this.pulled, required this.lastServerSeq});
+  const SyncReport({
+    required this.pushed,
+    required this.rejected,
+    required this.pulled,
+    required this.lastServerSeq,
+    this.held = 0,
+  });
 
   final int pushed;
   final int rejected;
   final int pulled;
   final int lastServerSeq;
+
+  /// Records the server held for a supervisor's review instead of storing them
+  /// (M3 FE-2): a visit on the same day as another visit of the same pregnancy.
+  final int held;
 }
 
 /// Pushes the outbox and pulls changes for the LHW's area, following the
@@ -21,7 +31,9 @@ class SyncReport {
 /// - push sends the outbox in batches of up to 100, highest priority first;
 /// - the server answers with the sequence number it gave each record;
 /// - pull asks for everything after the last sequence number seen, so nothing
-///   depends on the phone's clock (LI-7).
+///   depends on the phone's clock (LI-7);
+/// - a record the server holds for supervisor review (status `conflict`) leaves
+///   the outbox and is marked as held; the supervisor's decision arrives by pull.
 class SyncService {
   SyncService({required this._db, required this._api, required this.deviceId});
 
@@ -40,23 +52,31 @@ class SyncService {
   /// Pushes everything waiting, then pulls. Throws [ApiException] or a network
   /// error if the server cannot be reached; nothing is lost, the outbox stays.
   Future<SyncReport> syncNow(String token) async {
-    final (pushed, rejected) = await push(token);
+    final (pushed, rejected, held) = await push(token);
     final pulled = await pull(token);
-    return SyncReport(pushed: pushed, rejected: rejected, pulled: pulled, lastServerSeq: await lastServerSeq());
+    return SyncReport(
+      pushed: pushed,
+      rejected: rejected,
+      held: held,
+      pulled: pulled,
+      lastServerSeq: await lastServerSeq(),
+    );
   }
 
-  /// Pushes the outbox; returns how many records were accepted and refused.
-  Future<(int, int)> push(String token) async {
+  /// Pushes the outbox; returns how many records were accepted, refused and
+  /// held for review.
+  Future<(int, int, int)> push(String token) async {
     final device = deviceId;
     var pushed = 0;
     var rejected = 0;
+    var held = 0;
     while (true) {
       final batch = await (_db.select(_db.outbox)
             ..where((o) => o.lastError.isNull())
             ..orderBy([(o) => OrderingTerm.desc(o.priority), (o) => OrderingTerm.asc(o.id)])
             ..limit(batchSize))
           .get();
-      if (batch.isEmpty) return (pushed, rejected);
+      if (batch.isEmpty) return (pushed, rejected, held);
 
       final results = await _api.push(token, device, [for (final entry in batch) jsonDecode(entry.payload) as Map<String, dynamic>]);
 
@@ -68,6 +88,11 @@ class SyncService {
             await (_db.update(_db.outbox)..where((o) => o.id.equals(entry.id))).write(
               OutboxCompanion(lastError: Value(result['reason'] as String? ?? 'rejected'), attempts: Value(entry.attempts + 1)),
             );
+            continue;
+          }
+          if (result['status'] == 'conflict') {
+            held++;
+            await _markHeld(entry, result['conflictId'] as String);
             continue;
           }
           pushed++;
@@ -86,6 +111,18 @@ class SyncService {
         .go();
     if (removed == 0) return;
     await _db.setServerSeq(entry.entityTable, entry.recordId, serverSeq);
+  }
+
+  // The server keeps the record in its conflict queue (M3 FE-2). Resending it
+  // would only return the same conflict, so it leaves the outbox; the visit is
+  // marked as held until the supervisor's decision arrives by pull.
+  Future<void> _markHeld(OutboxEntry entry, String conflictId) async {
+    final removed = await (_db.delete(_db.outbox)
+          ..where((o) => o.id.equals(entry.id) & o.payload.equals(entry.payload)))
+        .go();
+    if (removed == 0 || entry.entityTable != 'visits') return;
+    await (_db.update(_db.visits)..where((v) => v.id.equals(entry.recordId)))
+        .write(VisitsCompanion(conflictId: Value(conflictId)));
   }
 
   /// Pulls everything after the last server number seen; returns how many records came.
@@ -180,6 +217,33 @@ class SyncService {
                 previousCSections: Value(d['previousCSections'] as int? ?? 0),
                 stillbirths: Value(d['stillbirths'] as int? ?? 0),
                 knownConditions: Value(d['knownConditions'] as String?),
+              ),
+            );
+      case 'visits':
+        // A visit the server stores is no longer held: the supervisor decided
+        // (or it never was held). Kept as a duplicate, it arrives deleted.
+        await _db.into(_db.visits).insertOnConflictUpdate(
+              VisitsCompanion.insert(
+                id: record.id,
+                serverSeq: Value(record.serverSeq),
+                areaId: areaId,
+                createdOnDevice: createdOnDevice,
+                deletedAt: deletedAt,
+                pregnancyId: d['pregnancyId'] as String,
+                visitedAt: DateTime.parse(d['visitedAt'] as String).toUtc(),
+                systolicBpMmhg: Value(d['systolicBpMmhg'] as int?),
+                diastolicBpMmhg: Value(d['diastolicBpMmhg'] as int?),
+                weightKg: Value((d['weightKg'] as num?)?.toDouble()),
+                temperatureC: Value((d['temperatureC'] as num?)?.toDouble()),
+                pulseBpm: Value(d['pulseBpm'] as int?),
+                bloodSugarMmolL: Value((d['bloodSugarMmolL'] as num?)?.toDouble()),
+                fetalMovement: Value(d['fetalMovement'] as String?),
+                swelling: Value(d['swelling'] as bool? ?? false),
+                bleeding: Value(d['bleeding'] as bool? ?? false),
+                fever: Value(d['fever'] as bool? ?? false),
+                anaemiaSigns: Value(d['anaemiaSigns'] as String? ?? 'none'),
+                urineSymptoms: Value(d['urineSymptoms'] as bool? ?? false),
+                conflictId: const Value(null),
               ),
             );
       default:

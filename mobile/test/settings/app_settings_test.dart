@@ -47,4 +47,20 @@ void main() {
     expect(AppSettings.voiceGuidanceAvailableFor(const Locale('ur', 'PK')), isTrue);
     expect(AppSettings.voiceGuidanceAvailableFor(const Locale('en')), isFalse);
   });
+
+  test('voice guidance is on until muted; the choice is saved (M3 FE-3)', () async {
+    final store = MemorySettingsStore();
+    final settings = AppSettings(store: store);
+    var notified = 0;
+    settings.addListener(() => notified++);
+    expect(settings.voiceMuted, isFalse);
+
+    await settings.setVoiceMuted(true);
+    await settings.setVoiceMuted(true);
+
+    expect(settings.voiceMuted, isTrue);
+    expect(notified, 1);
+    expect(AppSettings(store: store).voiceMuted, isTrue, reason: 'read back on the next app start');
+    expect(AppSettings.storedKeys, contains('voice_guidance_muted'));
+  });
 }

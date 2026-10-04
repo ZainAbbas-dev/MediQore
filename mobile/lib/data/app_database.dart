@@ -94,6 +94,47 @@ class ObstetricHistory extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// One home visit with its vitals and symptoms (M3 FE-1). Units are in the
+/// names and never converted in storage: BP in mmHg, weight in kg, temperature
+/// in °C, pulse in beats per minute, blood sugar in mmol/L.
+@DataClassName('LocalVisit')
+class Visits extends Table {
+  TextColumn get id => text()();
+  IntColumn get serverSeq => integer().nullable()();
+  TextColumn get areaId => text().nullable()();
+  TextColumn get createdBy => text().nullable()();
+  DateTimeColumn get createdOnDevice => dateTime()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  TextColumn get pregnancyId => text()();
+
+  /// Device clock: shown and counted, never used to order or resolve records (LI-7).
+  DateTimeColumn get visitedAt => dateTime()();
+  IntColumn get systolicBpMmhg => integer().nullable()();
+  IntColumn get diastolicBpMmhg => integer().nullable()();
+  RealColumn get weightKg => real().nullable()();
+  RealColumn get temperatureC => real().nullable()();
+  IntColumn get pulseBpm => integer().nullable()();
+  RealColumn get bloodSugarMmolL => real().nullable()();
+
+  /// normal, reduced or absent; null when not assessed.
+  TextColumn get fetalMovement => text().nullable()();
+  BoolColumn get swelling => boolean().withDefault(const Constant(false))();
+  BoolColumn get bleeding => boolean().withDefault(const Constant(false))();
+  BoolColumn get fever => boolean().withDefault(const Constant(false))();
+
+  /// none, present or severe.
+  TextColumn get anaemiaSigns => text().withDefault(const Constant('none'))();
+  BoolColumn get urineSymptoms => boolean().withDefault(const Constant(false))();
+
+  /// Set when the server held this visit for supervisor review, because the
+  /// same pregnancy already had a visit that day (M3 FE-2). Cleared when the
+  /// supervisor's decision arrives by pull.
+  TextColumn get conflictId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Records waiting to be pushed (roadmap, Offline sync). Every local write adds
 /// or replaces the record's entry in the same transaction, so only the latest
 /// version of each record is queued.
@@ -153,16 +194,16 @@ Map<String, Object?> syncPayload({
 /// The phone's local database (Drift + SQLite), encrypted with AES-256 and the
 /// key derived from the LHW's password (M3 FE-2, M1 FE-2, LI-8). The encryption
 /// lives in how it is opened (database_opener.dart), not in the tables.
-@DriftDatabase(tables: [Households, Women, Pregnancies, ObstetricHistory, Outbox, SyncState])
+@DriftDatabase(tables: [Households, Women, Pregnancies, ObstetricHistory, Visits, Outbox, SyncState])
 class AppDatabase extends _$AppDatabase {
   /// On the phone, open it through EncryptedDatabaseOpener (M3 FE-2), never
   /// directly: the file is only readable with the key from the password.
   AppDatabase(super.executor);
 
   /// 1: households (P0-6). 2: women, pregnancies, obstetric history (M2) and the
-  /// area and creator of every record (M1 FE-3).
+  /// area and creator of every record (M1 FE-3). 3: visits (M3).
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -174,12 +215,15 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(pregnancies);
             await m.createTable(obstetricHistory);
           }
+          if (from < 3) {
+            await m.createTable(visits);
+          }
         },
       );
 
   /// The synced tables by server name, parents before children: the order the
   /// outbox fills when a whole registration is saved at once.
-  static const List<String> syncedTables = ['households', 'women', 'pregnancies', 'obstetric_history'];
+  static const List<String> syncedTables = ['households', 'women', 'pregnancies', 'obstetric_history', 'visits'];
 
   static const String lastServerSeqKey = 'last_server_seq';
   static const String _patientCounterKey = 'patient_counter';
