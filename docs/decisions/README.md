@@ -14,7 +14,7 @@ Roadmap task P0-11 asks the team to settle four open items in Phase 0, so that l
 | [0002](0002-otp-channel.md) | OTP channel: admin-issued one-time code, behind a swappable OTP service | Proposed; built in Module 1 on the owner's go-ahead | Team sign-off; supervisor check that it meets "OTP verification" (M1 FE-2) |
 | [0003](0003-urdu-pdf-method.md) | Urdu PDF reports: HTML printed by headless Chrome (Puppeteer), not pdfkit | Proposed | Team sign-off; supervisor agreement (changes the Tools table) |
 | [0004](0004-urdu-voice-source.md) | Urdu voice: phone text-to-speech if the test phones pass the voice check, recorded clips otherwise | Proposed, waiting for phone results | Run the voice check on every test phone |
-| [0005](0005-language-switch.md) | Urdu/English language switch (M1 FE-4); voice guidance only in Urdu | **Accepted** (scope amendment A1, approved by the supervisor) | Team sign-off in the record; update the Word scope and `roadmap.pdf` |
+| [0005](0005-language-switch.md) | Urdu/English language switch (M1 FE-4); voice guidance only in Urdu | **Accepted** (scope amendment A1, approved by the supervisor) | Team sign-off in the record; update the Word scope and `roadmap.pdf`; supervisor's view on the emergency announcement in English (M5 FE-4, proposed in the record) |
 
 Evidence lives next to the records:
 

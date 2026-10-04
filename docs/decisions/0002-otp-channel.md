@@ -67,7 +67,7 @@ If the team or the supervisor chooses another channel, only the OTP service and 
 ## Open questions
 
 - Does the supervisor agree that an admin-issued code meets "OTP verification" in the approved scope?
-- Should the portal (supervisor and admin) also require OTP? The roadmap does not ask for it.
+- Should the portal (supervisor and admin) also require OTP? The roadmap does not ask for it. **Owner (2026-10-04): no OTP on the portal for now.** Revisit if the supervisor asks for it.
 
 ## Sign-off
 

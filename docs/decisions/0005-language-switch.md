@@ -41,9 +41,19 @@ The language is stored with **shared_preferences** (Flutter team package), not i
 
 Building this also fixed a font bug from P0-2: the large buttons' text style had no font family, so their Urdu labels would have fallen back to the system font instead of Nastaleeq.
 
+## Emergency voice announcement (M5 FE-4)
+
+The emergency screen's voice announcement (M5 FE-4, Phase 2) is a safety alert, not voice *guidance*, so the A1 rule above does not switch it off. The project owner asked for the option that suits the app best (2026-10-04). Proposed:
+
+- **It stays on in both languages.** Turning it off in English would weaken a safety feature for every LHW who chooses English.
+- **It speaks the app's language:** Urdu while the app is in Urdu, from the source decision 0004 chooses; English while the app is in English, from the phone's English text-to-speech, which Android phones include and which works offline.
+- **The screen, its checklist and the three alert options** do not depend on the voice, so the emergency workflow still works on a phone whose speech engine fails.
+
+The scope text says "an Urdu voice announcement", so the English part needs the supervisor's agreement before Module 5 is built in Phase 2. Until then nothing is built; Module 5 starts from this proposal.
+
 ## Still open
 
-- **The emergency screen's Urdu voice announcement** (M5 FE-4, Phase 2) is not voice *guidance*. Should it also be silent in English? It is a safety feature, so this needs a team decision; until then the amendment covers voice guidance only.
+- **Emergency announcement in English:** the supervisor's agreement to the proposal above, before Phase 2.
 - **The Word scope document and `roadmap.pdf`** need the same changes before final submission. The Markdown copies list them under "Amendments after approval".
 - **Phase 1 screens** (P0-7) need the switch on the login screen and in LHW home settings. `docs/design/phase1-screens.md` now says so; update the Figma frames to match.
 
