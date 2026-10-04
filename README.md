@@ -13,7 +13,7 @@ MediQore replaces the LHW's paper registers with an Android app, in Urdu by defa
 
 The app syncs with a central server whenever a connection is available. Supervisors and admins use a web portal for a live dashboard and map, alerts, PDF/Excel reports and administration.
 
-> **Status:** Phase 0 (Foundation) is built; Phase 1 has started with Module 1 (below). Phase 0 work:
+> **Status:** Phase 0 (Foundation) is built; Phase 1 has Modules 1 and 2 built (below). Phase 0 work:
 > - the Flutter app shell with its Urdu widget kit and font (P0-2);
 > - the API skeleton (P0-3);
 > - database schema v1 (P0-4);
@@ -29,11 +29,18 @@ The app syncs with a central server whenever a connection is available. Supervis
 > One test record now runs end to end: created on the phone, synced, stored in PostgreSQL and shown on the portal.
 >
 > **Phase 1, Module 1 (user management and authentication), built on `dev` and waiting for review and real-phone testing:**
-> - admins create LHW accounts on the portal (system-issued LHW ID and password), edit, reassign, deactivate and reset passwords with a "sync before reset" warning (FE-1, FE-3);
+> - admins create LHW accounts on the portal (system-issued LHW ID and password), edit, reassign, deactivate and reset passwords with a "sync before reset" warning (FE-1, FE-3); records a phone made before a reassignment keep their old area when they sync;
 > - the app's first sign-in on a phone needs a one-time code issued on the portal's **Phone approvals** page (FE-2, proposed decision 0002), then downloads the LHW's area;
 > - later sign-ins work offline with a PBKDF2 password key (LI-8); the app locks after 5 minutes without use;
 > - short-lived access tokens with rotating refresh tokens, login rate limiting, HTTPS enforcement outside development; a deactivated account is refused at its next sync (FE-2, FE-3);
 > - the language switch on the sign-in screen (FE-4).
+>
+> **Phase 1, Module 2 (expecting woman registration), built on `dev` and waiting for review and real-phone testing:**
+> - the app registers a pregnant woman without the internet: name, age, husband, contact, pregnancy month, village, address and obstetric history on one form, saved in one step (FE-1, FE-2);
+> - each woman gets a patient ID that is unique offline, the LHW code plus the phone's counter (for example `LHW-00001-0007`), and a pregnancy file;
+> - the home's GPS position with the geolocator package, or later from her file; a second woman can share a registered woman's home (FE-3);
+> - the patient list searches by name, ID or village and is grouped by village (FE-3);
+> - the portal's **Registered women** page and a dashboard count show what the phones have synced.
 >
 > **Data notice:** MediQore is developed and demonstrated on synthetic data only. No real patient data is used before IEC approval (LI-10). AI results are decision support, not a clinical diagnosis (LI-5).
 
@@ -41,10 +48,10 @@ The app syncs with a central server whenever a connection is available. Supervis
 
 | Part | Folder | Stack | Status |
 |---|---|---|---|
-| LHW Android app (Modules 1–9) | [`mobile/`](mobile/) | Flutter 3.x, Drift + SQLCipher, ONNX Runtime | Urdu shell and widget kit (P0-2); local database, outbox and sync (P0-6); sign-in, phone approval, offline sign-in and auto-lock (M1) |
-| REST API | [`api/`](api/) | Node.js 20 + Express, JWT, Joi | Skeleton (P0-3); `/sync` push/pull (P0-6); login with phone approval, refresh tokens, LHW accounts, phone approvals (M1) |
-| Database | [`db/`](db/) | PostgreSQL 15 migrations and synthetic seed scripts | Schema v1 for all ten modules (P0-4); demo seed; synthetic data generator (P0-8) |
-| Supervisor and admin portal (Module 10) | [`web/`](web/) | React 18 + Leaflet.js | Login, auth guard, sidebar layout, map dashboard (P0-5); LHW accounts and phone approvals (M1) |
+| LHW Android app (Modules 1–9) | [`mobile/`](mobile/) | Flutter 3.x, Drift + SQLCipher, ONNX Runtime | Urdu shell and widget kit (P0-2); local database, outbox and sync (P0-6); sign-in, phone approval, offline sign-in and auto-lock (M1); registration, patient list and pregnancy file (M2) |
+| REST API | [`api/`](api/) | Node.js 20 + Express, JWT, Joi | Skeleton (P0-3); `/sync` push/pull (P0-6); login with phone approval, refresh tokens, LHW accounts, phone approvals (M1); registrations through `/sync` and `GET /women` (M2) |
+| Database | [`db/`](db/) | PostgreSQL 15 migrations and synthetic seed scripts | Schema v1 for all ten modules (P0-4); demo seed; synthetic data generator (P0-8); LHW ID numbering and the previous area after a reassignment (M1) |
+| Supervisor and admin portal (Module 10) | [`web/`](web/) | React 18 + Leaflet.js | Login, auth guard, sidebar layout, map dashboard (P0-5); LHW accounts and phone approvals (M1); registered women (M2) |
 | ML pipeline and analytics worker | [`ml/`](ml/) | Python 3.11, scikit-learn, SHAP, sklearn2onnx | Dataset download and exploratory notebook (P0-10); training in Phase 2 |
 
 ## Repository layout
@@ -168,7 +175,7 @@ The Phase 0 exit gate says: "One test record created on the phone offline, synce
 
 Without a phone, `flutter test test/e2e/sync_e2e_test.dart --dart-define=E2E_API_BASE_URL=http://localhost:3000/api/v1` runs the same app code against the API, including the phone approval (it issues the code as `admin.demo`).
 
-[docs/local-setup.md](docs/local-setup.md) step 7 also walks through the Module 1 checks on the phone: offline sign-in, auto-lock and deactivation.
+[docs/local-setup.md](docs/local-setup.md) step 7 also walks through the Module 1 and 2 checks on the phone: offline sign-in, auto-lock, deactivation, and registering a woman in airplane mode.
 
 ## Branches and pull requests
 

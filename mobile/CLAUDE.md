@@ -28,7 +28,7 @@ Flutter app with Modules 1–9, fully offline, in Urdu by default with an Englis
 
 From the roadmap:
 
-- geolocator is used for household GPS (M2 FE-3).
+- geolocator is used for household GPS (M2 FE-3), behind `LocationService` (`lib/location/location_service.dart`). It needs the location permissions in `AndroidManifest.xml`; GPS works without the internet, but a first fix can take a minute.
 - Tests use flutter_test (unit and widget).
 - The app is distributed as a signed APK, not through the Play Store.
 
@@ -74,14 +74,24 @@ From the roadmap:
 - `lib/widgets/`: the shared kit.
   - `LargeButton`
   - `AppTextField`, `VitalField` (numbers and unit always left to right, digits only), `CheckboxField`, `DropdownField`
+  - `NumberField` (whole numbers without a unit, digits only, left to right)
   - `RiskChip` with `RiskLevel`
   - `OfflineStatusBar`
+  - `GpsCapture` (M2 FE-3): records a position with its status and the reason it failed
 - `lib/app_services.dart`: the settings, database, API client, repositories, sync service and session, created once in `main()`. Tests build them with an in-memory database, Urdu settings kept in memory and a fast password key (`testServices()` in `test/helpers.dart`).
 - `lib/data/`:
-  - `app_database.dart`: the Drift database with `households`, `outbox` and `sync_state`.
-    - `app_database.g.dart` is generated and committed. After changing tables, run `dart run build_runner build` and bump `schemaVersion` with a migration.
+  - `app_database.dart`: the Drift database (schema version 2) with `households`, `women`, `pregnancies`, `obstetric_history` (M2), `outbox` and `sync_state`.
+    - Every synced table has the base columns, including `areaId` (the area the record was made in, M1 FE-3) and `createdBy`.
+    - No foreign keys between synced tables: a pulled woman can arrive before her household.
+    - `enqueue(payload)` adds or replaces a record's outbox entry; `setServerSeq`, `clearAreaData` and `clearAllData` work on every synced table.
+    - The patient counter: `raisePatientCounter` (from the server's `lastPatientNumber` at sign-in) and `takePatientNumber`.
+    - `app_database.g.dart` is generated and committed. After changing tables, run `dart run build_runner build`, bump `schemaVersion` and add the step to `migration` (see `test/data/migration_test.dart`).
     - Encryption (sqflite_sqlcipher, M3 FE-2) comes in Phase 1.
-  - `household_repository.dart`: every write saves the record and its outbox entry in one transaction, with a UUID v4 made on the device.
+  - `household_repository.dart`: every write saves the record and its outbox entry in one transaction, with a UUID v4 made on the device. `setLocation` adds GPS later.
+  - `patient_repository.dart` (M2 FE-1–3):
+    - `register` saves the household (or reuses a registered woman's home), the woman, her pregnancy file and her obstetric history with their outbox entries in one transaction, parents first.
+    - The patient ID is the LHW code plus the phone's counter, for example `LHW-00001-0007`, the same form as the synthetic data.
+    - `list(search:)` sorts by village, then name; `file(id)` gives the whole pregnancy file. Both report whether the woman is synced, waiting or refused.
 - `lib/sync/`:
   - `sync_api.dart`: the `/auth` (login, code check, refresh, logout) and `/sync` client. Responses are always decoded as UTF-8.
   - `sync_service.dart`:
@@ -91,7 +101,9 @@ From the roadmap:
 - `lib/screens/`:
   - `login_screen.dart` (M1 FE-2, FE-4): LHW ID, password and the language switch. `signInMessage()` turns each `SignInResult` into its text.
   - `otp_screen.dart` (M1 FE-2, decision 0002): the 6-digit code for a new phone, with the last six characters of the installation ID so the portal user can match the phone.
-  - `home_screen.dart`: who is signed in, sync, the language switch, lock and sign out. M2 and M3 add their screens here.
+  - `home_screen.dart`: who is signed in, registration and the patient list (LHWs only), sync, the language switch, lock and sign out. M3 adds visits.
+  - `register_screen.dart` (M2 FE-1–3): the registration form on one page. It uses a `Column` in a `SingleChildScrollView`, not a `ListView`, so every field is built and validated. Then `registration_saved_screen.dart` shows the new patient ID.
+  - `patient_list_screen.dart` (M2 FE-3): search and village groups. `patient_file_screen.dart`: the pregnancy file, with "record home location" when GPS is missing.
   - Phase 0 checks, reached from the home screen in debug builds only:
     - `dev_home_screen.dart`: the list of checks.
     - `widget_kit_screen.dart`: the P0-2 kit preview.
@@ -105,9 +117,10 @@ From the roadmap:
 - `test/`: unit and widget tests.
   - `test/helpers.dart`: `wrapInApp(widget, locale: …)` wraps a widget in the app theme and locale (Urdu by default); `testServices(server, settings, autoLockAfter)` builds the services; `signInApproved(services, server)` signs in on an already approved phone.
   - `test/support/fake_sync_server.dart` imitates the API's `/auth` (with phone approval and refresh tokens) and `/sync` endpoints.
-  - `test/screens/login_flow_test.dart` runs the whole app from sign-in to home and back.
+  - `test/screens/login_flow_test.dart` runs the whole app from sign-in to home and back; `test/screens/registration_flow_test.dart` registers women offline through the screens.
+  - `test/support/fake_location_service.dart` replaces the GPS; `testServices` uses it by default.
   - Drift, the password key isolate and the fake HTTP client run outside the widget test clock: wrap those actions in `tester.runAsync`. To test the auto-lock timer, sign in before `pumpWidget`, so the timer starts on the test clock.
-  - `test/e2e/sync_e2e_test.dart` runs against a real API when given `--dart-define=E2E_API_BASE_URL=...`; it approves its test phones as `admin.demo`.
+  - `test/e2e/sync_e2e_test.dart` runs against a real API when given `--dart-define=E2E_API_BASE_URL=...`; it approves its test phones as `admin.demo` and registers synthetic women.
   - Plugins are faked at their method channel, for example the `flutter_tts` channel in `test/screens/voice_check_screen_test.dart`.
 
 ## Commands

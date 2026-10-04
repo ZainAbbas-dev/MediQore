@@ -41,18 +41,19 @@ React portal for Module 10: dashboard, map, alerts, reports and admin panel. Fol
 - `src/layout/AppLayout.jsx`: sidebar with navigation, the signed-in user and Sign out.
 - `src/pages/`:
   - `LoginPage`, `NotFoundPage`.
-  - `DashboardPage`: for now, the synced households as a count, a map and a table (the portal end of the Phase 0 end-to-end check).
+  - `DashboardPage`: cards for registered women (M2) and households, then the households on a map and in a table (the portal end of the Phase 0 end-to-end check).
+  - `WomenPage` (`/women`, admins and supervisors, M2 FE-1–3): registered women with their pregnancy file in short, from `GET /women`, with search. Wide tables go inside `.table-scroll`.
   - `DevicesPage` (`/devices`, admins and supervisors, M1 FE-2): phones waiting for approval. **Issue code** shows a 6-digit one-time code once.
   - `LhwsPage` (`/admin/lhws`, admins, M1 FE-1, FE-3):
     - lists LHW accounts;
     - creates an LHW and shows the issued LHW ID and password once;
-    - edits and reassigns, with a "sync first" note;
+    - edits and reassigns; the note says the phone's unsynced records keep the old area (M1 FE-3);
     - deactivates or activates;
     - resets the password after the LI-8 "sync before reset" warning.
 - `src/components/AreaMap.jsx`: Leaflet map centred on Pakistan that draws households with GPS.
 - `src/runtime-config.js`: the API base URL from `import.meta.env`. Jest swaps it for `tests/runtime-config-stub.js`.
 - `tests/`: Jest + Testing Library.
-  - `tests/helpers.jsx` has `renderApp(path, { session })`, `supervisorSession`, `adminSession` and `mockApi({ 'GET /path': [status, body] })`. A route can also map to a function `(options) => [status, body]`.
+  - `tests/helpers.jsx` has `renderApp(path, { session })`, `supervisorSession`, `adminSession` and `mockApi({ 'GET /path': [status, body] })`. A route can also map to a function `(options) => [status, body]`. The key includes the query string, for example `GET /women?limit=1` (the dashboard's count).
   - Mock `AreaMap` in page tests; `tests/area-map.test.jsx` covers the real Leaflet map.
 
 ## Commands

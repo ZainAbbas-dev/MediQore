@@ -78,6 +78,7 @@ Run the task **MediQore: start API + portal**. Two terminals open, one for the A
 | `syn.sup.03` | A **different** 100 households near Attock: each supervisor sees only their own areas |
 | `syn.admin` | Households from every area. The Phase 0 list stops at 200. |
 | `admin.demo` or `syn.admin` | Also **LHW accounts** (add an LHW, edit, deactivate, reset the password) and **Phone approvals** (M1) |
+| `syn.sup.01` → **Registered women** | The synthetic pregnant women in that supervisor's areas, with their obstetric history (M2) |
 | `supervisor.demo` | No households yet, until the phone syncs one in step 7. **Phone approvals** lists phones of LHWs in the supervisor's areas. |
 | `lhw.demo` | Refused: the portal is for supervisors and admins |
 | any account, wrong password | An error message |
@@ -94,10 +95,10 @@ Run the task **MediQore: run all tests (db, api, web)**. You should see the same
 | Part | Expected |
 |---|---|
 | `db` | 20 passed |
-| `api` | lint clean, 75 passed |
-| `web` | lint clean, 26 passed, build succeeds |
+| `api` | lint clean, 103 passed |
+| `web` | lint clean, 31 passed, build succeeds |
 
-After step 7, the task **mobile: analyze and test** should show "No issues found" and 76 tests passed, with two skipped (the opt-in end-to-end tests).
+After step 7, the task **mobile: analyze and test** should show "No issues found" and 105 tests passed, with three skipped (the opt-in end-to-end tests).
 
 ## 7. The app on a real phone
 
@@ -124,6 +125,12 @@ This tries Module 1 sign-in (phone approval, offline sign-in, auto-lock), closes
    - **Offline sign-in:** tap **لاک کریں** (lock), turn on **airplane mode** and sign in again with the same password. It works without the internet. A wrong password is refused.
    - **Auto-lock:** leave the app untouched for 5 minutes. It locks and asks for the password again.
    - **Deactivation:** in the portal, as `admin.demo`, open **LHW accounts** and deactivate `LHW-DEMO-001`. On the phone, tap **ابھی سنک کریں** (sync now): the app locks and says the account is deactivated. Activate it again in the portal afterwards.
+   - **Register a pregnant woman offline (M2):** sign in, turn on **airplane mode** and tap **حاملہ خاتون کا اندراج** (register a pregnant woman).
+     1. Fill in a made-up name, age, pregnancy month and village; use synthetic values only, never a real person (LI-10).
+     2. Outdoors, tap **گھر کا مقام محفوظ کریں** (record home location). The first fix without mobile data can take a minute; indoors it may fail, and the form can be saved without it.
+     3. Tap **اندراج محفوظ کریں** (save registration). The app shows the patient ID, for example `LHW-DEMO-001-0001`.
+     4. Open **رجسٹرڈ خواتین** (registered women): she is listed under her village, marked "not sent yet". Search for part of her name.
+     5. Turn airplane mode off and sync. In the portal, as `supervisor.demo`, open **Registered women**: she is there with her history, and the dashboard count goes up.
 6. On the home screen, **فیز 0 کی جانچ** (Phase 0 checks, debug builds only):
    - **ویجٹ کٹ** (widget kit): scroll through the Urdu controls and check that nothing is cut off.
    - **ڈیٹا سنک کی جانچ** (sync test):
@@ -143,7 +150,7 @@ This tries Module 1 sign-in (phone approval, offline sign-in, auto-lock), closes
 
 ## After you pull new code
 
-New code can bring new database changes (for example the LHW ID numbering added in Module 1). After `git pull`, run the task **db: migrate (dev and test databases)**, then restart **MediQore: start API + portal**. For the app, run **mobile: get packages** again.
+New code can bring new database changes (for example the LHW ID numbering and the previous area added in Module 1). After `git pull`, run the task **db: migrate (dev and test databases)**, then restart **MediQore: start API + portal**. For the app, run **mobile: get packages** again.
 
 ## Start again with fresh data
 

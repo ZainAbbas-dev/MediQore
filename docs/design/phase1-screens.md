@@ -105,6 +105,7 @@ M2 FE-1, FE-2, FE-3.
   - confirm that the record is saved on the phone and will sync later.
 - **States to design:** validation errors under each field, GPS unavailable, saved offline.
 - **Decide:** whether obstetric history is a second step or the same scrolling page. The scope says it is captured "at the time of registration".
+  - **Built (Module 2):** one scrolling page with four sections (woman, pregnancy, home, obstetric history) and one Save button, so nothing is half-saved. The home section also offers "same home as a registered woman", for a second woman in one household. After saving, a screen shows the patient ID and that the record is on the phone.
 
 ### 4. Visit form (mobile, scope Mockup 2)
 

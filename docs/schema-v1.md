@@ -42,6 +42,15 @@ Phase 0 exit gate: **"Schema v1 and OpenAPI v1 reviewed by both members."** Revi
 
 In total there are 41 tables: 27 synced and 14 server-only.
 
+## Changes since v1
+
+Each change is a new migration in `db/migrations/`; v1's files are not edited.
+
+| Migration | Change | Scope |
+|---|---|---|
+| `lhw-code-sequence` | `lhw_code_seq` numbers new LHW IDs (`LHW-00001`); an index on phones waiting for approval | M1 FE-1, FE-2 |
+| `lhw-previous-area` | `lhw_profiles.previous_area_id`: the area before the last reassignment, so records a phone made there and syncs late keep that area | M1 FE-3 |
+
 ## Decisions to review
 
 The scope and roadmap name the tables but not every column. These choices were made in schema v1 and should be confirmed or changed in review:
