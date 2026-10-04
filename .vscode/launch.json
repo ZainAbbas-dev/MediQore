@@ -1,0 +1,29 @@
+{
+  // MediQore app: Run and Debug (Ctrl+Shift+D), pick a configuration, press F5. See docs/local-setup.md.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "MediQore app: real phone (same Wi-Fi as this laptop)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "mobile",
+      "program": "lib/main.dart",
+      "toolArgs": ["--dart-define=API_BASE_URL=http://${input:laptopIp}:3000/api/v1"]
+    },
+    {
+      "name": "MediQore app: Android emulator",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "mobile",
+      "program": "lib/main.dart"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "laptopIp",
+      "type": "promptString",
+      "description": "This laptop's Wi-Fi IPv4 address (run ipconfig in a terminal)",
+      "default": "192.168.1.10"
+    }
+  ]
+}

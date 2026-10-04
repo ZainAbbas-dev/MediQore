@@ -60,6 +60,7 @@ npm install
 Copy-Item .env.example .env          # then set DATABASE_URL
 npm run migrate:up                   # apply all pending migrations
 npm run migrate:down                 # roll back the latest migration
+npm run migrate:test                 # apply the migrations to TEST_DATABASE_URL (the API's test database)
 npm run migrate:create -- add-thing  # new SQL migration in migrations/
 npm test                             # schema and generator tests (needs the migrations applied)
 npm run seed:demo                    # demo accounts for local end-to-end testing

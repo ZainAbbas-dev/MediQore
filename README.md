@@ -65,6 +65,8 @@ mediqore/
 
 ## Getting started (Windows)
 
+> **Quickest way to run and test everything:** [docs/local-setup.md](docs/local-setup.md). It uses ready-made VS Code tasks (first-time setup, start API + portal, run all tests) and a launch configuration for the phone.
+
 Both team members develop on Windows. Install:
 
 | Tool | Version | Used by |

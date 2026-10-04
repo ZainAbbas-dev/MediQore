@@ -65,7 +65,7 @@ One-time test database setup (PowerShell):
 
 ```powershell
 psql -U postgres -c "CREATE DATABASE mediqore_test OWNER mediqore;"
-cd ..\db; $env:DATABASE_URL="postgres://mediqore:<password>@localhost:5432/mediqore_test"; npm run migrate:up
+cd ..\db; npm run migrate:test    # migrates TEST_DATABASE_URL from db/.env
 ```
 
 Demo accounts for local testing: `cd ..\db; npm run seed:demo` creates `admin.demo`, `supervisor.demo` and `lhw.demo` (see `db/CLAUDE.md`).

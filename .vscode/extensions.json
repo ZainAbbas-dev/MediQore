@@ -1,0 +1,13 @@
+{
+  // VS Code suggests these when the folder is opened: Flutter/Dart for mobile/, ESLint for api/ and web/,
+  // Python, Jupyter and Ruff for ml/, EditorConfig for every part.
+  "recommendations": [
+    "Dart-Code.flutter",
+    "Dart-Code.dart-code",
+    "dbaeumer.vscode-eslint",
+    "EditorConfig.EditorConfig",
+    "ms-python.python",
+    "ms-toolsai.jupyter",
+    "charliermarsh.ruff"
+  ]
+}

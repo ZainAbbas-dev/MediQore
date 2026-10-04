@@ -90,7 +90,7 @@ Run each from its folder; the part's own `CLAUDE.md` has details.
 
 | Part | Install | Run | Lint | Test |
 |---|---|---|---|---|
-| `db/` | `npm install` | `npm run migrate:up` / `npm run migrate:down`; `npm run seed:demo`; `npm run seed:synthetic` | — | `npm test` (after `migrate:up`) |
+| `db/` | `npm install` | `npm run migrate:up` / `npm run migrate:down` / `npm run migrate:test`; `npm run seed:demo`; `npm run seed:synthetic` | — | `npm test` (after `migrate:up`) |
 | `api/` | `npm install` | `npm run dev` | `npm run lint` | `npm test` (database tests need `TEST_DATABASE_URL`, a migrated `*_test` database) |
 | `web/` | `npm install` | `npm run dev` (needs the API) | `npm run lint` | `npm test`; `npm run build` |
 | `ml/` | `pip install -r requirements-dev.txt` (Python 3.11 venv) | `python scripts/download_uci.py`; notebooks in `notebooks/` | `ruff check .` | `pytest` |

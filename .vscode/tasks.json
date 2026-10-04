@@ -1,0 +1,110 @@
+{
+  // MediQore tasks: Ctrl+Shift+P → "Tasks: Run Task". See docs/local-setup.md.
+  // Commands avoid "&&" and "npm run x -- --flag", which Windows PowerShell 5.1 does not handle.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "MediQore: first-time setup",
+      "detail": "Installs packages, creates the schema in both databases and loads the demo and synthetic data",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "db: install packages",
+        "api: install packages",
+        "web: install packages",
+        "db: migrate (dev and test databases)",
+        "db: load demo and synthetic data"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "MediQore: start API + portal",
+      "detail": "API on http://localhost:3000, portal on http://localhost:5173",
+      "dependsOn": ["api: start", "web: start"],
+      "problemMatcher": []
+    },
+    {
+      "label": "MediQore: run all tests (db, api, web)",
+      "dependsOrder": "sequence",
+      "dependsOn": ["db: test", "api: lint and test", "web: lint, test and build"],
+      "problemMatcher": []
+    },
+    {
+      "label": "MediQore: empty the database and reload the data",
+      "detail": "Deletes everything in the local dev database, then loads the synthetic and demo data again",
+      "dependsOrder": "sequence",
+      "dependsOn": ["db: empty and load synthetic data", "db: load demo data"],
+      "problemMatcher": []
+    },
+
+    { "label": "db: install packages", "type": "shell", "command": "npm install", "options": { "cwd": "${workspaceFolder}/db" }, "problemMatcher": [] },
+    { "label": "api: install packages", "type": "shell", "command": "npm install", "options": { "cwd": "${workspaceFolder}/api" }, "problemMatcher": [] },
+    { "label": "web: install packages", "type": "shell", "command": "npm install", "options": { "cwd": "${workspaceFolder}/web" }, "problemMatcher": [] },
+
+    {
+      "label": "db: migrate (dev and test databases)",
+      "dependsOrder": "sequence",
+      "dependsOn": ["db: migrate dev database", "db: migrate test database"],
+      "problemMatcher": []
+    },
+    { "label": "db: migrate dev database", "type": "shell", "command": "npm run migrate:up", "options": { "cwd": "${workspaceFolder}/db" }, "problemMatcher": [] },
+    { "label": "db: migrate test database", "type": "shell", "command": "npm run migrate:test", "options": { "cwd": "${workspaceFolder}/db" }, "problemMatcher": [] },
+
+    {
+      "label": "db: load demo and synthetic data",
+      "dependsOrder": "sequence",
+      "dependsOn": ["db: load demo data", "db: load synthetic data"],
+      "problemMatcher": []
+    },
+    { "label": "db: load demo data", "type": "shell", "command": "npm run seed:demo", "options": { "cwd": "${workspaceFolder}/db" }, "problemMatcher": [] },
+    { "label": "db: load synthetic data", "type": "shell", "command": "npm run seed:synthetic", "options": { "cwd": "${workspaceFolder}/db" }, "problemMatcher": [] },
+    { "label": "db: empty and load synthetic data", "type": "shell", "command": "node seeds/synthetic/index.js --reset", "options": { "cwd": "${workspaceFolder}/db" }, "problemMatcher": [] },
+
+    {
+      "label": "api: start",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/api" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated" },
+      "problemMatcher": {
+        "owner": "mediqore-api",
+        "pattern": { "regexp": "^__never_matches__$" },
+        "background": { "activeBegins": true, "beginsPattern": ".", "endsPattern": "MediQore API listening" }
+      }
+    },
+    {
+      "label": "web: start",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/web" },
+      "isBackground": true,
+      "presentation": { "panel": "dedicated" },
+      "problemMatcher": {
+        "owner": "mediqore-web",
+        "pattern": { "regexp": "^__never_matches__$" },
+        "background": { "activeBegins": true, "beginsPattern": ".", "endsPattern": "Local" }
+      }
+    },
+
+    { "label": "db: test", "type": "shell", "command": "npm test", "options": { "cwd": "${workspaceFolder}/db" }, "problemMatcher": [] },
+    {
+      "label": "api: lint and test",
+      "dependsOrder": "sequence",
+      "dependsOn": ["api: lint", "api: test"],
+      "problemMatcher": []
+    },
+    { "label": "api: lint", "type": "shell", "command": "npm run lint", "options": { "cwd": "${workspaceFolder}/api" }, "problemMatcher": [] },
+    { "label": "api: test", "type": "shell", "command": "npm test", "options": { "cwd": "${workspaceFolder}/api" }, "problemMatcher": [] },
+    {
+      "label": "web: lint, test and build",
+      "dependsOrder": "sequence",
+      "dependsOn": ["web: lint", "web: test", "web: build"],
+      "problemMatcher": []
+    },
+    { "label": "web: lint", "type": "shell", "command": "npm run lint", "options": { "cwd": "${workspaceFolder}/web" }, "problemMatcher": [] },
+    { "label": "web: test", "type": "shell", "command": "npm test", "options": { "cwd": "${workspaceFolder}/web" }, "problemMatcher": [] },
+    { "label": "web: build", "type": "shell", "command": "npm run build", "options": { "cwd": "${workspaceFolder}/web" }, "problemMatcher": [] },
+
+    { "label": "mobile: analyze and test", "type": "shell", "command": "flutter analyze; flutter test", "options": { "cwd": "${workspaceFolder}/mobile" }, "problemMatcher": [] }
+  ]
+}
