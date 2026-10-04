@@ -81,6 +81,7 @@ The starting point after login.
   - language switch (M1 FE-4);
   - voice guidance mute toggle (M3 FE-3). It is shown only in Urdu; in English, show a note instead: voice guidance works only in Urdu.
 - **Not in Phase 1:** risk alerts, ANC reminders, polio and child modules. Leave room for them, but do not design them now.
+- **Built (Module 3):** a **Settings** heading holds the language switch and the voice guidance switch (or, in English, the note). A visit starts from the woman's file; a short line under **Registered women** says so. The status bar follows the automatic sync.
 
 ### 3. Registration (mobile, scope Mockup 1)
 
@@ -130,6 +131,7 @@ M3 FE-1, FE-3.
 - **Range check:** a value outside the plausible range asks for confirmation instead of blocking. Example from the roadmap: systolic BP outside 60–250. Design this dialog.
 - **Offline status bar** at the top, "saved on the phone" confirmation after saving.
 - **Not in Phase 1:** the risk result screen (M4, Phase 2) follows this form later. Keep the Save button's position stable so that flow can be added.
+- **Built (Module 3):** the form opens from the woman's file (**New visit**, active pregnancy only) and is one scrolling page with two sections, measurements and signs. Every vital except blood sugar is required. A value the server cannot accept (for example `98.6` as °C) is refused under its field with the allowed range; values outside the usual range are listed together in one dialog with their usual range, with "correct them" and "yes, save". The ranges are in `mobile/assets/clinical/visit_ranges.json`. The mute toggle is in the app bar, in Urdu only. After saving, the file lists the visit with its sync state, including "waiting for the supervisor" when the server held it as a same-day duplicate.
 
 ### 5. Dashboard home (web, scope Mockup 6, Phase 1 base)
 

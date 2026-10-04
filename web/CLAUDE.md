@@ -41,8 +41,9 @@ React portal for Module 10: dashboard, map, alerts, reports and admin panel. Fol
 - `src/layout/AppLayout.jsx`: sidebar with navigation, the signed-in user and Sign out.
 - `src/pages/`:
   - `LoginPage`, `NotFoundPage`.
-  - `DashboardPage`: cards for registered women (M2) and households, then the households on a map and in a table (the portal end of the Phase 0 end-to-end check).
-  - `WomenPage` (`/women`, admins and supervisors, M2 FE-1–3): registered women with their pregnancy file in short, from `GET /women`, with search. Wide tables go inside `.table-scroll`.
+  - `DashboardPage`: cards from `GET /dashboard/summary` (registered women, visits this week, sync conflicts to review, M2, M3) and the household count, then the households on a map and in a table (the portal end of the Phase 0 end-to-end check).
+  - `WomenPage` (`/women`, admins and supervisors, M2 FE-1–3): registered women with their pregnancy file in short and their visit count and last visit (M3), from `GET /women`, with search. Wide tables go inside `.table-scroll`.
+  - `ConflictsPage` (`/conflicts`, admins and supervisors, M3 FE-2): the sync conflict queue from `GET /conflicts?status=…`. Each held visit sits next to the stored one, with differing fields highlighted, and three decisions (`POST /conflicts/:id/resolve`: keep both, keep the stored visit, keep the held visit). Decided conflicts show who decided and when.
   - `DevicesPage` (`/devices`, admins and supervisors, M1 FE-2): phones waiting for approval. **Issue code** shows a 6-digit one-time code once.
   - `LhwsPage` (`/admin/lhws`, admins, M1 FE-1, FE-3):
     - lists LHW accounts;
@@ -53,7 +54,7 @@ React portal for Module 10: dashboard, map, alerts, reports and admin panel. Fol
 - `src/components/AreaMap.jsx`: Leaflet map centred on Pakistan that draws households with GPS.
 - `src/runtime-config.js`: the API base URL from `import.meta.env`. Jest swaps it for `tests/runtime-config-stub.js`.
 - `tests/`: Jest + Testing Library.
-  - `tests/helpers.jsx` has `renderApp(path, { session })`, `supervisorSession`, `adminSession` and `mockApi({ 'GET /path': [status, body] })`. A route can also map to a function `(options) => [status, body]`. The key includes the query string, for example `GET /women?limit=1` (the dashboard's count).
+  - `tests/helpers.jsx` has `renderApp(path, { session })`, `supervisorSession`, `adminSession` and `mockApi({ 'GET /path': [status, body] })`. A route can also map to a function `(options) => [status, body]`. The key includes the query string, for example `GET /conflicts?status=pending`. The dashboard calls `GET /households` and `GET /dashboard/summary`.
   - Mock `AreaMap` in page tests; `tests/area-map.test.jsx` covers the real Leaflet map.
 
 ## Commands
@@ -68,4 +69,4 @@ npm test           # Jest
 npm run build      # production build in dist/
 ```
 
-Demo sign-in after `npm run seed:demo` in `db/`: `supervisor.demo` or `admin.demo`, password `demo-password`. `admin.demo` sees **LHW accounts**; both see **Phone approvals**.
+Demo sign-in after `npm run seed:demo` in `db/`: `supervisor.demo` or `admin.demo`, password `demo-password`. `admin.demo` sees **LHW accounts**; both see **Registered women**, **Sync conflicts** and **Phone approvals**. The synthetic data (`npm run seed:synthetic`) includes a few held same-day visits for the conflict queue.

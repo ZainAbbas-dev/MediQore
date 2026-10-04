@@ -42,16 +42,24 @@ The app syncs with a central server whenever a connection is available. Supervis
 > - the patient list searches by name, ID or village and is grouped by village (FE-3);
 > - the portal's **Registered women** page and a dashboard count show what the phones have synced.
 >
+> **Phase 1, Module 3 (field visit and vitals), built on `dev` and waiting for review and real-phone testing:**
+> - the visit form from the woman's file, offline: BP, weight, temperature, pulse, optional blood sugar, fetal movement, swelling, bleeding, fever, anaemia signs and urine symptoms (FE-1);
+> - impossible values are refused, and values outside the usual range (for example systolic BP outside 60–250) are saved only after the LHW confirms them; the ranges are in a versioned config file for clinical advisor review;
+> - the phone's database is encrypted with AES-256 and opens only with the LHW's password (FE-2, proposed decision 0006);
+> - records sync on their own while the app is open and online; a second visit to the same pregnancy on the same day is held for the supervisor instead of being stored, and the portal's **Sync conflicts** page decides (FE-2, LI-7);
+> - in Urdu, each field's label is read aloud when it gets focus, with a mute switch; off in English (FE-3);
+> - the dashboard shows visits this week and the conflicts waiting for review.
+>
 > **Data notice:** MediQore is developed and demonstrated on synthetic data only. No real patient data is used before IEC approval (LI-10). AI results are decision support, not a clinical diagnosis (LI-5).
 
 ## Components
 
 | Part | Folder | Stack | Status |
 |---|---|---|---|
-| LHW Android app (Modules 1–9) | [`mobile/`](mobile/) | Flutter 3.x, Drift + SQLCipher, ONNX Runtime | Urdu shell and widget kit (P0-2); local database, outbox and sync (P0-6); sign-in, phone approval, offline sign-in and auto-lock (M1); registration, patient list and pregnancy file (M2) |
-| REST API | [`api/`](api/) | Node.js 20 + Express, JWT, Joi | Skeleton (P0-3); `/sync` push/pull (P0-6); login with phone approval, refresh tokens, LHW accounts, phone approvals (M1); registrations through `/sync` and `GET /women` (M2) |
+| LHW Android app (Modules 1–9) | [`mobile/`](mobile/) | Flutter 3.x, Drift + SQLCipher, ONNX Runtime | Urdu shell and widget kit (P0-2); local database, outbox and sync (P0-6); sign-in, phone approval, offline sign-in and auto-lock (M1); registration, patient list and pregnancy file (M2); encrypted database, visit form, automatic sync and voice guidance (M3) |
+| REST API | [`api/`](api/) | Node.js 20 + Express, JWT, Joi | Skeleton (P0-3); `/sync` push/pull (P0-6); login with phone approval, refresh tokens, LHW accounts, phone approvals (M1); registrations through `/sync` and `GET /women` (M2); visits through `/sync`, the same-day conflict queue and the dashboard summary (M3) |
 | Database | [`db/`](db/) | PostgreSQL 15 migrations and synthetic seed scripts | Schema v1 for all ten modules (P0-4); demo seed; synthetic data generator (P0-8); LHW ID numbering and the previous area after a reassignment (M1) |
-| Supervisor and admin portal (Module 10) | [`web/`](web/) | React 18 + Leaflet.js | Login, auth guard, sidebar layout, map dashboard (P0-5); LHW accounts and phone approvals (M1); registered women (M2) |
+| Supervisor and admin portal (Module 10) | [`web/`](web/) | React 18 + Leaflet.js | Login, auth guard, sidebar layout, map dashboard (P0-5); LHW accounts and phone approvals (M1); registered women (M2); sync conflict review queue, visits on the dashboard (M3) |
 | ML pipeline and analytics worker | [`ml/`](ml/) | Python 3.11, scikit-learn, SHAP, sklearn2onnx | Dataset download and exploratory notebook (P0-10); training in Phase 2 |
 
 ## Repository layout

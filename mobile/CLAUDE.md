@@ -38,22 +38,23 @@ From the roadmap:
 - The language comes from `AppSettings` (`services.settings`): Urdu by default, English selectable.
   - Test every new screen in both languages, including on a 320 × 640 phone.
   - Don't hard-code a font family or text direction; the theme and locale set them. The exception is text that must stay in one script, such as اردو on the language switch, and numbers, which stay left to right.
-- Voice guidance speaks only when `AppSettings.voiceGuidanceAvailable` is true (Urdu). In English, show `voiceGuidanceUrduOnly` instead.
+- Voice guidance (M3 FE-3) speaks only when `AppSettings.voiceGuidanceAvailable` is true (Urdu) and the LHW has not muted it (`voiceMuted`). In English, show `voiceGuidanceUrduOnly` instead. Fields are read aloud only inside a `VoiceScope`.
 - shared_preferences holds device settings only: the language, the installation ID and the saved account (user profile, PBKDF2 salt and verifier; never the password or a token). Patient data goes in the encrypted database.
 - Tokens stay in memory (`Session`). A locked app forgets them and the password key, and closes the database.
 - The database is encrypted and opens only after sign-in (M3 FE-2): use `services.db`, `services.patients` and so on only while the app is unlocked; they throw while it is locked.
 - Every write goes to its local table and to the outbox in the same transaction.
 - Generate record IDs as UUID v4 on the device; order by `server_seq`, never by device clock.
-- Read clinical thresholds (danger signs, EPI, MUAC, IMCI) from versioned JSON config, never hard-code them.
+- Read clinical thresholds (danger signs, EPI, MUAC, IMCI) from versioned JSON config, never hard-code them. The visit form's ranges are in `assets/clinical/visit_ranges.json`; its `allowed` ranges must equal the server's bounds in `api/src/sync/tables.js` (`api/tests/visit-ranges.test.js` checks this).
+- Records sync on their own while the app is unlocked after an online sign-in (`AutoSync`); nothing syncs while it is locked, because the database is closed.
 
 ## Layout
 
 - `lib/main.dart` → `lib/app.dart`:
-  - `main()` reads the saved settings (`AppSettings.load()`) before the first frame.
+  - `main()` reads the saved settings (`AppSettings.load()`) and the visit ranges (`VisitRanges.load()`) before the first frame.
   - `MediQoreApp` rebuilds `MaterialApp` whenever the language changes. Its locale and theme follow `AppSettings`: Urdu right to left, English left to right.
   - It shows `LoginScreen` until someone signs in, then `HomeScreen`. When the session locks, it closes every open screen.
   - `InactivityLock` (`lib/widgets/inactivity_lock.dart`) wraps every screen and locks the session after `autoLockAfter` (5 minutes) without a touch (M1 FE-2).
-- `lib/settings/app_settings.dart`: `AppSettings` (M1 FE-4, FE-2), with the language, the saved choice, the voice rule and the installation ID (`deviceId`, a UUID v4 made once).
+- `lib/settings/app_settings.dart`: `AppSettings` (M1 FE-4, FE-2), with the language, the saved choice, the voice rule, the voice guidance mute (`voiceMuted`, M3 FE-3) and the installation ID (`deviceId`, a UUID v4 made once).
   - Saved through `SharedPreferencesStore`; only the keys in `AppSettings.storedKeys`.
   - Tests use `MemorySettingsStore`.
 - `lib/auth/` (M1 FE-2, FE-3):
@@ -75,14 +76,18 @@ From the roadmap:
   - `AppColors`: the Green/Yellow/Red risk colours.
 - `lib/widgets/`: the shared kit.
   - `LargeButton`
-  - `AppTextField`, `VitalField` (numbers and unit always left to right, digits only), `CheckboxField`, `DropdownField`
+  - `AppTextField`, `VitalField` (numbers and unit always left to right; digits and up to `decimals` decimals; a keystroke that does not fit is ignored), `CheckboxField`, `DropdownField`. Inside a `VoiceScope` each reads its label aloud on focus (a checkbox or dropdown on tap) and shows a speaker while focused (M3 FE-3).
   - `NumberField` (whole numbers without a unit, digits only, left to right)
   - `RiskChip` with `RiskLevel`
   - `OfflineStatusBar`
   - `GpsCapture` (M2 FE-3): records a position with its status and the reason it failed
-- `lib/app_services.dart`: the settings, database, API client, repositories, sync service and session, created once in `main()`. Tests build them with an in-memory database, Urdu settings kept in memory and a fast password key (`testServices()` in `test/helpers.dart`).
+  - `VoiceSetting` (M3 FE-3): the voice guidance switch in the home settings, or the Urdu-only note in English
+  - `syncStatusText()`: the words for waiting, refused and held records
+- `lib/app_services.dart`: the settings, database, API client, repositories, sync service, session, automatic sync, voice guidance and visit ranges, created once in `main()`. Tests build them with an in-memory database, Urdu settings kept in memory, a fast password key, a fake voice and no automatic sync (`testServices()` in `test/helpers.dart`).
+- `lib/clinical/visit_ranges.dart` (M3 FE-1): `VisitRanges` from `assets/clinical/visit_ranges.json`. Per vital: `allowed` (outside it the value is impossible and cannot be saved), `plausible` (outside it the LHW confirms the value) and `decimals`. The file is versioned and marked as a draft for clinical advisor review.
+- `lib/voice/voice_guide.dart` (M3 FE-3): `Voice` (`TtsVoice` with flutter_tts and `ur-PK`; it stays silent when the phone has no Urdu voice), `VoiceGuidance` (speaks only in Urdu and unmuted; muting stops it) and `VoiceScope`.
 - `lib/data/`:
-  - `app_database.dart`: the Drift database (schema version 2) with `households`, `women`, `pregnancies`, `obstetric_history` (M2), `outbox` and `sync_state`.
+  - `app_database.dart`: the Drift database (schema version 3) with `households`, `women`, `pregnancies`, `obstetric_history` (M2), `visits` (M3), `outbox` and `sync_state`.
     - Every synced table has the base columns, including `areaId` (the area the record was made in, M1 FE-3) and `createdBy`.
     - No foreign keys between synced tables: a pulled woman can arrive before her household.
     - `enqueue(payload)` adds or replaces a record's outbox entry; `setServerSeq`, `clearAreaData` and `clearAllData` work on every synced table.
@@ -95,18 +100,22 @@ From the roadmap:
     - `register` saves the household (or reuses a registered woman's home), the woman, her pregnancy file and her obstetric history with their outbox entries in one transaction, parents first.
     - The patient ID is the LHW code plus the phone's counter, for example `LHW-00001-0007`, the same form as the synthetic data.
     - `list(search:)` sorts by village, then name; `file(id)` gives the whole pregnancy file. Both report whether the woman is synced, waiting or refused.
+  - `visit_repository.dart` (M3 FE-1): `record` saves a visit and its outbox entry in one transaction; `forPregnancy` lists the visits, latest first by server number, then the unsynced ones in the order saved (never by phone clock), each with its `SyncStatus` (synced, waiting, refused or held). Vitals are stored in one unit each: mmHg, kg, °C, beats per minute, mmol/L.
 - `lib/sync/`:
   - `sync_api.dart`: the `/auth` (login, code check, refresh, logout) and `/sync` client. Responses are always decoded as UTF-8.
   - `sync_service.dart`:
     - push sends the outbox in batches of up to 100, highest priority first, then stores each `serverSeq`;
     - pull fetches everything after the last server number seen;
-    - records the server refuses stay on the phone, marked with `lastError`.
+    - records the server refuses stay on the phone, marked with `lastError`;
+    - a visit the server holds for supervisor review (status `conflict`, M3 FE-2) leaves the outbox and gets `conflictId`; the decision arrives by pull, which clears it (a duplicate arrives deleted). `SyncReport.held` counts them.
+  - `auto_sync.dart` (M3 FE-2): `AutoSync` syncs while the app is unlocked after an online sign-in: a few seconds after a save, every two minutes (the retry) and when the app returns to the foreground. `run()` is also the Sync button; `Session.sync()` joins a sync that is already running, so the refresh token is never used twice. True background sync with the app closed is not possible: the database key exists only while the app is unlocked (LI-8).
 - `lib/screens/`:
   - `login_screen.dart` (M1 FE-2, FE-4): LHW ID, password and the language switch. `signInMessage()` turns each `SignInResult` into its text.
   - `otp_screen.dart` (M1 FE-2, decision 0002): the 6-digit code for a new phone, with the last six characters of the installation ID so the portal user can match the phone.
-  - `home_screen.dart`: who is signed in, registration and the patient list (LHWs only), sync, the language switch, lock and sign out. M3 adds visits.
+  - `home_screen.dart`: who is signed in, registration and the patient list (LHWs only), sync (the status bar follows `AutoSync`), the settings (language switch and voice guidance), lock and sign out.
   - `register_screen.dart` (M2 FE-1–3): the registration form on one page. It uses a `Column` in a `SingleChildScrollView`, not a `ListView`, so every field is built and validated. Then `registration_saved_screen.dart` shows the new patient ID.
-  - `patient_list_screen.dart` (M2 FE-3): search and village groups. `patient_file_screen.dart`: the pregnancy file, with "record home location" when GPS is missing.
+  - `patient_list_screen.dart` (M2 FE-3): search and village groups. `patient_file_screen.dart`: the pregnancy file, with "record home location" when GPS is missing, the **New visit** button for an active pregnancy and the visits with their sync state (M3).
+  - `visit_screen.dart` (M3 FE-1, FE-3, P0-7 screen 4): the visit form in one `Column` in a `SingleChildScrollView`. Every vital but blood sugar is required; impossible values show the allowed range; values outside the usual range open a dialog that lists them ("correct them" or "yes, save"). The status bar is at the top and the mute toggle in the app bar (Urdu only). It closes with the saved visit, and the file shows "saved on the phone".
   - Phase 0 checks, reached from the home screen in debug builds only:
     - `dev_home_screen.dart`: the list of checks.
     - `widget_kit_screen.dart`: the P0-2 kit preview.
@@ -118,13 +127,14 @@ From the roadmap:
 - `android/app/src/main/AndroidManifest.xml` declares the `TTS_SERVICE` query, so flutter_tts can find the phone's text-to-speech engines on Android 11 and later.
 - `assets/fonts/JameelNooriNastaleeq.ttf`: the bundled Urdu font, declared in `pubspec.yaml` as family `JameelNooriNastaleeq`.
 - `test/`: unit and widget tests.
-  - `test/helpers.dart`: `wrapInApp(widget, locale: …)` wraps a widget in the app theme and locale (Urdu by default); `testServices(server, settings, autoLockAfter, location)` builds the services; `signInApproved(services, server)` signs in on an already approved phone; `dbOf(services)` reaches the test database while the app is locked. Call `services.dispose()` in `tearDown`.
+  - `test/helpers.dart`: `wrapInApp(widget, locale: …)` wraps a widget in the app theme and locale (Urdu by default); `testServices(server, settings, autoLockAfter, location, voice)` builds the services (no automatic sync; `test/sync/auto_sync_test.dart` starts its own `AutoSync` with short intervals); `signInApproved(services, server)` signs in on an already approved phone; `dbOf(services)` reaches the test database while the app is locked. Call `services.dispose()` in `tearDown`.
   - `test/support/memory_database_opener.dart`: an in-memory database that behaves like the encrypted file (it refuses another key and survives a lock). `test/data/encrypted_database_test.dart` checks the real encrypted file.
   - `test/support/fake_sync_server.dart` imitates the API's `/auth` (with phone approval and refresh tokens) and `/sync` endpoints.
   - `test/screens/login_flow_test.dart` runs the whole app from sign-in to home and back; `test/screens/registration_flow_test.dart` registers women offline through the screens.
-  - `test/support/fake_location_service.dart` replaces the GPS; `testServices` uses it by default.
+  - `test/support/fake_location_service.dart` replaces the GPS and `test/support/fake_voice.dart` the text-to-speech (it records what would be spoken); `testServices` uses both by default. `FakeSyncServer.holdIds` makes the server hold records as same-day conflicts, and `resolveHeld` plays the supervisor's decision.
+  - `test/screens/visit_flow_test.dart` records visits through the screens: required and impossible values, the range dialog, voice guidance on focus, mute and English, and a held visit.
   - Drift, the password key isolate and the fake HTTP client run outside the widget test clock: wrap those actions in `tester.runAsync`. To test the auto-lock timer, sign in before `pumpWidget`, so the timer starts on the test clock.
-  - `test/e2e/sync_e2e_test.dart` runs against a real API when given `--dart-define=E2E_API_BASE_URL=...`; it approves its test phones as `admin.demo` and registers synthetic women.
+  - `test/e2e/sync_e2e_test.dart` runs against a real API when given `--dart-define=E2E_API_BASE_URL=...`; it approves its test phones as `admin.demo`, registers synthetic women, records visits and makes one same-day conflict, which it decides as the admin.
   - Plugins are faked at their method channel, for example the `flutter_tts` channel in `test/screens/voice_check_screen_test.dart`.
 
 ## Commands

@@ -78,7 +78,8 @@ Run the task **MediQore: start API + portal**. Two terminals open, one for the A
 | `syn.sup.03` | A **different** 100 households near Attock: each supervisor sees only their own areas |
 | `syn.admin` | Households from every area. The Phase 0 list stops at 200. |
 | `admin.demo` or `syn.admin` | Also **LHW accounts** (add an LHW, edit, deactivate, reset the password) and **Phone approvals** (M1) |
-| `syn.sup.01` → **Registered women** | The synthetic pregnant women in that supervisor's areas, with their obstetric history (M2) |
+| `syn.sup.01` → **Registered women** | The synthetic pregnant women in that supervisor's areas, with their obstetric history and visit count (M2, M3) |
+| `syn.sup.01` → **Sync conflicts** | Visits held because the same pregnancy already had a visit that day, each next to the stored visit with the differences highlighted. Decide one: it moves to **Decided** and the dashboard count drops (M3) |
 | `supervisor.demo` | No households yet, until the phone syncs one in step 7. **Phone approvals** lists phones of LHWs in the supervisor's areas. |
 | `lhw.demo` | Refused: the portal is for supervisors and admins |
 | any account, wrong password | An error message |
@@ -94,15 +95,15 @@ Run the task **MediQore: run all tests (db, api, web)**. You should see the same
 
 | Part | Expected |
 |---|---|
-| `db` | 20 passed |
-| `api` | lint clean, 103 passed |
-| `web` | lint clean, 31 passed, build succeeds |
+| `db` | 21 passed |
+| `api` | lint clean, 128 passed |
+| `web` | lint clean, 38 passed, build succeeds |
 
-After step 7, the task **mobile: analyze and test** should show "No issues found" and 105 tests passed, with three skipped (the opt-in end-to-end tests).
+After step 7, the task **mobile: analyze and test** should show "No issues found" and 141 tests passed, with four skipped (the opt-in end-to-end tests).
 
 ## 7. The app on a real phone
 
-This tries Module 1 sign-in (phone approval, offline sign-in, auto-lock), closes the Phase 0 exit gate ("one test record created on the phone offline, synced, stored in PostgreSQL and visible on the React portal") and runs the Urdu voice check (decision 0004).
+This tries Module 1 sign-in (phone approval, offline sign-in, auto-lock), Module 2 registration and Module 3 visits, closes the Phase 0 exit gate ("one test record created on the phone offline, synced, stored in PostgreSQL and visible on the React portal") and runs the Urdu voice check (decision 0004).
 
 1. **Get the app's packages:** run the task **mobile: get packages** (or `flutter pub get` in `mobile/`).
    - Until this has run, VS Code underlines almost every line in `mobile/` in red: the packages and the generated Urdu/English text class (`app_localizations.dart`) are missing.
@@ -131,6 +132,15 @@ This tries Module 1 sign-in (phone approval, offline sign-in, auto-lock), closes
      3. Tap **اندراج محفوظ کریں** (save registration). The app shows the patient ID, for example `LHW-DEMO-001-0001`.
      4. Open **رجسٹرڈ خواتین** (registered women): she is listed under her village, marked "not sent yet". Search for part of her name.
      5. Turn airplane mode off and sync. In the portal, as `supervisor.demo`, open **Registered women**: she is there with her history, and the dashboard count goes up.
+   - **Record a visit offline (M3):** with **airplane mode** on, open her file from **رجسٹرڈ خواتین** and tap **نیا وزٹ** (new visit).
+     1. **Voice guidance:** with the app in Urdu, tap the first field. The phone reads its name aloud and a speaker shows next to it. The speaker button at the top mutes it; the same switch is under **سیٹنگز** (settings) on the home screen. In English there is no voice. If nothing is heard, check the voice check results (step 6).
+     2. Leave every field empty and tap **وزٹ محفوظ کریں** (save visit): each required field says so. Type `98.6` as the temperature: it is refused, because the app takes °C.
+     3. Type a systolic BP of `255` with the other values normal and save: a dialog asks you to check it. **درست کریں** goes back; **جی ہاں، محفوظ کریں** saves it.
+     4. The file shows the visit, marked "not sent yet".
+   - **Automatic sync and the conflict queue (M3):** turn airplane mode off, wait a few seconds and go back to the home screen: the status bar says everything is synced, without tapping sync. Then record a **second visit for the same woman** and wait again.
+     1. Her file marks the second visit "waiting for the supervisor": the server held it because she already had a visit that day.
+     2. In the portal, as `supervisor.demo`, open **Sync conflicts**: both visits are side by side. Choose one of the three decisions.
+     3. Back on the phone, tap sync: the visit is no longer held (or, with "keep the stored visit", it disappears as a duplicate).
 6. On the home screen, **فیز 0 کی جانچ** (Phase 0 checks, debug builds only):
    - **ویجٹ کٹ** (widget kit): scroll through the Urdu controls and check that nothing is cut off.
    - **ڈیٹا سنک کی جانچ** (sync test):

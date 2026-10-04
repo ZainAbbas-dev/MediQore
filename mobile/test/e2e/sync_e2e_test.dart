@@ -4,8 +4,9 @@
 //   flutter test test/e2e/sync_e2e_test.dart --dart-define=E2E_API_BASE_URL=http://localhost:3000/api/v1
 //
 // Needs the demo accounts (`npm run seed:demo` in db/). Set E2E_PASSWORD if the
-// demo password was changed. Each run adds synthetic records (one household,
-// two registrations) and five approved test phones for lhw.demo.
+// demo password was changed. Each run adds synthetic records (households,
+// three registrations, three visits, one decided sync conflict) and seven
+// approved test phones for lhw.demo.
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show driftRuntimeOptions;
@@ -17,6 +18,7 @@ import 'package:mediqore/auth/session.dart';
 import 'package:mediqore/data/app_database.dart';
 import 'package:mediqore/data/household_repository.dart';
 import 'package:mediqore/data/patient_repository.dart';
+import 'package:mediqore/data/visit_repository.dart';
 import 'package:mediqore/sync/sync_api.dart';
 import 'package:mediqore/sync/sync_service.dart';
 import 'package:uuid/uuid.dart';
@@ -63,6 +65,14 @@ Future<String> signInNewPhone(SyncApi api, String deviceId) async {
   final again = await api.login('lhw.demo', password, deviceId: deviceId);
   expect(again.otpRequired, isFalse);
   return again.tokens!.accessToken;
+}
+
+/// The app on a new phone, signed in as lhw.demo with the code from the admin.
+Future<AppServices> signedInNewPhone() async {
+  final services = AppServices(opener: MemoryDatabaseOpener(), api: SyncApi(baseUrl: apiBaseUrl), autoSync: false);
+  expect(await services.session.signIn('lhw.demo', password), SignInResult.needsCode);
+  expect(await services.session.verifyCode(await issueCodeAsAdmin(services.settings.deviceId)), SignInResult.signedIn);
+  return services;
 }
 
 void main() {
@@ -156,14 +166,7 @@ void main() {
   test(
     'a woman registered offline on one phone reaches the portal and the next phone, and patient IDs continue (M2)',
     () async {
-      Future<AppServices> newPhone() async {
-        final services = AppServices(opener: MemoryDatabaseOpener(), api: SyncApi(baseUrl: apiBaseUrl), autoSync: false);
-        expect(await services.session.signIn('lhw.demo', password), SignInResult.needsCode);
-        expect(await services.session.verifyCode(await issueCodeAsAdmin(services.settings.deviceId)), SignInResult.signedIn);
-        return services;
-      }
-
-      final phone1 = await newPhone();
+      final phone1 = await signedInNewPhone();
       final woman = await phone1.patients.register(
         const RegistrationInput(
           name: 'E2E Synthetic Woman',
@@ -192,7 +195,7 @@ void main() {
       expect(row['household'], containsPair('village', 'End-to-end village'));
 
       // A new phone downloads her at sign-in, and its numbers continue after hers.
-      final phone2 = await newPhone();
+      final phone2 = await signedInNewPhone();
       final pulled = await phone2.patients.file(woman.id);
       expect(pulled?.woman.patientCode, woman.patientCode);
       expect(pulled?.pregnancy?.pregnancyMonthAtRegistration, 4);
@@ -206,6 +209,64 @@ void main() {
 
       // ignore: avoid_print
       print('E2E M2 OK: ${woman.patientCode} then ${next.patientCode}');
+      for (final phone in [phone1, phone2]) {
+        await phone.session.signOut();
+        await phone.dispose();
+      }
+    },
+    skip: apiBaseUrl.isEmpty ? 'Set --dart-define=E2E_API_BASE_URL to run against a real API' : false,
+  );
+
+  test(
+    'a visit reaches the server; a same-day visit from another phone waits for the supervisor, whose decision reaches it (M3)',
+    () async {
+      final phone1 = await signedInNewPhone();
+      final woman = await phone1.patients.register(
+        const RegistrationInput(name: 'E2E Visit Woman', age: 24, pregnancyMonth: 6, village: 'End-to-end village'),
+        by: phone1.session.user!,
+      );
+      final pregnancyId = (await phone1.patients.file(woman.id))!.pregnancy!.id;
+      await phone1.visits.record(
+        VisitInput(pregnancyId: pregnancyId, systolicBpMmhg: 118, diastolicBpMmhg: 76, weightKg: 58.5, temperatureC: 36.8, pulseBpm: 82),
+        by: phone1.session.user!,
+      );
+      final first = await phone1.session.sync();
+      expect((first.pushed, first.rejected, first.held), (5, 0, 0), reason: 'the real server takes the visit as the app sends it');
+
+      // Another phone downloads her visit, then records a second one the same day:
+      // a possible duplicate, which the server holds instead of storing (M3 FE-2).
+      final phone2 = await signedInNewPhone();
+      expect((await phone2.visits.forPregnancy(pregnancyId)).single.syncStatus, SyncStatus.synced);
+      final second = await phone2.visits.record(
+        VisitInput(pregnancyId: pregnancyId, systolicBpMmhg: 150, diastolicBpMmhg: 96, weightKg: 58.5, temperatureC: 37.9, pulseBpm: 104, bleeding: true),
+        by: phone2.session.user!,
+      );
+      final report = await phone2.session.sync();
+      expect((report.held, report.rejected), (1, 0));
+      final held = (await phone2.visits.forPregnancy(pregnancyId)).firstWhere((v) => v.visit.id == second.id);
+      expect(held.syncStatus, SyncStatus.held);
+
+      // The supervisor portal's queue has it with both visits; the admin keeps both.
+      final token = await adminToken();
+      final pending = ((await send('GET', '/conflicts?status=pending', token: token))['conflicts'] as List).cast<Map>();
+      final conflict = pending.singleWhere((c) => (c['incoming'] as Map)['id'] == second.id);
+      expect(conflict['woman'], containsPair('patientCode', woman.patientCode));
+      expect((conflict['incoming'] as Map)['data'], containsPair('systolicBpMmhg', 150));
+      expect((conflict['existing'] as Map)['data'], containsPair('systolicBpMmhg', 118));
+      await send('POST', '/conflicts/${conflict['id']}/resolve', token: token, body: {'resolution': 'keep_both'});
+
+      // The decision reaches the phone at its next sync.
+      await phone2.session.sync();
+      final visits = await phone2.visits.forPregnancy(pregnancyId);
+      expect(visits.map((v) => v.syncStatus), [SyncStatus.synced, SyncStatus.synced]);
+      expect(visits.first.visit.id, second.id, reason: 'numbered by the server after the first visit');
+      expect(visits.first.visit.conflictId, isNull);
+
+      final summary = await send('GET', '/dashboard/summary', token: token);
+      expect(summary['visitsThisWeek'], greaterThanOrEqualTo(2));
+
+      // ignore: avoid_print
+      print('E2E M3 OK: ${woman.patientCode}, conflict ${conflict['id']} kept both');
       for (final phone in [phone1, phone2]) {
         await phone.session.signOut();
         await phone.dispose();
