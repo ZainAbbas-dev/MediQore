@@ -198,7 +198,7 @@ void main() {
         const RegistrationInput(name: 'E2E Second Woman', age: 25, pregnancyMonth: 2, village: 'End-to-end village'),
         by: phone2.session.user!,
       );
-      final number = (String code) => int.parse(code.split('-').last);
+      int number(String code) => int.parse(code.split('-').last);
       expect(number(next.patientCode), greaterThan(number(woman.patientCode)));
       expect((await phone2.session.sync()).rejected, 0);
 
