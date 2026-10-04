@@ -89,8 +89,8 @@ describe('expired access token (M1 FE-2)', () => {
       'GET /households': (options) => (options.headers.Authorization === 'Bearer token-2'
         ? [200, { households: [] }]
         : [401, { error: { code: 'UNAUTHORIZED', message: 'Session expired' } }]),
-      'GET /women?limit=1': (options) => (options.headers.Authorization === 'Bearer token-2'
-        ? [200, { women: [], total: 0 }]
+      'GET /dashboard/summary': (options) => (options.headers.Authorization === 'Bearer token-2'
+        ? [200, { registeredWomen: 0, visitsThisWeek: 0, pendingConflicts: 0 }]
         : [401, { error: { code: 'UNAUTHORIZED', message: 'Session expired' } }]),
       'POST /auth/refresh': [200, { accessToken: 'token-2', refreshToken: 'refresh-2', user: supervisorSession.user }],
     });

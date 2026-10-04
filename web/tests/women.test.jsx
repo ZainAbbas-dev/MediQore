@@ -18,6 +18,7 @@ const woman = {
   registeredBy: { lhwCode: 'LHW-00007', fullName: 'Sana Iqbal' },
   pregnancy: { registeredOn: '2026-10-01', monthAtRegistration: 3, status: 'active' },
   obstetricHistory: { previousPregnancies: 2, previousCSections: 1, stillbirths: 0, knownConditions: 'Asthma' },
+  visits: { count: 4, lastVisitAt: '2026-10-03T06:30:00.000Z' },
   serverSeq: 12,
   syncedAt: '2026-10-01T10:00:00.000Z',
 };
@@ -28,9 +29,10 @@ describe('registered women (M2, M10 FE-1)', () => {
     renderApp('/women', { session: supervisorSession });
 
     const row = (await screen.findByText('LHW-00007-0003')).closest('tr');
-    for (const text of ['26', 'Area 0101-1', '3', '2026-10-01', '2 / 1 / 0', 'Asthma', 'LHW-00007', 'Recorded']) {
+    for (const text of ['26', 'Area 0101-1', '3', '2026-10-01', '2 / 1 / 0', 'Asthma', 'LHW-00007', 'Recorded', '4']) {
       expect(within(row).getByText(text)).toBeInTheDocument();
     }
+    expect(within(row).getByText(new Date('2026-10-03T06:30:00.000Z').toLocaleDateString())).toBeInTheDocument();
     expect(within(row).getByText('Husband: Synthetic Husband')).toBeInTheDocument();
     expect(row).toHaveTextContent('Synthetic Woman');
     expect(row).toHaveTextContent('Dhok Syedan');
@@ -59,7 +61,12 @@ describe('registered women (M2, M10 FE-1)', () => {
   });
 
   it('shows a home without GPS as not recorded', async () => {
-    const noGps = { ...woman, household: { ...woman.household, latitude: null, longitude: null }, obstetricHistory: null };
+    const noGps = {
+      ...woman,
+      household: { ...woman.household, latitude: null, longitude: null },
+      obstetricHistory: null,
+      visits: { count: 0, lastVisitAt: null },
+    };
     mockApi({ 'GET /women': [200, { women: [noGps], total: 1 }] });
     renderApp('/women', { session: supervisorSession });
 
@@ -68,7 +75,7 @@ describe('registered women (M2, M10 FE-1)', () => {
   });
 
   it('is in the sidebar for supervisors and admins', async () => {
-    mockApi({ 'GET /households': [200, { households: [] }], 'GET /women?limit=1': [200, { women: [], total: 0 }] });
+    mockApi({ 'GET /households': [200, { households: [] }], 'GET /dashboard/summary': [200, { registeredWomen: 0, visitsThisWeek: 0, pendingConflicts: 0 }] });
     renderApp('/', { session: supervisorSession });
 
     expect(await screen.findByRole('link', { name: 'Registered women' })).toBeInTheDocument();

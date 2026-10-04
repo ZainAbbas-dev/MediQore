@@ -20,10 +20,10 @@ const household = {
 };
 
 describe('dashboard', () => {
-  it('shows the households synced from the LHW app', async () => {
+  it('shows the households synced from the LHW app and the summary counts (M10 FE-1)', async () => {
     const fetchMock = mockApi({
       'GET /households': [200, { households: [household] }],
-      'GET /women?limit=1': [200, { women: [], total: 37 }],
+      'GET /dashboard/summary': [200, { registeredWomen: 37, visitsThisWeek: 12, pendingConflicts: 2 }],
     });
 
     renderApp('/', { session: supervisorSession });
@@ -34,11 +34,15 @@ describe('dashboard', () => {
     expect(screen.getByTestId('area-map')).toHaveTextContent('1 on map');
     expect(screen.getByText('Registered households').previousSibling).toHaveTextContent('1');
     expect(screen.getByText('Registered women', { selector: '.card-label' }).closest('.card')).toHaveTextContent('37');
+    expect(screen.getByText('Visits this week').closest('.card')).toHaveTextContent('12');
+    const conflicts = screen.getByRole('link', { name: 'Sync conflicts to review' });
+    expect(conflicts.closest('.card')).toHaveTextContent('2');
+    expect(conflicts).toHaveAttribute('href', '/conflicts');
     expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer token-1');
   });
 
   it('says so when nothing has been synced yet', async () => {
-    mockApi({ 'GET /households': [200, { households: [] }], 'GET /women?limit=1': [200, { women: [], total: 0 }] });
+    mockApi({ 'GET /households': [200, { households: [] }], 'GET /dashboard/summary': [200, { registeredWomen: 0, visitsThisWeek: 0, pendingConflicts: 0 }] });
 
     renderApp('/', { session: supervisorSession });
 

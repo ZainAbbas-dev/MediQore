@@ -1,6 +1,7 @@
 // M2 FE-1, FE-2, FE-3: registered women for supervisors and admins (M10 FE-1
 // shows registered patients). A supervisor sees only their areas; the API
-// scopes the list. Each row has the woman's pregnancy file in short.
+// scopes the list. Each row has the woman's pregnancy file in short, and how
+// many visits have reached the server (M3 FE-1).
 import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/context';
 
@@ -82,6 +83,10 @@ export default function WomenPage() {
                     <div className="muted">previous / C-sections / stillbirths</div>
                   </th>
                   <th>Known conditions</th>
+                  <th>
+                    Visits
+                    <div className="muted">last visit</div>
+                  </th>
                   <th>Registered by</th>
                   <th>Home GPS</th>
                 </tr>
@@ -104,6 +109,12 @@ export default function WomenPage() {
                     <td className="nowrap">{w.pregnancy ? w.pregnancy.registeredOn : '–'}</td>
                     <td>{historyText(w.obstetricHistory)}</td>
                     <td>{w.obstetricHistory?.knownConditions || '–'}</td>
+                    <td className="nowrap">
+                      {w.visits.count}
+                      {w.visits.lastVisitAt && (
+                        <div className="muted">{new Date(w.visits.lastVisitAt).toLocaleDateString()}</div>
+                      )}
+                    </td>
                     <td className="nowrap">{w.registeredBy.lhwCode || w.registeredBy.fullName}</td>
                     <td>{w.household.latitude !== null ? 'Recorded' : 'Not recorded'}</td>
                   </tr>

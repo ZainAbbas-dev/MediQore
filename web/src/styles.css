@@ -359,3 +359,35 @@ button.danger {
 .col-place {
   min-width: 9rem;
 }
+
+/* M3 FE-2: the sync conflict queue. */
+.conflict {
+  margin: 16px 0;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.conflict h2 {
+  margin-top: 0;
+}
+
+.conflict .row-actions {
+  margin-top: 12px;
+}
+
+.comparison th[scope='row'] {
+  font-weight: normal;
+  color: var(--muted);
+}
+
+/* Fields that differ between the stored and the held visit. */
+.comparison tr.differs td {
+  background: #fff8e1;
+  font-weight: 600;
+}
+
+.card.attention {
+  border-color: #f9a825;
+}

@@ -1,10 +1,11 @@
 // M10: supervisor and admin portal routes (P0-5 skeleton), with the Module 1
 // admin screens: phone approvals (M1 FE-2) and LHW accounts (M1 FE-1, FE-3),
-// and the registered women from Module 2.
+// the registered women from Module 2 and the sync conflict queue (M3 FE-2).
 import { Route, Routes } from 'react-router-dom';
 import RequireAuth from './auth/RequireAuth';
 import RequireRole from './auth/RequireRole';
 import AppLayout from './layout/AppLayout';
+import ConflictsPage from './pages/ConflictsPage';
 import DashboardPage from './pages/DashboardPage';
 import DevicesPage from './pages/DevicesPage';
 import LhwsPage from './pages/LhwsPage';
@@ -22,6 +23,7 @@ export default function App() {
           <Route element={<RequireRole roles={['admin', 'supervisor']} />}>
             <Route path="devices" element={<DevicesPage />} />
             <Route path="women" element={<WomenPage />} />
+            <Route path="conflicts" element={<ConflictsPage />} />
           </Route>
           <Route element={<RequireRole roles={['admin']} />}>
             <Route path="admin/lhws" element={<LhwsPage />} />
