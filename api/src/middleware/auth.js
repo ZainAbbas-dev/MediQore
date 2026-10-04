@@ -4,7 +4,10 @@ const AppError = require('../utils/app-error');
 const usersService = require('../services/users.service');
 
 // M1 FE-2: requires a valid JWT access token (Authorization: Bearer <token>) and
-// an active account. Sets req.user = { id, role, fullName }.
+// an active account. Sets req.user = { id, role, fullName, deviceId }; deviceId
+// is the approved phone the token was issued to, or null for portal sign-ins.
+// A deactivated account gets 403 ACCOUNT_INACTIVE, so the app can say why
+// (M1 FE-3: deactivated accounts are refused at their next sync).
 async function authenticate(req, res, next) {
   const [scheme, token] = (req.get('authorization') || '').split(' ');
   if (scheme !== 'Bearer' || !token) {
@@ -18,11 +21,14 @@ async function authenticate(req, res, next) {
     throw new AppError(401, 'UNAUTHORIZED', 'Session expired or invalid');
   }
 
-  const user = await usersService.findActiveById(payload.sub);
+  const user = await usersService.findById(payload.sub);
   if (!user) {
-    throw new AppError(401, 'UNAUTHORIZED', 'Account is not active');
+    throw new AppError(401, 'UNAUTHORIZED', 'Account not found');
   }
-  req.user = user;
+  if (!user.isActive) {
+    throw new AppError(403, 'ACCOUNT_INACTIVE', 'This account has been deactivated');
+  }
+  req.user = { id: user.id, role: user.role, fullName: user.fullName, deviceId: payload.did || null };
   next();
 }
 

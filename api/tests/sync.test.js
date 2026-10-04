@@ -19,8 +19,8 @@ describeDb('sync', () => {
   let ids;
   let lhwA;
   let lhwB;
-  const deviceA = randomUUID();
-  const deviceB = randomUUID();
+  let deviceA;
+  let deviceB;
 
   const push = (token, deviceId, records) =>
     request(app).post('/api/v1/sync/push').set('Authorization', `Bearer ${token}`).send({ deviceId, records });
@@ -30,8 +30,9 @@ describeDb('sync', () => {
   beforeAll(async () => {
     await resetDatabase();
     ids = await createFixtures();
-    lhwA = tokenFor(ids.lhwA, 'lhw');
-    lhwB = tokenFor(ids.lhwB, 'lhw');
+    ({ deviceA, deviceB } = ids);
+    lhwA = tokenFor(ids.lhwA, 'lhw', deviceA);
+    lhwB = tokenFor(ids.lhwB, 'lhw', deviceB);
   });
 
   afterAll(closePool);
@@ -109,6 +110,16 @@ describeDb('sync', () => {
 
     it('refuses a device registered to another user', async () => {
       const res = await push(lhwB, deviceA, [household()]);
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('DEVICE_NOT_ALLOWED');
+    });
+
+    it('refuses a phone that has not been approved with a one-time code (M1 FE-2)', async () => {
+      const pending = randomUUID();
+      await query('INSERT INTO devices (id, user_id) VALUES ($1, $2)', [pending, ids.lhwA]);
+
+      const res = await push(tokenFor(ids.lhwA, 'lhw', pending), pending, [household()]);
 
       expect(res.status).toBe(403);
       expect(res.body.error.code).toBe('DEVICE_NOT_ALLOWED');

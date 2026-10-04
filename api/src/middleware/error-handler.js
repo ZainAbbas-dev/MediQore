@@ -34,6 +34,7 @@ function errorHandler(err, req, res, next) {
 
   const body = { error: { code: error.code, message: error.message } };
   if (error.details) body.error.details = error.details;
+  if (error.headers) res.set(error.headers);
   res.status(error.status).json(body);
 }
 

@@ -5,14 +5,34 @@ const { loadEnvFile } = require('./load-env');
 loadEnvFile(path.resolve(__dirname, '../../.env'));
 
 const nodeEnv = process.env.NODE_ENV || 'development';
+const int = (value, fallback) => {
+  const n = Number.parseInt(value, 10);
+  return Number.isFinite(n) ? n : fallback;
+};
 
 module.exports = {
   nodeEnv,
   isTest: nodeEnv === 'test',
-  port: Number.parseInt(process.env.PORT, 10) || 3000,
+  port: int(process.env.PORT, 3000),
   databaseUrl: process.env.DATABASE_URL,
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET,
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
   },
+  // M1 FE-2: opaque refresh tokens, stored hashed and revocable.
+  refreshTokenTtlDays: int(process.env.REFRESH_TOKEN_TTL_DAYS, 30),
+  // M1 FE-2: login rate limiting, per client address and username.
+  loginRateLimit: {
+    maxFailures: int(process.env.LOGIN_MAX_FAILURES, 5),
+    windowMinutes: int(process.env.LOGIN_WINDOW_MINUTES, 15),
+  },
+  // M1 FE-2, decision 0002: admin-issued one-time codes for a new phone.
+  otp: {
+    ttlHours: int(process.env.OTP_TTL_HOURS, 24),
+    maxAttempts: int(process.env.OTP_MAX_ATTEMPTS, 5),
+  },
+  // M1 FE-2: HTTPS only. On by default in production; behind a reverse proxy,
+  // set TRUST_PROXY (for example 1) so the API sees the original https scheme.
+  requireHttps: process.env.REQUIRE_HTTPS ? process.env.REQUIRE_HTTPS === 'true' : nodeEnv === 'production',
+  trustProxy: process.env.TRUST_PROXY ? int(process.env.TRUST_PROXY, process.env.TRUST_PROXY) : false,
 };

@@ -11,12 +11,12 @@ describeDb('GET /api/v1/households', () => {
   beforeAll(async () => {
     await resetDatabase();
     ids = await createFixtures();
-    const pushOne = (userId, village) =>
+    const pushOne = (userId, deviceId, village) =>
       request(app)
         .post('/api/v1/sync/push')
-        .set('Authorization', `Bearer ${tokenFor(userId, 'lhw')}`)
+        .set('Authorization', `Bearer ${tokenFor(userId, 'lhw', deviceId)}`)
         .send({
-          deviceId: randomUUID(),
+          deviceId,
           records: [{
             table: 'households',
             id: randomUUID(),
@@ -24,8 +24,8 @@ describeDb('GET /api/v1/households', () => {
             data: { village, latitude: 33.6844, longitude: 73.0479 },
           }],
         });
-    await pushOne(ids.lhwA, 'Village A');
-    await pushOne(ids.lhwB, 'Village B');
+    await pushOne(ids.lhwA, ids.deviceA, 'Village A');
+    await pushOne(ids.lhwB, ids.deviceB, 'Village B');
   });
 
   afterAll(closePool);

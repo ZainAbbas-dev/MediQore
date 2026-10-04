@@ -74,10 +74,11 @@ describeDb('POST /api/v1/auth/login', () => {
     expect(res.body.error).toEqual({ code: 'INVALID_CREDENTIALS', message: 'Username or password is incorrect' });
   });
 
-  it('refuses a deactivated account', async () => {
+  it('refuses a deactivated account with a clear reason once the password is right', async () => {
     const res = await request(app).post('/api/v1/auth/login').send({ username: 'lhw.inactive', password: PASSWORD });
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('ACCOUNT_INACTIVE');
   });
 
   it('validates the body', async () => {
@@ -92,6 +93,7 @@ describeDb('POST /api/v1/auth/login', () => {
       .get('/api/v1/sync/pull')
       .set('Authorization', `Bearer ${tokenFor(ids.inactiveLhw, 'lhw')}`);
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('ACCOUNT_INACTIVE');
   });
 });
