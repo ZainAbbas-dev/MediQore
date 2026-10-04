@@ -22,6 +22,8 @@ describe('phone approvals (M1 FE-2)', () => {
     const row = (await screen.findByText('Sana Iqbal')).closest('tr');
     expect(within(row).getByText('LHW-00007')).toBeInTheDocument();
     expect(within(row).getByText('Tecno Spark')).toBeInTheDocument();
+    // The same suffix the app shows on its code screen.
+    expect(within(row).getByText('4d5e6f')).toBeInTheDocument();
     expect(within(row).getByText('None issued')).toBeInTheDocument();
   });
 
@@ -38,6 +40,7 @@ describe('phone approvals (M1 FE-2)', () => {
 
     const notice = await screen.findByRole('region', { name: 'One-time code' });
     expect(within(notice).getByText('482913')).toBeInTheDocument();
+    expect(within(notice).getByText(/phone whose ID ends in 4d5e6f/)).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([url, o]) => url.endsWith(`/devices/${device.id}/code`) && o.method === 'POST')).toBe(true);
 
     fireEvent.click(within(notice).getByRole('button', { name: 'Done' }));

@@ -289,6 +289,10 @@ button.danger {
   letter-spacing: 0.15em;
 }
 
+.mono {
+  font-family: ui-monospace, Consolas, monospace;
+}
+
 .credentials dt {
   color: var(--muted);
 }

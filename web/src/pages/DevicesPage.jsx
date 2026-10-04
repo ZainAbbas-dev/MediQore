@@ -6,6 +6,10 @@ import { useAuth } from '../auth/context';
 
 const formatTime = (value) => (value ? new Date(value).toLocaleString() : '–');
 
+// The app's code screen shows the same last six characters, so the person
+// issuing the code can check it is for the right phone.
+const phoneIdSuffix = (id) => id.slice(-6);
+
 export default function DevicesPage() {
   const { request } = useAuth();
   const [devices, setDevices] = useState(null);
@@ -61,7 +65,8 @@ export default function DevicesPage() {
           </p>
           <p className="code">{issued.code}</p>
           <p className="muted">
-            It works once, only on this phone, until {formatTime(issued.expiresAt)}. Issuing a new code cancels this one.
+            It works once, only on the phone whose ID ends in {phoneIdSuffix(issued.device.id)}, until{' '}
+            {formatTime(issued.expiresAt)}. Issuing a new code cancels this one.
             It is not shown again.
           </p>
           <button type="button" className="secondary" onClick={() => setIssued(null)}>
@@ -78,6 +83,7 @@ export default function DevicesPage() {
               <th>User</th>
               <th>Area</th>
               <th>Phone</th>
+              <th>Phone ID ends in</th>
               <th>First seen</th>
               <th>Code</th>
               <th aria-label="Actions" />
@@ -93,6 +99,7 @@ export default function DevicesPage() {
                 </td>
                 <td>{device.user.areaName || '–'}</td>
                 <td>{device.model || 'Unknown model'}</td>
+                <td className="mono">{phoneIdSuffix(device.id)}</td>
                 <td>{formatTime(device.firstSeenAt)}</td>
                 <td>{device.codeExpiresAt ? `Valid until ${formatTime(device.codeExpiresAt)}` : 'None issued'}</td>
                 <td>
