@@ -1,15 +1,16 @@
 # mobile/: LHW Android app
 
-Flutter app with Modules 1–9, in Urdu and fully offline, plus the supervisor alert role. Follow the root `CLAUDE.md` first; this file only adds what is specific to `mobile/`.
+Flutter app with Modules 1–9, fully offline, in Urdu by default with an English option (M1 FE-4), plus the supervisor alert role. Follow the root `CLAUDE.md` first; this file only adds what is specific to `mobile/`.
 
 ## Stack (scope Tools table)
 
 | Tool | Version | Purpose |
 |---|---|---|
-| Flutter | 3.x; this project needs 3.47 or newer (`pubspec.yaml`) | Android app with Urdu UI, voice guidance and offline support (Android only, LI-1) |
+| Flutter | 3.x; this project needs 3.47 or newer (`pubspec.yaml`) | Android app with Urdu UI (English selectable), voice guidance and offline support (Android only, LI-1) |
 | SQLite via Drift | Latest | Offline local storage |
 | sqflite_sqlcipher | Latest | AES-256 encryption of the local database |
-| flutter_localizations + intl | Latest | RTL locale, Urdu support, bidirectional text |
+| flutter_localizations + intl | Latest | RTL locale, Urdu support, bidirectional text; English left to right (A1) |
+| shared_preferences | Latest | Keeps the chosen interface language on the phone, readable before login (scope amendment A1); never patient data |
 | Jameel Noori Nastaleeq (bundled asset) | N/A | Urdu Nastaliq font for all Urdu text |
 | Flutter Directionality widget | N/A | RTL context for Urdu, with numeric vitals left to right |
 | flutter_tts | Latest | Urdu voice guidance for field labels |
@@ -32,24 +33,37 @@ From the roadmap:
 
 ## Key rules
 
-- No visible string in Dart code: every label goes in the ARB files, with an Urdu and an English entry.
+- No visible string in Dart code: every label goes in the ARB files, with an Urdu and an English entry. Users see both (M1 FE-4).
+- The language comes from `AppSettings` (`services.settings`): Urdu by default, English selectable.
+  - Test every new screen in both languages, including on a 320 × 640 phone.
+  - Don't hard-code a font family or text direction; the theme and locale set them. The exception is text that must stay in one script, such as اردو on the language switch, and numbers, which stay left to right.
+- Voice guidance speaks only when `AppSettings.voiceGuidanceAvailable` is true (Urdu). In English, show `voiceGuidanceUrduOnly` instead.
+- shared_preferences holds device settings only. Patient data goes in the encrypted database.
 - Every write goes to its local table and to the outbox in the same transaction.
 - Generate record IDs as UUID v4 on the device; order by `server_seq`, never by device clock.
 - Read clinical thresholds (danger signs, EPI, MUAC, IMCI) from versioned JSON config, never hard-code them.
 
 ## Layout
 
-- `lib/main.dart` → `lib/app.dart`: `MaterialApp` locked to Urdu (`Locale('ur')`), which makes every screen right to left.
+- `lib/main.dart` → `lib/app.dart`:
+  - `main()` reads the saved language (`AppSettings.load()`) before the first frame.
+  - `MediQoreApp` rebuilds `MaterialApp` whenever the language changes. Its locale and theme follow `AppSettings`: Urdu right to left, English left to right.
+- `lib/settings/app_settings.dart`: `AppSettings` (M1 FE-4), with the language, the saved choice and the voice rule.
+  - Saved through `SharedPreferencesStore`.
+  - Tests use `MemorySettingsStore`.
+- `lib/widgets/language_switch.dart`: the اردو / English switch. It is on the Phase 0 home now; Phase 1 puts it on the login screen and in settings.
 - `lib/l10n/app_en.arb` (template, with descriptions) and `lib/l10n/app_ur.arb` hold every visible string. Add new keys to both files.
   - `AppLocalizations` is generated from them by `flutter pub get` into `lib/l10n/app_localizations*.dart`, which is git-ignored.
   - Use it as `AppLocalizations.of(context).key`.
-- `lib/theme/`: `AppTheme.light()` (Nastaleeq font family, taller line height, 64 dp controls) and `AppColors` (Green/Yellow/Red risk colours).
+- `lib/theme/`:
+  - `AppTheme.light(urdu: …)`: 64 dp controls in both languages. Urdu uses the Nastaleeq font with a taller line height; English uses the standard Latin font.
+  - `AppColors`: the Green/Yellow/Red risk colours.
 - `lib/widgets/`: the shared kit.
   - `LargeButton`
   - `AppTextField`, `VitalField` (numbers and unit always left to right, digits only), `CheckboxField`, `DropdownField`
   - `RiskChip` with `RiskLevel`
   - `OfflineStatusBar`
-- `lib/app_services.dart`: the database, API client, repositories and sync service, created once in `main()`. Tests build them with an in-memory database (`testServices()` in `test/helpers.dart`).
+- `lib/app_services.dart`: the settings, database, API client, repositories and sync service, created once in `main()`. Tests build them with an in-memory database and Urdu settings kept in memory (`testServices()` in `test/helpers.dart`).
 - `lib/data/`:
   - `app_database.dart`: the Drift database with `households`, `outbox` and `sync_state`.
     - `app_database.g.dart` is generated and committed. After changing tables, run `dart run build_runner build` and bump `schemaVersion` with a migration.
@@ -66,13 +80,13 @@ From the roadmap:
   - `widget_kit_screen.dart`: the P0-2 kit preview.
   - `sync_test_screen.dart`: the P0-6 end-to-end check (sign in as an LHW, create a synthetic household offline, sync).
   - `voice_check_screen.dart`: the P0-11 Urdu voice check (flutter_tts).
-    - It reports whether the phone's text-to-speech supports Urdu offline and speaks a sample label.
+    - It reports whether the phone's text-to-speech supports Urdu offline and speaks a sample label, only while the app is in Urdu.
     - Results go in `docs/decisions/0004-urdu-voice-source.md`.
 - `android/app/src/debug/AndroidManifest.xml` allows plain HTTP to a development server in debug builds only; release builds are HTTPS-only.
 - `android/app/src/main/AndroidManifest.xml` declares the `TTS_SERVICE` query, so flutter_tts can find the phone's text-to-speech engines on Android 11 and later.
 - `assets/fonts/JameelNooriNastaleeq.ttf`: the bundled Urdu font, declared in `pubspec.yaml` as family `JameelNooriNastaleeq`.
 - `test/`: unit and widget tests.
-  - `test/helpers.dart` wraps a widget in the app theme and the Urdu locale.
+  - `test/helpers.dart`: `wrapInApp(widget, locale: …)` wraps a widget in the app theme and locale (Urdu by default); `testServices(server, settings)` builds the services.
   - `test/support/fake_sync_server.dart` imitates the API's `/auth` and `/sync` endpoints.
   - Plugins are faked at their method channel, for example the `flutter_tts` channel in `test/screens/voice_check_screen_test.dart`.
 

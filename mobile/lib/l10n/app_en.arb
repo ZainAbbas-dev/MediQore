@@ -268,5 +268,21 @@
         "type": "String"
       }
     }
+  },
+  "languageLabel": "Language",
+  "@languageLabel": {
+    "description": "Heading above the Urdu/English switch (M1 FE-4)."
+  },
+  "languageNameUrdu": "اردو",
+  "@languageNameUrdu": {
+    "description": "Name of the Urdu option on the language switch. Always written in Urdu, so an Urdu reader can find it in either language."
+  },
+  "languageNameEnglish": "English",
+  "@languageNameEnglish": {
+    "description": "Name of the English option on the language switch. Always written in English, so an English reader can find it in either language."
+  },
+  "voiceGuidanceUrduOnly": "Voice guidance works only in Urdu. Switch the app to Urdu to use it.",
+  "@voiceGuidanceUrduOnly": {
+    "description": "Shown where voice guidance would be offered while the app is in English (M1 FE-4, LI-6)."
   }
 }

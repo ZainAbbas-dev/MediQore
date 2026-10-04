@@ -53,5 +53,9 @@
   "voiceCheckSpoken": "نمونہ آواز کے انجن کو بھیج دیا گیا۔ کیا آپ نے صاف اردو سنی؟",
   "voiceCheckSpeakFailed": "آواز کا انجن نمونہ نہیں سنا سکا۔",
   "voiceCheckAgain": "دوبارہ جانچیں",
-  "voiceCheckError": "آواز کی جانچ ناکام ہو گئی: {reason}"
+  "voiceCheckError": "آواز کی جانچ ناکام ہو گئی: {reason}",
+  "languageLabel": "زبان",
+  "languageNameUrdu": "اردو",
+  "languageNameEnglish": "English",
+  "voiceGuidanceUrduOnly": "آواز کی رہنمائی صرف اردو میں ہے۔ اسے استعمال کرنے کے لیے ایپ کی زبان اردو کریں۔"
 }

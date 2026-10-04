@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import '../l10n/app_localizations.dart';
+import '../settings/app_settings.dart';
 import '../widgets/large_button.dart';
 
 /// The language tag the voice guidance will ask the engine for.
@@ -107,6 +108,8 @@ class _VoiceCheckScreenState extends State<VoiceCheckScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final result = _result;
+    // Voice guidance reads Urdu labels only, so speaking is off in English (M1 FE-4, LI-6).
+    final canSpeak = AppSettings.voiceGuidanceAvailableFor(Localizations.localeOf(context));
     String yesNo(bool? value) =>
         value == null ? l10n.voiceCheckUnknown : (value ? l10n.voiceCheckYes : l10n.voiceCheckNo);
 
@@ -133,10 +136,11 @@ class _VoiceCheckScreenState extends State<VoiceCheckScreen> {
             _Fact(label: l10n.voiceCheckEngines, values: result.engines, none: l10n.voiceCheckNone, ltr: true),
           ],
           const SizedBox(height: 16),
+          if (!canSpeak) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(l10n.voiceGuidanceUrduOnly)),
           LargeButton(
             label: l10n.voiceCheckSpeak,
             icon: Icons.volume_up,
-            onPressed: _busy ? null : () => _speakSample(l10n),
+            onPressed: _busy || !canSpeak ? null : () => _speakSample(l10n),
           ),
           if (_speakMessage != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_speakMessage!)),
           const SizedBox(height: 12),

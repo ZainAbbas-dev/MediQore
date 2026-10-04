@@ -115,6 +115,7 @@ This closes the Phase 0 exit gate ("one test record created on the phone offline
    3. Type the IPv4 address when asked.
    4. The first build takes several minutes.
 5. The app opens on **فیز 0 کی جانچ** (Phase 0 checks):
+   - **زبان / Language** at the top: tap **English** and the whole app switches to English, left to right. Tap **اردو** to switch back. The app remembers the choice after it is closed.
    - **ویجٹ کٹ** (widget kit): scroll through the Urdu controls and check that nothing is cut off.
    - **ڈیٹا سنک کی جانچ** (sync test):
      1. Turn on **airplane mode** and tap **ٹیسٹ گھرانہ بنائیں** (create test household). It is saved on the phone.
@@ -122,7 +123,7 @@ This closes the Phase 0 exit gate ("one test record created on the phone offline
      3. Tap **ابھی سنک کریں** (sync now). The household gets a server number.
      4. In the portal, sign in as `supervisor.demo`: the household is in the count, on the map and in the table.
    - **اردو آواز کی جانچ** (Urdu voice check):
-     1. In airplane mode, open it and tap the sample button.
+     1. With the app in Urdu and the phone in airplane mode, open it and tap the sample button. In English, the button is off, because voice guidance works only in Urdu.
      2. Write the results for this phone in the table in [`docs/decisions/0004-urdu-voice-source.md`](decisions/0004-urdu-voice-source.md).
      3. Repeat on every test phone.
 6. **No phone at hand?** Use the configuration **MediQore app: Android emulator** with an emulator from Android Studio. The voice check still needs a real phone.

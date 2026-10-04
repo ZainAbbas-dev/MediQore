@@ -4,7 +4,7 @@
 
 Final-year project, BS Computer Science, COMSATS University Islamabad (2023–2027).
 
-MediQore replaces the LHW's paper registers with an Urdu Android app that works fully offline. LHWs can:
+MediQore replaces the LHW's paper registers with an Android app, in Urdu by default with an English option, that works fully offline. LHWs can:
 
 - register pregnant women and record home visits;
 - get an on-device AI maternal risk result (Green / Yellow / Red) with an Urdu explanation;
@@ -23,7 +23,8 @@ The app syncs with a central server whenever a connection is available. Supervis
 > - the synthetic data generator (P0-8);
 > - the start of the ML track: UCI dataset download and exploratory notebook (P0-10);
 > - proposed decisions with evidence for the P0-11 open items, including an Urdu PDF test and a voice check screen in the app;
-> - the IEC application draft (P0-9), ready for the team to submit.
+> - the IEC application draft (P0-9), ready for the team to submit;
+> - an Urdu/English language switch in the app (scope amendment A1, M1 FE-4), with voice guidance only in Urdu.
 >
 > One test record now runs end to end: created on the phone, synced, stored in PostgreSQL and shown on the portal.
 >
@@ -54,7 +55,7 @@ mediqore/
 
 ## Documentation
 
-- [Scope](docs/scope.md): approved scope with modules M1–M10, features (FE-n) and limitations LI-1 to LI-12.
+- [Scope](docs/scope.md): approved scope with modules M1–M10, features (FE-n) and limitations LI-1 to LI-12, plus the amendments approved since (for example A1, the language switch).
 - [Implementation roadmap](docs/roadmap.md): phases, tasks, architecture rules and definition of done. The original is [roadmap.pdf](docs/roadmap.pdf).
 - [Schema v1](docs/schema-v1.md): the database, how sync works in it, and the decisions to review.
 - [API contract](docs/openapi.yaml): OpenAPI 3.1.

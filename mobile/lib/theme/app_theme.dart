@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
 
-/// App-wide theme for Urdu field use (M3 FE-1): Jameel Noori Nastaleeq,
-/// taller lines for Nastaliq script, and large touch-friendly controls.
+/// App-wide theme for field use (M3 FE-1): large touch-friendly controls in
+/// both languages (M1 FE-4).
+/// - Urdu (default): Jameel Noori Nastaleeq with taller lines for Nastaliq script.
+/// - English: the phone's standard Latin font with normal line height.
 ///
-/// Right-to-left layout comes from the Urdu locale set in [MediQoreApp].
+/// Right-to-left or left-to-right layout comes from the locale set in [MediQoreApp].
 abstract final class AppTheme {
   /// Font family declared in pubspec.yaml once the font file is bundled.
   static const String urduFontFamily = 'JameelNooriNastaleeq';
@@ -17,20 +19,22 @@ abstract final class AppTheme {
   /// Minimum height for buttons and other tap targets.
   static const double largeControlHeight = 64;
 
-  static ThemeData light() {
+  static ThemeData light({bool urdu = true}) {
     final colorScheme = ColorScheme.fromSeed(seedColor: AppColors.primary);
     final base = ThemeData(
       colorScheme: colorScheme,
-      fontFamily: urduFontFamily,
+      fontFamily: urdu ? urduFontFamily : null,
       materialTapTargetSize: MaterialTapTargetSize.padded,
     );
 
-    const buttonText = TextStyle(fontSize: 20, height: urduLineHeight);
+    // Built from the theme's own label style so buttons keep the language's
+    // font: a bare TextStyle here would replace it with the system font.
+    final buttonText = base.textTheme.labelLarge!.copyWith(fontSize: 20, height: urdu ? urduLineHeight : null);
     const buttonSize = Size(double.infinity, largeControlHeight);
     const buttonShape = RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12)));
 
     return base.copyWith(
-      textTheme: _withLineHeight(base.textTheme, urduLineHeight),
+      textTheme: urdu ? _withLineHeight(base.textTheme, urduLineHeight) : base.textTheme,
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(minimumSize: buttonSize, textStyle: buttonText, shape: buttonShape),
       ),

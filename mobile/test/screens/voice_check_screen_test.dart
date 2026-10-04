@@ -42,6 +42,7 @@ void main() {
     WidgetTester tester, {
     required bool hasUrdu,
     Size size = const Size(1080, 4000),
+    Locale locale = const Locale('ur'),
   }) async {
     final engine = FakeTtsEngine(hasUrdu: hasUrdu);
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, engine.handle);
@@ -52,8 +53,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.light(),
-        locale: const Locale('ur'),
+        theme: AppTheme.light(urdu: locale.languageCode == 'ur'),
+        locale: locale,
         supportedLocales: AppLocalizations.supportedLocales,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         home: const VoiceCheckScreen(),
@@ -92,6 +93,25 @@ void main() {
 
   testWidgets('fits a small phone (320 x 640) without overflow', (tester) async {
     await pumpScreen(tester, hasUrdu: true, size: const Size(640, 1280));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('in English the sample is not spoken: voice guidance is Urdu only (M1 FE-4)', (tester) async {
+    final engine = await pumpScreen(tester, hasUrdu: true, locale: const Locale('en'));
+
+    expect(find.text('Voice guidance works only in Urdu. Switch the app to Urdu to use it.'), findsOneWidget);
+    final speak = tester.widget<FilledButton>(
+      find.ancestor(of: find.text('Speak a sample label'), matching: find.byWidgetPredicate((w) => w is FilledButton)),
+    );
+    expect(speak.onPressed, isNull);
+
+    await tester.tap(find.text('Speak a sample label'));
+    await tester.pumpAndSettle();
+    expect(engine.calls.where((c) => c.method == 'speak' || c.method == 'setLanguage'), isEmpty);
+  });
+
+  testWidgets('fits a small phone (320 x 640) without overflow in English', (tester) async {
+    await pumpScreen(tester, hasUrdu: true, size: const Size(640, 1280), locale: const Locale('en'));
     expect(tester.takeException(), isNull);
   });
 }
