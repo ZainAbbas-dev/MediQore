@@ -14,6 +14,7 @@ export default function AppLayout() {
           <NavLink to="/" end>
             Dashboard
           </NavLink>
+          <NavLink to="/women">Registered women</NavLink>
           <NavLink to="/devices">Phone approvals</NavLink>
           {user?.role === 'admin' && <NavLink to="/admin/lhws">LHW accounts</NavLink>}
         </nav>

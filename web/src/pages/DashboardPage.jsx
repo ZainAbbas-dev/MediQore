@@ -4,19 +4,23 @@ import AreaMap from '../components/AreaMap';
 
 const NO_HOUSEHOLDS = [];
 
-// Dashboard home (M10). For Phase 0 it shows the households synced from the
-// LHW app in the user's areas: the end of the end-to-end check (P0-6). Cards,
-// filters and auto-refresh are Module 10 work in Phase 1.
+// Dashboard home (M10). It shows the households synced from the LHW app in the
+// user's areas (the end of the P0-6 end-to-end check) and how many women are
+// registered (M2, M10 FE-1). The other cards, filters and auto-refresh are
+// Module 10 work in Phase 1.
 export default function DashboardPage() {
   const { request } = useAuth();
   const [households, setHouseholds] = useState(null);
+  const [womenTotal, setWomenTotal] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
-    request('/households')
-      .then((data) => {
-        if (!cancelled) setHouseholds(data.households);
+    Promise.all([request('/households'), request('/women?limit=1')])
+      .then(([householdData, womenData]) => {
+        if (cancelled) return;
+        setHouseholds(householdData.households);
+        setWomenTotal(womenData.total);
       })
       .catch((err) => {
         if (!cancelled) setError(err.message);
@@ -35,6 +39,10 @@ export default function DashboardPage() {
         </p>
       )}
       <section className="cards">
+        <div className="card">
+          <div className="card-value">{womenTotal ?? '–'}</div>
+          <div className="card-label">Registered women</div>
+        </div>
         <div className="card">
           <div className="card-value">{households ? households.length : '–'}</div>
           <div className="card-label">Registered households</div>

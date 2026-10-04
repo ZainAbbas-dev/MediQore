@@ -89,11 +89,16 @@ describe('expired access token (M1 FE-2)', () => {
       'GET /households': (options) => (options.headers.Authorization === 'Bearer token-2'
         ? [200, { households: [] }]
         : [401, { error: { code: 'UNAUTHORIZED', message: 'Session expired' } }]),
+      'GET /women?limit=1': (options) => (options.headers.Authorization === 'Bearer token-2'
+        ? [200, { women: [], total: 0 }]
+        : [401, { error: { code: 'UNAUTHORIZED', message: 'Session expired' } }]),
       'POST /auth/refresh': [200, { accessToken: 'token-2', refreshToken: 'refresh-2', user: supervisorSession.user }],
     });
     renderApp('/', { session: supervisorSession });
 
     expect(await screen.findByText('No households have been synced yet.')).toBeInTheDocument();
+    // Both dashboard requests got 401 at once; they share one refresh.
+    expect(fetchMock.mock.calls.filter(([url]) => url.endsWith('/auth/refresh'))).toHaveLength(1);
     const refresh = fetchMock.mock.calls.find(([url]) => url.endsWith('/auth/refresh'));
     expect(JSON.parse(refresh[1].body)).toEqual({ refreshToken: 'refresh-1' });
     expect(JSON.parse(sessionStorage.getItem('mediqore.session'))).toMatchObject({ token: 'token-2', refreshToken: 'refresh-2' });

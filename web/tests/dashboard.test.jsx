@@ -21,7 +21,10 @@ const household = {
 
 describe('dashboard', () => {
   it('shows the households synced from the LHW app', async () => {
-    const fetchMock = mockApi({ 'GET /households': [200, { households: [household] }] });
+    const fetchMock = mockApi({
+      'GET /households': [200, { households: [household] }],
+      'GET /women?limit=1': [200, { women: [], total: 37 }],
+    });
 
     renderApp('/', { session: supervisorSession });
 
@@ -30,11 +33,12 @@ describe('dashboard', () => {
     expect(screen.getByText('Demo Area 1')).toBeInTheDocument();
     expect(screen.getByTestId('area-map')).toHaveTextContent('1 on map');
     expect(screen.getByText('Registered households').previousSibling).toHaveTextContent('1');
+    expect(screen.getByText('Registered women', { selector: '.card-label' }).closest('.card')).toHaveTextContent('37');
     expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer token-1');
   });
 
   it('says so when nothing has been synced yet', async () => {
-    mockApi({ 'GET /households': [200, { households: [] }] });
+    mockApi({ 'GET /households': [200, { households: [] }], 'GET /women?limit=1': [200, { women: [], total: 0 }] });
 
     renderApp('/', { session: supervisorSession });
 
