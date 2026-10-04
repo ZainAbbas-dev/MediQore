@@ -65,7 +65,7 @@ The LHW signs in with the ID and password the admin issued (M1 FE-1, FE-2).
   - account deactivated (refused at next sync, M1 FE-3);
   - loading.
 - **OTP step:** a separate screen with a code field and resend.
-  - **Decide:** depends on the OTP channel chosen in P0-11 (email OTP or an admin-issued one-time code).
+  - **Built (Module 1, proposed decision 0002):** the code is issued by an admin or supervisor on the portal's **Phone approvals** page, so the screen has no resend button. It shows the last six characters of the phone's ID (the portal shows the same six), the 6-digit code field, **approve and sign in** and **back to sign-in**, with messages for a wrong code, too many wrong codes, no code issued yet and no internet.
 - **Session:** auto-lock after inactivity returns here (M1 FE-2).
 
 ### 2. LHW home (mobile)

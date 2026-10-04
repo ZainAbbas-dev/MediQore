@@ -5,7 +5,7 @@ Use this guide to set up a Windows laptop and test everything built so far, quic
 | Part | Time | Needed for |
 |---|---|---|
 | Steps 1–6: database, API, portal, tests | about 30 minutes | Everyone |
-| Step 7: the app on a real phone | about 1 hour more, mostly downloads | The Phase 0 exit gate and the Urdu voice check |
+| Step 7: the app on a real phone | about 1 hour more, mostly downloads | The Phase 0 exit gate, Module 1 sign-in and the Urdu voice check |
 | Step 8: ML notebook | 0 minutes to read it on GitHub | Optional |
 
 ## 1. Install once
@@ -77,7 +77,8 @@ Run the task **MediQore: start API + portal**. Two terminals open, one for the A
 | `syn.sup.01` | Dashboard with **100** households: map with four clusters near Rawalpindi, and the table |
 | `syn.sup.03` | A **different** 100 households near Attock: each supervisor sees only their own areas |
 | `syn.admin` | Households from every area. The Phase 0 list stops at 200. |
-| `supervisor.demo` | No households yet, until the phone syncs one in step 7 |
+| `admin.demo` or `syn.admin` | Also **LHW accounts** (add an LHW, edit, deactivate, reset the password) and **Phone approvals** (M1) |
+| `supervisor.demo` | No households yet, until the phone syncs one in step 7. **Phone approvals** lists phones of LHWs in the supervisor's areas. |
 | `lhw.demo` | Refused: the portal is for supervisors and admins |
 | any account, wrong password | An error message |
 
@@ -93,14 +94,14 @@ Run the task **MediQore: run all tests (db, api, web)**. You should see the same
 | Part | Expected |
 |---|---|
 | `db` | 20 passed |
-| `api` | lint clean, 40 passed |
-| `web` | lint clean, 13 passed, build succeeds |
+| `api` | lint clean, 75 passed |
+| `web` | lint clean, 26 passed, build succeeds |
 
-After step 7, the task **mobile: analyze and test** should show "No issues found" and 32 tests passed, with one skipped (the opt-in end-to-end test).
+After step 7, the task **mobile: analyze and test** should show "No issues found" and 76 tests passed, with two skipped (the opt-in end-to-end tests).
 
 ## 7. The app on a real phone
 
-This closes the Phase 0 exit gate ("one test record created on the phone offline, synced, stored in PostgreSQL and visible on the React portal") and runs the Urdu voice check (decision 0004).
+This tries Module 1 sign-in (phone approval, offline sign-in, auto-lock), closes the Phase 0 exit gate ("one test record created on the phone offline, synced, stored in PostgreSQL and visible on the React portal") and runs the Urdu voice check (decision 0004).
 
 1. **Get the app's packages:** run the task **mobile: get packages** (or `flutter pub get` in `mobile/`).
    - Until this has run, VS Code underlines almost every line in `mobile/` in red: the packages and the generated Urdu/English text class (`app_localizations.dart`) are missing.
@@ -114,24 +115,35 @@ This closes the Phase 0 exit gate ("one test record created on the phone offline
    2. Choose **MediQore app: real phone (same Wi-Fi as this laptop)** and press **F5**.
    3. Type the IPv4 address when asked.
    4. The first build takes several minutes.
-5. The app opens on **فیز 0 کی جانچ** (Phase 0 checks):
+5. The app opens on the **سائن ان** (sign-in) screen (M1):
    - **زبان / Language** at the top: tap **English** and the whole app switches to English, left to right. Tap **اردو** to switch back. The app remembers the choice after it is closed.
+   - **First sign-in on this phone** (needs the internet): type `lhw.demo` and `demo-password` and tap **سائن ان کریں**.
+     1. The app asks for the phone's **6-digit code** and shows the last six characters of the phone's ID.
+     2. In the portal, sign in as `supervisor.demo` (or `admin.demo`), open **Phone approvals** and check that the row shows the same six characters. Click **Issue code**.
+     3. Type the code in the app and tap **منظور کریں اور سائن ان کریں** (approve and sign in). The app downloads the area's records and opens the home screen.
+   - **Offline sign-in:** tap **لاک کریں** (lock), turn on **airplane mode** and sign in again with the same password. It works without the internet. A wrong password is refused.
+   - **Auto-lock:** leave the app untouched for 5 minutes. It locks and asks for the password again.
+   - **Deactivation:** in the portal, as `admin.demo`, open **LHW accounts** and deactivate `LHW-DEMO-001`. On the phone, tap **ابھی سنک کریں** (sync now): the app locks and says the account is deactivated. Activate it again in the portal afterwards.
+6. On the home screen, **فیز 0 کی جانچ** (Phase 0 checks, debug builds only):
    - **ویجٹ کٹ** (widget kit): scroll through the Urdu controls and check that nothing is cut off.
    - **ڈیٹا سنک کی جانچ** (sync test):
      1. Turn on **airplane mode** and tap **ٹیسٹ گھرانہ بنائیں** (create test household). It is saved on the phone.
-     2. Turn airplane mode off and sign in as `lhw.demo` / `demo-password`.
-     3. Tap **ابھی سنک کریں** (sync now). The household gets a server number.
-     4. In the portal, sign in as `supervisor.demo`: the household is in the count, on the map and in the table.
+     2. Turn airplane mode off and tap **ابھی سنک کریں** (sync now). The household gets a server number. If you signed in offline, the app asks you to sign in again with the internet first.
+     3. In the portal, sign in as `supervisor.demo`: the household is in the count, on the map and in the table.
    - **اردو آواز کی جانچ** (Urdu voice check):
      1. With the app in Urdu and the phone in airplane mode, open it and tap the sample button. In English, the button is off, because voice guidance works only in Urdu.
      2. Write the results for this phone in the table in [`docs/decisions/0004-urdu-voice-source.md`](decisions/0004-urdu-voice-source.md).
      3. Repeat on every test phone.
-6. **No phone at hand?** Use the configuration **MediQore app: Android emulator** with an emulator from Android Studio. The voice check still needs a real phone.
+7. **No phone at hand?** Use the configuration **MediQore app: Android emulator** with an emulator from Android Studio. The voice check still needs a real phone.
 
 ## 8. ML notebook (optional)
 
 - **Read the results without installing anything:** open `ml/notebooks/01_uci_exploration.ipynb` on GitHub (on the `dev` branch). GitHub shows the tables and charts.
 - **Run it yourself:** see "Commands" in [`ml/CLAUDE.md`](../ml/CLAUDE.md). It needs Python 3.11 and `python scripts/download_uci.py`.
+
+## After you pull new code
+
+New code can bring new database changes (for example the LHW ID numbering added in Module 1). After `git pull`, run the task **db: migrate (dev and test databases)**, then restart **MediQore: start API + portal**. For the app, run **mobile: get packages** again.
 
 ## Start again with fresh data
 

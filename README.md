@@ -13,7 +13,7 @@ MediQore replaces the LHW's paper registers with an Android app, in Urdu by defa
 
 The app syncs with a central server whenever a connection is available. Supervisors and admins use a web portal for a live dashboard and map, alerts, PDF/Excel reports and administration.
 
-> **Status:** Phase 0 (Foundation). Done so far:
+> **Status:** Phase 0 (Foundation) is built; Phase 1 has started with Module 1 (below). Phase 0 work:
 > - the Flutter app shell with its Urdu widget kit and font (P0-2);
 > - the API skeleton (P0-3);
 > - database schema v1 (P0-4);
@@ -28,16 +28,23 @@ The app syncs with a central server whenever a connection is available. Supervis
 >
 > One test record now runs end to end: created on the phone, synced, stored in PostgreSQL and shown on the portal.
 >
+> **Phase 1, Module 1 (user management and authentication), built on `dev` and waiting for review and real-phone testing:**
+> - admins create LHW accounts on the portal (system-issued LHW ID and password), edit, reassign, deactivate and reset passwords with a "sync before reset" warning (FE-1, FE-3);
+> - the app's first sign-in on a phone needs a one-time code issued on the portal's **Phone approvals** page (FE-2, proposed decision 0002), then downloads the LHW's area;
+> - later sign-ins work offline with a PBKDF2 password key (LI-8); the app locks after 5 minutes without use;
+> - short-lived access tokens with rotating refresh tokens, login rate limiting, HTTPS enforcement outside development; a deactivated account is refused at its next sync (FE-2, FE-3);
+> - the language switch on the sign-in screen (FE-4).
+>
 > **Data notice:** MediQore is developed and demonstrated on synthetic data only. No real patient data is used before IEC approval (LI-10). AI results are decision support, not a clinical diagnosis (LI-5).
 
 ## Components
 
 | Part | Folder | Stack | Status |
 |---|---|---|---|
-| LHW Android app (Modules 1–9) | [`mobile/`](mobile/) | Flutter 3.x, Drift + SQLCipher, ONNX Runtime | Urdu shell and widget kit (P0-2); local database, outbox and sync (P0-6) |
-| REST API | [`api/`](api/) | Node.js 20 + Express, JWT, Joi | Skeleton (P0-3); login and `/sync` push/pull (P0-6) |
+| LHW Android app (Modules 1–9) | [`mobile/`](mobile/) | Flutter 3.x, Drift + SQLCipher, ONNX Runtime | Urdu shell and widget kit (P0-2); local database, outbox and sync (P0-6); sign-in, phone approval, offline sign-in and auto-lock (M1) |
+| REST API | [`api/`](api/) | Node.js 20 + Express, JWT, Joi | Skeleton (P0-3); `/sync` push/pull (P0-6); login with phone approval, refresh tokens, LHW accounts, phone approvals (M1) |
 | Database | [`db/`](db/) | PostgreSQL 15 migrations and synthetic seed scripts | Schema v1 for all ten modules (P0-4); demo seed; synthetic data generator (P0-8) |
-| Supervisor and admin portal (Module 10) | [`web/`](web/) | React 18 + Leaflet.js | Login, auth guard, sidebar layout, map dashboard (P0-5) |
+| Supervisor and admin portal (Module 10) | [`web/`](web/) | React 18 + Leaflet.js | Login, auth guard, sidebar layout, map dashboard (P0-5); LHW accounts and phone approvals (M1) |
 | ML pipeline and analytics worker | [`ml/`](ml/) | Python 3.11, scikit-learn, SHAP, sklearn2onnx | Dataset download and exploratory notebook (P0-10); training in Phase 2 |
 
 ## Repository layout
@@ -149,16 +156,19 @@ The Phase 0 exit gate says: "One test record created on the phone offline, synce
      ```powershell
      cd mobile; flutter run --dart-define=API_BASE_URL=http://<laptop-ip>:3000/api/v1
      ```
-   - Open **ڈیٹا سنک کی جانچ** (Sync test).
+   - Sign in as `lhw.demo`. The first sign-in on a phone asks for a one-time code (M1 FE-2, decision 0002): in the portal (step 4), sign in as `supervisor.demo`, open **Phone approvals**, click **Issue code** and type the code in the app.
+   - On the home screen open **فیز 0 کی جانچ** (Phase 0 checks), then **ڈیٹا سنک کی جانچ** (Sync test).
    - Turn on airplane mode and tap **ٹیسٹ گھرانہ بنائیں** (create test household).
-   - Turn airplane mode off, sign in as `lhw.demo` and tap **ابھی سنک کریں** (sync now).
+   - Turn airplane mode off and tap **ابھی سنک کریں** (sync now).
 4. **Portal:**
    ```powershell
    cd web; npm run dev
    ```
    Open http://localhost:5173 and sign in as `supervisor.demo`. The household appears in the count, on the map and in the table.
 
-Without a phone, `flutter test test/e2e/sync_e2e_test.dart --dart-define=E2E_API_BASE_URL=http://localhost:3000/api/v1` runs the same app code against the API.
+Without a phone, `flutter test test/e2e/sync_e2e_test.dart --dart-define=E2E_API_BASE_URL=http://localhost:3000/api/v1` runs the same app code against the API, including the phone approval (it issues the code as `admin.demo`).
+
+[docs/local-setup.md](docs/local-setup.md) step 7 also walks through the Module 1 checks on the phone: offline sign-in, auto-lock and deactivation.
 
 ## Branches and pull requests
 

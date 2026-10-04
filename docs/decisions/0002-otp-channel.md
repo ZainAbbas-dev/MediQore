@@ -1,6 +1,6 @@
 # 0002. OTP channel
 
-- **Status:** Proposed
+- **Status:** Proposed. Built in Phase 1 (Module 1) on the project owner's go-ahead (2026-10-04), so the work could start; team sign-off and the supervisor check below are still needed.
 - **Date:** 2026-10-03
 - **Scope:** M1 FE-2, LI-4
 - **Roadmap:** Risks and decisions, row 2 ("OTP channel"); Phase 1 task "OTP verification on first login and on a new device (channel decided in P0-11)"
@@ -49,6 +49,20 @@ Schema v1 already has `otp_codes`, which stores a hashed code, its purpose (`fir
 - The admin portal needs a "pending devices / issue code" action. This fits the accounts tab already in the P0-7 spec.
 - The supervisor's onboarding must include the code handover. The user guide (definition of done) must describe it.
 - This is weaker than SMS against someone who learns the code. That is acceptable for a prototype on synthetic data (LI-10); say so in the report as a production item.
+
+## As built (Phase 1, Module 1)
+
+The proposal above was built without changes to the flow. The details the team still has to confirm:
+
+- **Who needs a code:** LHWs, on the app. An LHW must send the phone's installation ID (a UUID made once by the app) with every sign-in. The portal keeps password login (open question 2).
+- **Numbers:** 6 digits, valid for 24 hours, 5 wrong tries, then a new code is needed. They are set in `api/.env` (`OTP_TTL_HOURS`, `OTP_MAX_ATTEMPTS`).
+- **Who issues codes:** an admin for any phone; a supervisor for phones of LHWs in their own areas. The portal page is **Phone approvals**. It shows the last six characters of the phone's ID, and the app's code screen shows the same six, so the code goes to the right phone.
+- **One code at a time:** issuing a new code cancels the old one. The code is shown once and never logged.
+- **Audit:** the sign-in that registers the phone, each code issued, each wrong code and the approval write audit rows.
+- **Purpose:** `first_login` for a user's first phone, `new_device` after that.
+- **Code:** `api/src/services/otp.service.js` (the swappable service), `api/src/services/devices.service.js`, `web/src/pages/DevicesPage.jsx`, `mobile/lib/screens/otp_screen.dart`. The API contract is in `docs/openapi.yaml` (`/auth/login`, `/auth/otp/verify`, `/devices`).
+
+If the team or the supervisor chooses another channel, only the OTP service and the screen texts change; the tables, the login flow and the app stay as they are.
 
 ## Open questions
 
