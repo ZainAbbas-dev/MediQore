@@ -220,9 +220,12 @@ paths:
       tags: [Sync]
       summary: Push a batch of outbox records from an LHW device
       description: |
-        LHW only. Applies up to 100 records in one transaction. The server sets area_id (the LHW's area),
-        created_by, server_seq and synced_at. Resending an identical record is harmless (status
-        `unchanged`). A record that belongs to another area is not changed (status `rejected`).
+        LHW only. Applies up to 100 records in one transaction. The server sets created_by, server_seq
+        and synced_at. A new record is filed under the area the device made it in (`areaId`): the LHW's
+        current area, or the area she had before her last reassignment (M1 FE-3), so records made in the
+        old area and synced late keep that area. Without `areaId`, the current area is used. Resending an
+        identical record is harmless (status `unchanged`). A record in any other area is not changed
+        (status `rejected`, reason `OUT_OF_AREA`).
         Every create, edit and delete writes an audit row. The device is registered on first use.
       operationId: syncPush
       requestBody:
@@ -875,6 +878,10 @@ components:
                 type: string
                 format: uuid
                 description: UUID v4 generated on the device.
+              areaId:
+                type: string
+                format: uuid
+                description: The area the record was made in (the signed-in LHW's area at that time). Ignored for a record the server already has.
               createdOnDevice:
                 type: string
                 format: date-time
@@ -906,11 +913,14 @@ components:
 
     SyncRecord:
       type: object
-      required: [table, id, serverSeq, deleted, data]
+      required: [table, id, areaId, serverSeq, deleted, data]
       properties:
         table:
           type: string
         id:
+          type: string
+          format: uuid
+        areaId:
           type: string
           format: uuid
         serverSeq:

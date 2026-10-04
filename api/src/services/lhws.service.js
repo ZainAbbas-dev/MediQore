@@ -125,7 +125,11 @@ async function update(admin, id, changes) {
     }
     if (changes.areaId !== undefined && changes.areaId !== before.area_id) {
       await requireArea(client, changes.areaId);
-      await client.query('UPDATE lhw_profiles SET area_id = $2, updated_at = now() WHERE user_id = $1', [id, changes.areaId]);
+      // Records made in the old area and synced later keep that area (see sync.service).
+      await client.query(
+        'UPDATE lhw_profiles SET previous_area_id = area_id, area_id = $2, updated_at = now() WHERE user_id = $1',
+        [id, changes.areaId],
+      );
       changed.areaId = { from: before.area_id, to: changes.areaId };
     }
     if (Object.keys(changed).length) {

@@ -16,6 +16,8 @@ const uuidV4 = Joi.string().guid({ version: 'uuidv4' });
 const recordSchema = Joi.object({
   table: Joi.string().valid(...Object.keys(TABLES)).required(),
   id: uuidV4.required(),
+  // The area the record was made in (M1 FE-3); without it, the LHW's current area.
+  areaId: Joi.string().guid(),
   createdOnDevice: Joi.date().iso().required(),
   deleted: Joi.boolean().default(false),
   data: Joi.when('table', {

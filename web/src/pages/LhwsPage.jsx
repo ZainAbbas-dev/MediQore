@@ -55,8 +55,8 @@ function LhwForm({ areas, lhw, onSubmit, onCancel }) {
       </select>
       {areaChanged && (
         <p className="warning">
-          Ask the LHW to sync before you change the area. After the change, the phone downloads the new area&apos;s
-          records at its next sign-in.
+          After the change, the phone downloads the new area&apos;s records at its next sign-in. Records the phone made in
+          the old area and has not synced yet still go to the old area when they arrive.
         </p>
       )}
       {error && (

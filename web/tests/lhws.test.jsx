@@ -88,7 +88,7 @@ describe('LHW accounts (M1 FE-1, FE-3)', () => {
     await waitFor(() => expect(within(dialog).getAllByRole('option')).toHaveLength(3));
     fireEvent.change(within(dialog).getByLabelText('Area'), { target: { value: 'a2' } });
 
-    expect(within(dialog).getByText(/Ask the LHW to sync before you change the area/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/still go to the old area when they arrive/)).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());

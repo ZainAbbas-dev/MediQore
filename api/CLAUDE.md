@@ -40,7 +40,7 @@ From the roadmap:
   - `error-handler.js`: 404 and the central error handler. Throw `AppError(status, code, message, details)` from `src/utils/app-error.js` for expected errors; anything else becomes a generic 500.
   - `request-logger.js`: one JSON log line per request, path only (no query string or body).
 - `src/services/`:
-  - `scope.service.js`: area scoping, `lhwAreaId` and `supervisorAreaIds`. Use it in every query that returns records.
+  - `scope.service.js`: area scoping, `lhwAreaId`, `lhwAreas` (current and previous area) and `supervisorAreaIds`. Use it in every query that returns records.
   - `audit.service.js`: `writeAudit(client, ...)`. Call it inside the same transaction as the change.
   - Sign-in (M1 FE-2):
     - `auth.service.js`: login, one-time code check, refresh and sign-out. The rules:
@@ -55,6 +55,7 @@ From the roadmap:
     - The LHW ID comes from the `lhw_code_seq` sequence (`LHW-00001`) and is also the username.
     - Passwords are random, shown once and stored as bcrypt.
     - It also handles reassignment, deactivation and password reset, with an audit row for each change.
+    - Reassignment keeps the old area in `lhw_profiles.previous_area_id`. Push files a new record under the area the phone made it in (`areaId`), if that is the LHW's current or previous area, so records made before the move and synced after it stay in the old area (M1 FE-3).
 - Sync accepts only a phone approved by code, and only the phone named in the token (`DEVICE_NOT_ALLOWED`).
 - `src/sync/tables.js`: the tables devices may push and pull, with their fields. Add a table here when its module is built. `services/sync.service.js` implements `/sync/push` and `/sync/pull`.
 - Error shape: `{ "error": { "code", "message", "details"? } }`.

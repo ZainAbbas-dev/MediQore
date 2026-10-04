@@ -1,7 +1,7 @@
 const db = require('../db/pool');
 const AppError = require('../utils/app-error');
 const { writeAudit } = require('./audit.service');
-const { lhwAreaId } = require('./scope.service');
+const { lhwAreaId, lhwAreas } = require('./scope.service');
 const { TABLES, normalise } = require('../sync/tables');
 
 // M3 FE-2: offline sync skeleton (P0-6), following the roadmap's Offline sync
@@ -32,6 +32,14 @@ function sameAsStored(def, row, record) {
   );
 }
 
+// The area a new record is filed under: the one the phone made it in, as long
+// as the LHW works there now or did before her last reassignment (M1 FE-3).
+// Records from an app that does not send the area go to her current area.
+function areaForNewRecord(ctx, record) {
+  const areaId = record.areaId || ctx.areaId;
+  return ctx.allowedAreaIds.includes(areaId) ? areaId : null;
+}
+
 // Applies one pushed record and returns its result for the device.
 async function applyRecord(client, ctx, record) {
   const def = TABLES[record.table];
@@ -47,22 +55,25 @@ async function applyRecord(client, ctx, record) {
   );
 
   if (!existing) {
+    const areaId = areaForNewRecord(ctx, record);
+    if (!areaId) return { ...result, status: 'rejected', reason: 'OUT_OF_AREA' };
     const placeholders = columns.map((_, i) => `$${i + 6}`).join(', ');
     const { rows: [inserted] } = await client.query(
       `INSERT INTO ${record.table} (id, area_id, created_by, created_on_device, deleted_at, ${columns.join(', ')})
        VALUES ($1, $2, $3, $4, CASE WHEN $5::boolean THEN now() END, ${placeholders})
        RETURNING server_seq`,
-      [record.id, ctx.areaId, ctx.userId, record.createdOnDevice, record.deleted, ...values],
+      [record.id, areaId, ctx.userId, record.createdOnDevice, record.deleted, ...values],
     );
     const serverSeq = Number(inserted.server_seq);
     await writeAudit(client, {
       userId: ctx.userId, deviceId: ctx.deviceId, action: 'create',
-      entityType: record.table, entityId: record.id, details: { serverSeq },
+      entityType: record.table, entityId: record.id,
+      details: { serverSeq, ...(areaId !== ctx.areaId && { areaId, previousArea: true }) },
     });
     return { ...result, status: 'created', serverSeq };
   }
 
-  if (existing.area_id !== ctx.areaId) {
+  if (!ctx.allowedAreaIds.includes(existing.area_id)) {
     return { ...result, status: 'rejected', reason: 'OUT_OF_AREA' };
   }
 
@@ -91,9 +102,10 @@ async function applyRecord(client, ctx, record) {
 // POST /sync/push: one transaction for the whole batch.
 async function push(user, deviceId, records) {
   return db.withTransaction(async (client) => {
-    const areaId = await lhwAreaId(client, user.id);
+    const { areaId, previousAreaId } = await lhwAreas(client, user.id);
     await requireApprovedDevice(client, deviceId, user, { touch: true });
-    const ctx = { userId: user.id, deviceId, areaId };
+    const allowedAreaIds = previousAreaId ? [areaId, previousAreaId] : [areaId];
+    const ctx = { userId: user.id, deviceId, areaId, allowedAreaIds };
     const results = [];
     for (const record of records) {
       results.push(await applyRecord(client, ctx, record));
@@ -109,6 +121,7 @@ function toRecord(table, def, row) {
   return {
     table,
     id: row.id,
+    areaId: row.area_id,
     serverSeq: Number(row.server_seq),
     createdOnDevice: row.created_on_device,
     syncedAt: row.synced_at,
