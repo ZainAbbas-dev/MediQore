@@ -1,6 +1,6 @@
-// M1 FE-2, FE-4: the first screen after sign-in. It shows who is signed in,
-// the sync status and the language switch, and offers lock and sign-out. M2
-// and M3 add registration, the patient list and visits here (P0-7 screen 2).
+// M1 FE-2, FE-4: the first screen after sign-in (P0-7 screen 2). It shows who
+// is signed in and the sync status, opens registration and the patient list
+// (M2), and holds the language switch, lock and sign-out. M3 adds visits.
 import 'dart:async';
 import 'dart:io';
 
@@ -16,6 +16,8 @@ import '../widgets/language_switch.dart';
 import '../widgets/large_button.dart';
 import '../widgets/offline_status_bar.dart';
 import 'dev_home_screen.dart';
+import 'patient_list_screen.dart';
+import 'register_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.services});
@@ -45,6 +47,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _refreshPending() async {
     final pending = await _services.db.pendingCount();
     if (mounted) setState(() => _pending = pending);
+  }
+
+  // Opens a screen; the pending count may have changed when it closes.
+  Future<void> _open(Widget screen) async {
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
+    await _refreshPending();
   }
 
   Future<void> _sync(AppLocalizations l10n) async {
@@ -97,6 +105,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(l10n.homeOfflineSignIn),
                 ],
                 const SizedBox(height: 16),
+                if (user.lhwCode != null) ...[
+                  // M2: registration and the patient list work without the internet.
+                  LargeButton(
+                    label: l10n.homeRegisterButton,
+                    icon: Icons.person_add,
+                    onPressed: () => _open(RegisterScreen(services: _services)),
+                  ),
+                  const SizedBox(height: 12),
+                  LargeButton(
+                    label: l10n.homePatientsButton,
+                    icon: Icons.people,
+                    secondary: true,
+                    onPressed: () => _open(PatientListScreen(services: _services)),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 LargeButton(label: l10n.syncNowButton, icon: Icons.sync, onPressed: _busy ? null : () => _sync(l10n)),
                 if (_message != null) ...[
                   const SizedBox(height: 12),

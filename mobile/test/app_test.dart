@@ -3,11 +3,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mediqore/app.dart';
 import 'package:mediqore/app_services.dart';
+import 'package:mediqore/data/app_database.dart';
+import 'package:mediqore/data/patient_repository.dart';
 import 'package:mediqore/l10n/app_localizations.dart';
 import 'package:mediqore/screens/dev_home_screen.dart';
 import 'package:mediqore/screens/home_screen.dart';
 import 'package:mediqore/screens/login_screen.dart';
 import 'package:mediqore/screens/otp_screen.dart';
+import 'package:mediqore/screens/patient_file_screen.dart';
+import 'package:mediqore/screens/patient_list_screen.dart';
+import 'package:mediqore/screens/register_screen.dart';
+import 'package:mediqore/screens/registration_saved_screen.dart';
 import 'package:mediqore/screens/sync_test_screen.dart';
 import 'package:mediqore/screens/widget_kit_screen.dart';
 import 'package:mediqore/settings/app_settings.dart';
@@ -123,8 +129,34 @@ void main() {
     }
 
     Future<void> scrollToEnd(WidgetTester tester) async {
-      await tester.drag(find.byType(ListView).first, const Offset(0, -2000));
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -6000));
       await tester.pumpAndSettle();
+    }
+
+    // Long Urdu names and villages, so the rows have to wrap.
+    Future<LocalWoman> registerLongNames() async {
+      await signInApproved(services, server);
+      final first = await services.patients.register(
+        const RegistrationInput(
+          name: 'سیدہ فاطمہ بی بی زوجہ محمد اسلم',
+          age: 34,
+          husbandName: 'محمد اسلم خان',
+          contactNumber: '03001234567',
+          pregnancyMonth: 7,
+          village: 'ڈھوک سیداں والی بستی نمبر دو',
+          address: 'مکان نمبر 12، گلی نمبر 3، نزد جامع مسجد',
+          previousPregnancies: 4,
+          previousCSections: 2,
+          stillbirths: 1,
+          knownConditions: 'ہائی بلڈ پریشر اور خون کی کمی',
+        ),
+        by: services.session.user!,
+      );
+      await services.patients.register(
+        const RegistrationInput(name: 'Synthetic Woman With A Long English Name', age: 22, pregnancyMonth: 2, village: 'Chak Beli Khan'),
+        by: services.session.user!,
+      );
+      return first;
     }
 
     for (final english in [false, true]) {
@@ -154,6 +186,45 @@ void main() {
         await tester.tap(find.text(english ? 'Widget kit' : 'ویجٹ کٹ'));
         await tester.pumpAndSettle();
         expect(find.byType(WidgetKitScreen), findsOneWidget);
+        await scrollToEnd(tester);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('the registration form fits, errors shown ($language)', (tester) async {
+        await tester.runAsync(registerLongNames);
+        await pumpScreen(tester, RegisterScreen(services: services), english: english);
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+        await tester.pumpAndSettle();
+        final l10n = lookupAppLocalizations(english ? AppSettings.english : AppSettings.urdu);
+        expect(find.text(l10n.regSameHome), findsOneWidget, reason: 'women are registered, so the option shows');
+        await scrollToEnd(tester);
+        await tester.tap(find.text(l10n.regSaveButton));
+        await tester.pumpAndSettle();
+        expect(find.text(l10n.regErrorFix), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('the saved screen fits ($language)', (tester) async {
+        final woman = (await tester.runAsync(registerLongNames))!;
+        await pumpScreen(tester, RegistrationSavedScreen(services: services, woman: woman), english: english);
+        await scrollToEnd(tester);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('the patient list fits ($language)', (tester) async {
+        await tester.runAsync(registerLongNames);
+        await pumpScreen(tester, PatientListScreen(services: services), english: english);
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+        await tester.pumpAndSettle();
+        expect(find.textContaining('LHW-DEMO-001-000'), findsNWidgets(2));
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('the patient file fits, without GPS yet ($language)', (tester) async {
+        final woman = (await tester.runAsync(registerLongNames))!;
+        await pumpScreen(tester, PatientFileScreen(services: services, womanId: woman.id), english: english);
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+        await tester.pumpAndSettle();
         await scrollToEnd(tester);
         expect(tester.takeException(), isNull);
       });

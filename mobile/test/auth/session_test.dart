@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mediqore/app_services.dart';
 import 'package:mediqore/auth/local_account.dart';
 import 'package:mediqore/auth/session.dart';
+import 'package:mediqore/data/patient_repository.dart';
 import 'package:mediqore/sync/sync_api.dart';
 
 import '../helpers.dart';
@@ -50,6 +51,18 @@ void main() {
       final account = LocalAccount.read(services.settings.store)!;
       expect(account.user.username, 'lhw.demo');
       expect(services.settings.store.getString('local_account'), isNot(contains('demo-password')));
+    });
+
+    test('continues the patient numbers after the highest one the server knows (M2 FE-1)', () async {
+      server.lastPatientNumber = 41;
+      await signInApproved(services, server);
+
+      final woman = await services.patients.register(
+        const RegistrationInput(name: 'Synthetic Woman', age: 26, pregnancyMonth: 3),
+        by: session().user!,
+      );
+
+      expect(woman.patientCode, 'LHW-DEMO-001-0042');
     });
 
     test('explains when no code has been issued yet', () async {

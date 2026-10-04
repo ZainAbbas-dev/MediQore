@@ -186,6 +186,8 @@ class Session extends ChangeNotifier {
       }
       await _db.clearAllData();
     }
+    // Patient IDs continue after the highest number the server knows (M2 FE-1).
+    await _db.raisePatientCounter(user.lastPatientNumber ?? 0);
 
     // Reuse the stored key when the password is the same. A new password (for
     // example after an admin reset) gets a new key; once the database is

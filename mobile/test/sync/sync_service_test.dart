@@ -4,8 +4,10 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:mediqore/auth/local_account.dart';
 import 'package:mediqore/data/app_database.dart';
 import 'package:mediqore/data/household_repository.dart';
+import 'package:mediqore/data/patient_repository.dart';
 import 'package:mediqore/sync/sync_api.dart';
 import 'package:mediqore/sync/sync_service.dart';
 
@@ -128,5 +130,78 @@ void main() {
       throwsA(isA<ApiException>().having((e) => e.code, 'code', 'UNAUTHORIZED')),
     );
     expect(await db.pendingCount(), 1);
+  });
+
+  group('registrations (M2)', () {
+    const lhw = SessionUser(
+      id: 'user-1', username: 'lhw.demo', role: 'lhw', fullName: 'Demo LHW', lhwCode: 'LHW-DEMO-001', areaId: 'area-1');
+    late PatientRepository patients;
+
+    setUp(() => patients = PatientRepository(db));
+
+    test('a whole registration is pushed parents first, and every table stores its server number', () async {
+      final woman = await patients.register(
+        const RegistrationInput(name: 'Synthetic Woman', age: 26, pregnancyMonth: 3, village: 'Dhok Syedan'),
+        by: lhw,
+      );
+
+      final report = await sync.syncNow('token-1');
+
+      expect(report.pushed, 4);
+      expect(server.pushedBatches.single.map((r) => r['table']), ['households', 'women', 'pregnancies', 'obstetric_history']);
+      final file = (await patients.file(woman.id))!;
+      expect(file.syncStatus, SyncStatus.synced);
+      for (final (table, id, seq) in [
+        ('households', file.household!.id, file.household!.serverSeq),
+        ('women', file.woman.id, file.woman.serverSeq),
+        ('pregnancies', file.pregnancy!.id, file.pregnancy!.serverSeq),
+        ('obstetric_history', file.history!.id, file.history!.serverSeq),
+      ]) {
+        expect(seq, server.records[id]!['serverSeq'], reason: table);
+      }
+    });
+
+    test("another phone's registration is pulled into the patient list, even with the woman before her household", () async {
+      // The household was edited after the woman was registered, so it has the higher number.
+      server
+        ..addRecord('women', 'w-1', {
+          'householdId': 'h-1', 'patientCode': 'LHW-DEMO-001-0007', 'name': 'Pulled Woman', 'age': 30,
+          'husbandName': null, 'contactNumber': null,
+        })
+        ..addRecord('pregnancies', 'p-1', {
+          'womanId': 'w-1', 'registeredOn': '2026-09-20', 'pregnancyMonthAtRegistration': 5, 'status': 'active',
+          'closedOn': null,
+        })
+        ..addRecord('obstetric_history', 'o-1', {
+          'womanId': 'w-1', 'previousPregnancies': 1, 'previousCSections': 0, 'stillbirths': 0, 'knownConditions': null,
+        })
+        ..addFromAnotherDevice('h-1', 'Chak Beli');
+
+      final report = await sync.syncNow('token-1');
+
+      expect(report.pulled, 4);
+      final [summary] = await patients.list();
+      expect(summary.woman.patientCode, 'LHW-DEMO-001-0007');
+      expect(summary.woman.areaId, 'area-1');
+      expect(summary.village, 'Chak Beli');
+      expect(summary.pregnancy?.registeredOn, '2026-09-20');
+      expect(summary.syncStatus, SyncStatus.synced);
+      expect((await patients.file('w-1'))!.history?.previousPregnancies, 1);
+    });
+
+    test('a new area clears the old records but keeps those still waiting (M1 FE-3)', () async {
+      final synced = await patients.register(
+          const RegistrationInput(name: 'Synced', age: 26, pregnancyMonth: 3, village: 'Old village'), by: lhw);
+      await sync.syncNow('token-1');
+      final waiting = await patients.register(
+          const RegistrationInput(name: 'Waiting', age: 26, pregnancyMonth: 3, village: 'Old village'), by: lhw);
+
+      await db.clearAreaData();
+
+      expect((await patients.list()).map((p) => p.woman.name), ['Waiting']);
+      expect(await patients.file(synced.id), isNull);
+      expect((await patients.file(waiting.id))!.history, isNotNull);
+      expect(await sync.lastServerSeq(), 0);
+    });
   });
 }

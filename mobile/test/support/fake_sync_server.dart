@@ -21,8 +21,12 @@ class FakeSyncServer {
   String password;
   String userId;
   String fullName = 'Demo LHW';
+  String? lhwCode = 'LHW-DEMO-001';
   String areaId = 'area-1';
   String areaName = 'Demo Area 1';
+
+  /// Sent at sign-in: the highest patient number used with this LHW code (M2 FE-1).
+  int lastPatientNumber = 0;
   bool deactivated = false;
   bool offline = false;
 
@@ -69,9 +73,10 @@ class FakeSyncServer {
         'username': username,
         'role': 'lhw',
         'fullName': fullName,
-        'lhwCode': username.toUpperCase(),
+        'lhwCode': lhwCode,
         'areaId': areaId,
         'areaName': areaName,
+        'lastPatientNumber': lastPatientNumber,
       },
     };
   }
@@ -139,7 +144,7 @@ class FakeSyncServer {
       final limit = int.parse(request.url.queryParameters['limit']!);
       final newer = records.values.where((r) => r['areaId'] == areaId && (r['serverSeq'] as int) > since).toList()
         ..sort((a, b) => (a['serverSeq'] as int).compareTo(b['serverSeq'] as int));
-      final page = newer.take(limit).map((r) => Map.of(r)..remove('areaId')).toList();
+      final page = newer.take(limit).map(Map.of).toList();
       return _json({
         'records': page,
         'nextSince': page.isEmpty ? since : page.last['serverSeq'],
@@ -154,7 +159,8 @@ class FakeSyncServer {
     records[r['id'] as String] = {
       'table': r['table'],
       'id': r['id'],
-      'areaId': areaId,
+      // The area the phone made the record in, as the real server keeps it (M1 FE-3).
+      'areaId': r['areaId'] ?? areaId,
       'serverSeq': ++_seq,
       'createdOnDevice': r['createdOnDevice'],
       'deleted': r['deleted'] ?? false,
@@ -163,16 +169,24 @@ class FakeSyncServer {
     return {'table': r['table'], 'id': r['id'], 'status': status, 'serverSeq': _seq};
   }
 
-  /// A record created by another phone, in the current area unless [inArea] is given.
-  void addFromAnotherDevice(String id, String village, {String? inArea}) {
+  /// A household created by another phone, in the current area unless [inArea] is given.
+  void addFromAnotherDevice(String id, String village, {String? inArea}) => addRecord(
+        'households',
+        id,
+        {'householdNumber': null, 'address': null, 'village': village, 'latitude': 33.7, 'longitude': 73.1},
+        inArea: inArea,
+      );
+
+  /// Any record created by another phone; each call gets the next server number.
+  void addRecord(String table, String id, Map<String, dynamic> data, {String? inArea}) {
     records[id] = {
-      'table': 'households',
+      'table': table,
       'id': id,
       'areaId': inArea ?? areaId,
       'serverSeq': ++_seq,
       'createdOnDevice': '2026-10-01T08:00:00.000Z',
       'deleted': false,
-      'data': {'householdNumber': null, 'address': null, 'village': village, 'latitude': 33.7, 'longitude': 73.1},
+      'data': data,
     };
   }
 }

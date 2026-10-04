@@ -118,6 +118,38 @@ class VitalField extends StatelessWidget {
   }
 }
 
+/// A whole number without a unit, for example an age or a count of previous
+/// pregnancies. Digits only, always left to right.
+class NumberField extends StatelessWidget {
+  const NumberField({super.key, required this.label, this.controller, this.validator, this.maxDigits = 2});
+
+  final String label;
+  final TextEditingController? controller;
+  final FormFieldValidator<String>? validator;
+  final int maxDigits;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _FieldLabel(label),
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: TextFormField(
+            controller: controller,
+            validator: validator,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(maxDigits)],
+            textDirection: TextDirection.ltr,
+            style: const TextStyle(fontSize: 22),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// Large checkbox row for yes/no symptoms, for example bleeding.
 class CheckboxField extends StatelessWidget {
   const CheckboxField({
@@ -159,12 +191,14 @@ class DropdownField<T> extends StatelessWidget {
     required this.options,
     required this.value,
     required this.onChanged,
+    this.validator,
   });
 
   final String label;
   final List<DropdownOption<T>> options;
   final T? value;
   final ValueChanged<T?> onChanged;
+  final FormFieldValidator<T>? validator;
 
   @override
   Widget build(BuildContext context) {
@@ -176,6 +210,7 @@ class DropdownField<T> extends StatelessWidget {
           initialValue: value,
           isExpanded: true,
           onChanged: onChanged,
+          validator: validator,
           style: Theme.of(context).textTheme.titleMedium,
           items: [
             for (final option in options)

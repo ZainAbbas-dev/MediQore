@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Sync with the server (M3 FE-2). -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Home location with GPS at registration (M2 FE-3), only while the app is open. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <application
         android:label="MediQore"
         android:name="${applicationName}"

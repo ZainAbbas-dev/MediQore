@@ -26,7 +26,7 @@ class SyncService {
   SyncService({required this._db, required this._api, required this.deviceId});
 
   static const int batchSize = 100;
-  static const String lastServerSeqKey = 'last_server_seq';
+  static const String lastServerSeqKey = AppDatabase.lastServerSeqKey;
 
   final AppDatabase _db;
   final SyncApi _api;
@@ -85,10 +85,7 @@ class SyncService {
           ..where((o) => o.id.equals(entry.id) & o.payload.equals(entry.payload)))
         .go();
     if (removed == 0) return;
-    if (entry.entityTable == 'households') {
-      await (_db.update(_db.households)..where((h) => h.id.equals(entry.recordId)))
-          .write(HouseholdsCompanion(serverSeq: Value(serverSeq)));
-    }
+    await _db.setServerSeq(entry.entityTable, entry.recordId, serverSeq);
   }
 
   /// Pulls everything after the last server number seen; returns how many records came.
@@ -117,20 +114,72 @@ class SyncService {
         .getSingleOrNull();
     if (queued != null) return;
 
+    final d = record.data;
+    final createdOnDevice = record.createdOnDevice ?? DateTime.now().toUtc();
+    final deletedAt = Value(record.deleted ? DateTime.now().toUtc() : null);
+    final areaId = Value(record.areaId);
+    // No parent is required: an edited household is numbered after its women,
+    // so a woman can arrive first (docs/openapi.yaml, syncPull).
     switch (record.table) {
       case 'households':
-        final d = record.data;
         await _db.into(_db.households).insertOnConflictUpdate(
               HouseholdsCompanion.insert(
                 id: record.id,
                 serverSeq: Value(record.serverSeq),
+                areaId: areaId,
                 householdNumber: Value(d['householdNumber'] as String?),
                 address: Value(d['address'] as String?),
                 village: Value(d['village'] as String?),
                 latitude: Value((d['latitude'] as num?)?.toDouble()),
                 longitude: Value((d['longitude'] as num?)?.toDouble()),
-                createdOnDevice: record.createdOnDevice ?? DateTime.now().toUtc(),
-                deletedAt: Value(record.deleted ? DateTime.now().toUtc() : null),
+                createdOnDevice: createdOnDevice,
+                deletedAt: deletedAt,
+              ),
+            );
+      case 'women':
+        await _db.into(_db.women).insertOnConflictUpdate(
+              WomenCompanion.insert(
+                id: record.id,
+                serverSeq: Value(record.serverSeq),
+                areaId: areaId,
+                createdOnDevice: createdOnDevice,
+                deletedAt: deletedAt,
+                householdId: d['householdId'] as String,
+                patientCode: d['patientCode'] as String,
+                name: d['name'] as String,
+                age: Value(d['age'] as int?),
+                husbandName: Value(d['husbandName'] as String?),
+                contactNumber: Value(d['contactNumber'] as String?),
+              ),
+            );
+      case 'pregnancies':
+        await _db.into(_db.pregnancies).insertOnConflictUpdate(
+              PregnanciesCompanion.insert(
+                id: record.id,
+                serverSeq: Value(record.serverSeq),
+                areaId: areaId,
+                createdOnDevice: createdOnDevice,
+                deletedAt: deletedAt,
+                womanId: d['womanId'] as String,
+                registeredOn: d['registeredOn'] as String,
+                pregnancyMonthAtRegistration: d['pregnancyMonthAtRegistration'] as int,
+                status: Value(d['status'] as String? ?? 'active'),
+                closedOn: Value(d['closedOn'] as String?),
+              ),
+            );
+      case 'obstetric_history':
+        await _db.into(_db.obstetricHistory).insertOnConflictUpdate(
+              ObstetricHistoryCompanion.insert(
+                id: record.id,
+                serverSeq: Value(record.serverSeq),
+                areaId: areaId,
+                createdOnDevice: createdOnDevice,
+                deletedAt: deletedAt,
+                womanId: d['womanId'] as String,
+                previousPregnancies: Value(d['previousPregnancies'] as int? ?? 0),
+                previousCSections: Value(d['previousCSections'] as int? ?? 0),
+                stillbirths: Value(d['stillbirths'] as int? ?? 0),
+                knownConditions: Value(d['knownConditions'] as String?),
               ),
             );
       default:

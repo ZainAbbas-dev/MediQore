@@ -23,11 +23,20 @@ class ApiException implements Exception {
 
 /// One record in a pull response.
 class PulledRecord {
-  PulledRecord({required this.table, required this.id, required this.serverSeq, required this.deleted, required this.data, this.createdOnDevice});
+  PulledRecord({
+    required this.table,
+    required this.id,
+    required this.serverSeq,
+    required this.deleted,
+    required this.data,
+    this.areaId,
+    this.createdOnDevice,
+  });
 
   factory PulledRecord.fromJson(Map<String, dynamic> json) => PulledRecord(
         table: json['table'] as String,
         id: json['id'] as String,
+        areaId: json['areaId'] as String?,
         serverSeq: json['serverSeq'] as int,
         deleted: json['deleted'] as bool,
         data: Map<String, dynamic>.from(json['data'] as Map),
@@ -36,6 +45,9 @@ class PulledRecord {
 
   final String table;
   final String id;
+
+  /// The area the record is filed under (M1 FE-3).
+  final String? areaId;
   final int serverSeq;
   final bool deleted;
   final Map<String, dynamic> data;

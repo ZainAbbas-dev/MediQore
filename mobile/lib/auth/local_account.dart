@@ -16,6 +16,7 @@ class SessionUser {
     this.lhwCode,
     this.areaId,
     this.areaName,
+    this.lastPatientNumber,
   });
 
   factory SessionUser.fromJson(Map<String, dynamic> json) => SessionUser(
@@ -26,6 +27,7 @@ class SessionUser {
     lhwCode: json['lhwCode'] as String?,
     areaId: json['areaId'] as String?,
     areaName: json['areaName'] as String?,
+    lastPatientNumber: json['lastPatientNumber'] as int?,
   );
 
   final String id;
@@ -36,6 +38,10 @@ class SessionUser {
   final String? areaId;
   final String? areaName;
 
+  /// The highest patient number the server knew for this LHW at the last
+  /// online sign-in (M2 FE-1).
+  final int? lastPatientNumber;
+
   Map<String, Object?> toJson() => {
     'id': id,
     'username': username,
@@ -44,6 +50,7 @@ class SessionUser {
     'lhwCode': lhwCode,
     'areaId': areaId,
     'areaName': areaName,
+    'lastPatientNumber': lastPatientNumber,
   };
 }
 

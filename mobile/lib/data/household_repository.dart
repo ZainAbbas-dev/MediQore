@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
@@ -17,12 +15,16 @@ class HouseholdRepository {
   final Uuid _uuid;
   final DateTime Function() _clock;
 
+  /// [areaId] is the area the household is in: the signed-in LHW's area
+  /// (M1 FE-3). [createdBy] is the signed-in user.
   Future<LocalHousehold> create({
     String? householdNumber,
     String? address,
     String? village,
     double? latitude,
     double? longitude,
+    String? areaId,
+    String? createdBy,
   }) {
     final household = LocalHousehold(
       id: _uuid.v4(),
@@ -32,11 +34,25 @@ class HouseholdRepository {
       latitude: latitude,
       longitude: longitude,
       createdOnDevice: _clock().toUtc(),
+      areaId: areaId,
+      createdBy: createdBy,
     );
     return _db.transaction(() async {
       await _db.into(_db.households).insert(household);
-      await _enqueue(household);
+      await _db.enqueue(payloadOf(household), queuedAt: _clock());
       return household;
+    });
+  }
+
+  /// Records the home's GPS position (M2 FE-3), for example when it could not
+  /// be found at registration.
+  Future<LocalHousehold> setLocation(String id, {required double latitude, required double longitude}) {
+    return _db.transaction(() async {
+      final current = await (_db.select(_db.households)..where((h) => h.id.equals(id))).getSingle();
+      final updated = current.copyWith(latitude: Value(latitude), longitude: Value(longitude));
+      await _db.update(_db.households).replace(updated);
+      await _db.enqueue(payloadOf(updated), queuedAt: _clock());
+      return updated;
     });
   }
 
@@ -45,36 +61,19 @@ class HouseholdRepository {
         ..orderBy([(h) => OrderingTerm.asc(h.createdOnDevice)]))
       .get();
 
-  Future<void> _enqueue(LocalHousehold household) {
-    final payload = {
-      'table': table,
-      'id': household.id,
-      'createdOnDevice': household.createdOnDevice.toUtc().toIso8601String(),
-      'deleted': household.deletedAt != null,
-      'data': {
-        'householdNumber': household.householdNumber,
-        'address': household.address,
-        'village': household.village,
-        'latitude': household.latitude,
-        'longitude': household.longitude,
-      },
-    };
-    return _db.into(_db.outbox).insert(
-          OutboxCompanion.insert(
-            entityTable: table,
-            recordId: household.id,
-            payload: jsonEncode(payload),
-            queuedAt: _clock().toUtc(),
-          ),
-          onConflict: DoUpdate(
-            (_) => OutboxCompanion(
-              payload: Value(jsonEncode(payload)),
-              attempts: const Value(0),
-              lastError: const Value(null),
-              queuedAt: Value(_clock().toUtc()),
-            ),
-            target: [_db.outbox.entityTable, _db.outbox.recordId],
-          ),
-        );
-  }
+  /// The household as `/sync/push` takes it.
+  static Map<String, Object?> payloadOf(LocalHousehold household) => syncPayload(
+        table: table,
+        id: household.id,
+        areaId: household.areaId,
+        createdOnDevice: household.createdOnDevice,
+        deletedAt: household.deletedAt,
+        data: {
+          'householdNumber': household.householdNumber,
+          'address': household.address,
+          'village': household.village,
+          'latitude': household.latitude,
+          'longitude': household.longitude,
+        },
+      );
 }

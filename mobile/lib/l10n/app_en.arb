@@ -410,5 +410,302 @@
   "homeSignInAgainButton": "Sign in again",
   "@homeSignInAgainButton": {
     "description": "Button that returns to the login screen to sign in online."
+  },
+  "homeRegisterButton": "Register a pregnant woman",
+  "@homeRegisterButton": {
+    "description": "Home screen button that opens the registration form (M2 FE-1)."
+  },
+  "homePatientsButton": "Registered women",
+  "@homePatientsButton": {
+    "description": "Home screen button that opens the patient list (M2 FE-3)."
+  },
+  "regTitle": "Register a pregnant woman",
+  "@regTitle": {
+    "description": "Title of the registration form (M2 FE-1)."
+  },
+  "regWomanSection": "Woman",
+  "@regWomanSection": {
+    "description": "Registration form section: the woman's details."
+  },
+  "regName": "Name",
+  "@regName": {
+    "description": "Registration field."
+  },
+  "regAge": "Age (years)",
+  "@regAge": {
+    "description": "Registration field."
+  },
+  "regHusbandName": "Husband's name",
+  "@regHusbandName": {
+    "description": "Registration field."
+  },
+  "regContactNumber": "Contact number",
+  "@regContactNumber": {
+    "description": "Registration field."
+  },
+  "regPregnancySection": "Pregnancy",
+  "@regPregnancySection": {
+    "description": "Registration form section."
+  },
+  "regPregnancyMonth": "Pregnancy month",
+  "@regPregnancyMonth": {
+    "description": "Registration field (dropdown 1–9)."
+  },
+  "regMonthOption": "Month {month}",
+  "@regMonthOption": {
+    "description": "One option of the pregnancy month dropdown.",
+    "placeholders": {
+      "month": {
+        "type": "int"
+      }
+    }
+  },
+  "regHomeSection": "Home",
+  "@regHomeSection": {
+    "description": "Registration form section: household and location (M2 FE-3)."
+  },
+  "regSameHome": "Same home as a registered woman",
+  "@regSameHome": {
+    "description": "Checkbox: the woman lives in the home of a woman already registered."
+  },
+  "regChooseWoman": "Registered woman",
+  "@regChooseWoman": {
+    "description": "Dropdown label: whose home."
+  },
+  "regWomanOption": "{name} ({code})",
+  "@regWomanOption": {
+    "description": "One registered woman in the dropdown: name and patient ID.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "regVillage": "Village",
+  "@regVillage": {
+    "description": "Registration field."
+  },
+  "regAddress": "Address",
+  "@regAddress": {
+    "description": "Registration field."
+  },
+  "regHistorySection": "Obstetric history",
+  "@regHistorySection": {
+    "description": "Registration form section (M2 FE-2), also used on the patient file."
+  },
+  "regPreviousPregnancies": "Previous pregnancies",
+  "@regPreviousPregnancies": {
+    "description": "Obstetric history field."
+  },
+  "regPreviousCSections": "Previous C-sections",
+  "@regPreviousCSections": {
+    "description": "Obstetric history field."
+  },
+  "regStillbirths": "Stillbirths",
+  "@regStillbirths": {
+    "description": "Obstetric history field."
+  },
+  "regKnownConditions": "Known medical conditions",
+  "@regKnownConditions": {
+    "description": "Obstetric history field (free text)."
+  },
+  "regSaveButton": "Save registration",
+  "@regSaveButton": {
+    "description": "Button that saves the registration on the phone."
+  },
+  "regErrorRequired": "Required",
+  "@regErrorRequired": {
+    "description": "Validation message under an empty required field."
+  },
+  "regErrorAge": "Enter an age from 10 to 60",
+  "@regErrorAge": {
+    "description": "Validation message."
+  },
+  "regErrorContact": "Enter a mobile number like 03001234567",
+  "@regErrorContact": {
+    "description": "Validation message."
+  },
+  "regErrorCount": "Enter a number from 0 to 30",
+  "@regErrorCount": {
+    "description": "Validation message for the obstetric history counts."
+  },
+  "regErrorMoreThanPregnancies": "Cannot be more than the previous pregnancies",
+  "@regErrorMoreThanPregnancies": {
+    "description": "Validation message for C-sections and stillbirths."
+  },
+  "regErrorChooseMonth": "Choose the month",
+  "@regErrorChooseMonth": {
+    "description": "Validation message."
+  },
+  "regErrorChooseWoman": "Choose the woman",
+  "@regErrorChooseWoman": {
+    "description": "Validation message."
+  },
+  "regErrorFix": "Some answers need attention. Check the fields marked in red.",
+  "@regErrorFix": {
+    "description": "Shown at the save button when the form has errors."
+  },
+  "gpsLabel": "Home location (GPS)",
+  "@gpsLabel": {
+    "description": "Label of the GPS capture (M2 FE-3)."
+  },
+  "gpsCaptureButton": "Record home location",
+  "@gpsCaptureButton": {
+    "description": "Button that captures the GPS position."
+  },
+  "gpsRetryButton": "Try again",
+  "@gpsRetryButton": {
+    "description": "Button after a failed GPS capture."
+  },
+  "gpsCapturing": "Finding the location… stay in the open.",
+  "@gpsCapturing": {
+    "description": "Shown while the GPS position is found."
+  },
+  "gpsCaptured": "Location recorded (within {metres} m)",
+  "@gpsCaptured": {
+    "description": "Shown after a GPS capture.",
+    "placeholders": {
+      "metres": {
+        "type": "int"
+      }
+    }
+  },
+  "gpsNotRecorded": "Not recorded yet. You can save without it and add it later from her file.",
+  "@gpsNotRecorded": {
+    "description": "Shown before a GPS capture."
+  },
+  "gpsServiceOff": "The phone's location is off. Turn it on, then try again.",
+  "@gpsServiceOff": {
+    "description": "GPS problem."
+  },
+  "gpsDenied": "MediQore needs permission to use the location.",
+  "@gpsDenied": {
+    "description": "GPS problem."
+  },
+  "gpsDeniedForever": "Location permission is off for MediQore. Allow it in the phone's settings.",
+  "@gpsDeniedForever": {
+    "description": "GPS problem."
+  },
+  "gpsUnavailable": "The location could not be found. Try again in the open.",
+  "@gpsUnavailable": {
+    "description": "GPS problem."
+  },
+  "gpsOpenSettings": "Open settings",
+  "@gpsOpenSettings": {
+    "description": "Button that opens the phone's location or app settings."
+  },
+  "savedTitle": "Registration saved",
+  "@savedTitle": {
+    "description": "Title shown after saving a registration."
+  },
+  "patientIdLabel": "Patient ID",
+  "@patientIdLabel": {
+    "description": "Label of the patient ID (LHW code + counter, M2 FE-1)."
+  },
+  "savedOnPhone": "Saved on this phone. It will be sent to the server at the next sync.",
+  "@savedOnPhone": {
+    "description": "Shown after saving a registration."
+  },
+  "savedOpenFile": "Open her file",
+  "@savedOpenFile": {
+    "description": "Button after saving a registration."
+  },
+  "savedRegisterAnother": "Register another woman",
+  "@savedRegisterAnother": {
+    "description": "Button after saving a registration."
+  },
+  "savedDone": "Done",
+  "@savedDone": {
+    "description": "Button after saving a registration."
+  },
+  "patientsTitle": "Registered women",
+  "@patientsTitle": {
+    "description": "Title of the patient list (M2 FE-3)."
+  },
+  "patientsSearch": "Search: name, patient ID or village",
+  "@patientsSearch": {
+    "description": "Search field on the patient list."
+  },
+  "patientsEmpty": "No women are registered on this phone yet.",
+  "@patientsEmpty": {
+    "description": "Empty patient list."
+  },
+  "patientsNoMatch": "No registered woman matches the search.",
+  "@patientsNoMatch": {
+    "description": "Search found nothing."
+  },
+  "patientsNoVillage": "Village not recorded",
+  "@patientsNoVillage": {
+    "description": "Group heading for women without a village."
+  },
+  "patientsCount": "{count, plural, =1{1 woman} other{{count} women}}",
+  "@patientsCount": {
+    "description": "Number of women in the list.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "patientAge": "{age} years",
+  "@patientAge": {
+    "description": "A woman's age in the list.",
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "patientMonthAtRegistration": "Month {month} at registration",
+  "@patientMonthAtRegistration": {
+    "description": "Pregnancy month at registration, in the list.",
+    "placeholders": {
+      "month": {
+        "type": "int"
+      }
+    }
+  },
+  "syncWaiting": "Not sent yet",
+  "@syncWaiting": {
+    "description": "A record still waiting to sync."
+  },
+  "syncRefused": "Refused by the server",
+  "@syncRefused": {
+    "description": "A record the server refused."
+  },
+  "fileTitle": "Pregnancy file",
+  "@fileTitle": {
+    "description": "Title of a woman's file (M2 FE-1)."
+  },
+  "fileNotRecorded": "Not recorded",
+  "@fileNotRecorded": {
+    "description": "A field left empty at registration."
+  },
+  "fileRegisteredOn": "Registered on",
+  "@fileRegisteredOn": {
+    "description": "Field in the patient file."
+  },
+  "fileMonthAtRegistration": "Pregnancy month at registration",
+  "@fileMonthAtRegistration": {
+    "description": "Field in the patient file."
+  },
+  "fileStatus": "Status",
+  "@fileStatus": {
+    "description": "Field in the patient file."
+  },
+  "fileStatusActive": "Active",
+  "@fileStatusActive": {
+    "description": "Pregnancy status."
+  },
+  "fileStatusClosed": "Closed",
+  "@fileStatusClosed": {
+    "description": "Pregnancy status."
+  },
+  "fileLocationSaved": "Home location saved.",
+  "@fileLocationSaved": {
+    "description": "Shown after adding the home location from the file."
   }
 }

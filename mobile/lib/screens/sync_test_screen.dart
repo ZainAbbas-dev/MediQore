@@ -70,11 +70,14 @@ class _SyncTestScreenState extends State<SyncTestScreen> {
   // Synthetic household near Islamabad (LI-10: no real patient data). Real GPS
   // capture comes with M2 FE-3.
   Future<void> _createTestHousehold(AppLocalizations l10n) => _run(() async {
+        final user = _services.session.user;
         await _services.households.create(
           householdNumber: 'TEST-${_households.length + 1}',
           village: l10n.testHouseholdVillage,
           latitude: 33.6844 + (_random.nextDouble() - 0.5) / 50,
           longitude: 73.0479 + (_random.nextDouble() - 0.5) / 50,
+          areaId: user?.areaId,
+          createdBy: user?.id,
         );
       });
 

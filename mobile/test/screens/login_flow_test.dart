@@ -72,7 +72,7 @@ void main() {
     expect(find.byType(HomeScreen), findsOneWidget);
     expect(find.byType(OtpScreen), findsNothing);
     expect(find.text('Demo LHW'), findsOneWidget);
-    expect(find.text(l10n.homeLhwCode('LHW.DEMO')), findsOneWidget);
+    expect(find.text(l10n.homeLhwCode('LHW-DEMO-001')), findsOneWidget);
     expect(find.text(l10n.homeArea('Demo Area 1')), findsOneWidget);
   });
 
