@@ -5,7 +5,10 @@ publish_to: 'none'
 version: 0.1.0+1
 
 environment:
-  sdk: ^3.13.5
+  # Flutter 3.47.0 (Dart 3.13.0) or any newer stable release. Older Flutter versions cannot
+  # resolve build_runner 2.16 and drift_dev 2.35, which need meta 1.18.3 or newer.
+  sdk: ^3.13.0
+  flutter: ">=3.47.0"
 
 dependencies:
   drift: ^2.35.1

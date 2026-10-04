@@ -16,7 +16,7 @@ Use this guide to set up a Windows laptop and test everything built so far, quic
 | VS Code | code.visualstudio.com | |
 | Node.js **20 LTS** | nodejs.org | Check: `node -v` prints `v20…` |
 | PostgreSQL **15** | postgresql.org → Download → Windows installer | Set a password for the `postgres` user and remember it. Keep port 5432. Untick Stack Builder at the end. |
-| Flutter (stable) + Android Studio | docs.flutter.dev → Get started → Windows → Android | **Only for step 7.** Finish when `flutter doctor` shows the Android toolchain in green. |
+| Flutter **3.47 or newer** (stable) + Android Studio | docs.flutter.dev → Get started → Windows → Android | **Only for step 7.** Finish when `flutter doctor` shows the Android toolchain in green. If Flutter is already installed, check `flutter --version` and run `flutter upgrade` if it is older than 3.47. |
 
 ## 2. Create the MediQore database user (2 minutes)
 
@@ -102,16 +102,19 @@ After step 7, the task **mobile: analyze and test** should show "No issues found
 
 This closes the Phase 0 exit gate ("one test record created on the phone offline, synced, stored in PostgreSQL and visible on the React portal") and runs the Urdu voice check (decision 0004).
 
-1. **On the phone:** turn on Developer options and **USB debugging**, connect the USB cable and allow this computer.
-2. **Find the laptop's address:** run `ipconfig` and note the **IPv4 Address** of the Wi-Fi adapter, for example `192.168.1.10`.
+1. **Get the app's packages:** run the task **mobile: get packages** (or `flutter pub get` in `mobile/`).
+   - Until this has run, VS Code underlines almost every line in `mobile/` in red: the packages and the generated Urdu/English text class (`app_localizations.dart`) are missing.
+   - The red lines disappear a few seconds after it succeeds. If some remain, press Ctrl+Shift+P and run **Dart: Restart Analysis Server**.
+2. **On the phone:** turn on Developer options and **USB debugging**, connect the USB cable and allow this computer.
+3. **Find the laptop's address:** run `ipconfig` and note the **IPv4 Address** of the Wi-Fi adapter, for example `192.168.1.10`.
    - The phone must be on the **same Wi-Fi**.
    - The API must be running (step 5).
-3. **Start the app from VS Code:**
+4. **Start the app from VS Code:**
    1. Open **Run and Debug** (Ctrl+Shift+D).
    2. Choose **MediQore app: real phone (same Wi-Fi as this laptop)** and press **F5**.
    3. Type the IPv4 address when asked.
    4. The first build takes several minutes.
-4. The app opens on **فیز 0 کی جانچ** (Phase 0 checks):
+5. The app opens on **فیز 0 کی جانچ** (Phase 0 checks):
    - **ویجٹ کٹ** (widget kit): scroll through the Urdu controls and check that nothing is cut off.
    - **ڈیٹا سنک کی جانچ** (sync test):
      1. Turn on **airplane mode** and tap **ٹیسٹ گھرانہ بنائیں** (create test household). It is saved on the phone.
@@ -122,7 +125,7 @@ This closes the Phase 0 exit gate ("one test record created on the phone offline
      1. In airplane mode, open it and tap the sample button.
      2. Write the results for this phone in the table in [`docs/decisions/0004-urdu-voice-source.md`](decisions/0004-urdu-voice-source.md).
      3. Repeat on every test phone.
-5. **No phone at hand?** Use the configuration **MediQore app: Android emulator** with an emulator from Android Studio. The voice check still needs a real phone.
+6. **No phone at hand?** Use the configuration **MediQore app: Android emulator** with an emulator from Android Studio. The voice check still needs a real phone.
 
 ## 8. ML notebook (optional)
 
@@ -144,6 +147,8 @@ Run the task **MediQore: empty the database and reload the data**. It empties th
 | `EADDRINUSE … :3000` or `:5173` | The API or portal is already running in another terminal. Close that terminal (bin icon) and start the task again. |
 | `Synthetic data with prefix "syn" is already loaded` | Nothing is wrong: the data is already there. To get fresh data, use the reset task above. |
 | The phone's sync fails with a network or timeout error | Check that the phone is on the same Wi-Fi, that the IPv4 address is right and that the firewall allows Node.js on Private networks. Some Wi-Fi networks (guest or university) block devices from reaching each other. If so, turn on the phone's hotspot, connect the laptop to it, run `ipconfig` again and use that address. |
+| Red error lines all over the files in `mobile/` | Run the task **mobile: get packages**. If it fails, read its message (next row). |
+| `flutter pub get` says *version solving failed* or *requires SDK version ^3.13.0* | Your Flutter is older than 3.47. Run `flutter upgrade`, then **mobile: get packages** again. |
 | `flutter doctor` complains about Android licences | `flutter doctor --android-licenses` and accept them. |
 
 ## Later: a staging server

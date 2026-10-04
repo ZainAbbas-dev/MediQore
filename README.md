@@ -76,7 +76,7 @@ Both team members develop on Windows. Install:
 | Node.js | 20 LTS | `api/`, `web/` |
 | PostgreSQL | 15 | `db/`, `api/` |
 | Python | 3.11 | `ml/` |
-| Flutter SDK (stable, 3.x) + Android Studio / Android SDK | latest stable | `mobile/` |
+| Flutter SDK (stable) + Android Studio / Android SDK | 3.47 or newer | `mobile/` |
 
 Clone the repository and work from `dev`:
 

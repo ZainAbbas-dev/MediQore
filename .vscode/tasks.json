@@ -105,6 +105,7 @@
     { "label": "web: test", "type": "shell", "command": "npm test", "options": { "cwd": "${workspaceFolder}/web" }, "problemMatcher": [] },
     { "label": "web: build", "type": "shell", "command": "npm run build", "options": { "cwd": "${workspaceFolder}/web" }, "problemMatcher": [] },
 
+    { "label": "mobile: get packages", "type": "shell", "command": "flutter pub get", "options": { "cwd": "${workspaceFolder}/mobile" }, "problemMatcher": [] },
     { "label": "mobile: analyze and test", "type": "shell", "command": "flutter analyze; flutter test", "options": { "cwd": "${workspaceFolder}/mobile" }, "problemMatcher": [] }
   ]
 }

@@ -6,7 +6,7 @@ Flutter app with Modules 1–9, in Urdu and fully offline, plus the supervisor a
 
 | Tool | Version | Purpose |
 |---|---|---|
-| Flutter | 3.x | Android app with Urdu UI, voice guidance and offline support (Android only, LI-1) |
+| Flutter | 3.x; this project needs 3.47 or newer (`pubspec.yaml`) | Android app with Urdu UI, voice guidance and offline support (Android only, LI-1) |
 | SQLite via Drift | Latest | Offline local storage |
 | sqflite_sqlcipher | Latest | AES-256 encryption of the local database |
 | flutter_localizations + intl | Latest | RTL locale, Urdu support, bidirectional text |
