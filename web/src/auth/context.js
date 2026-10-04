@@ -3,7 +3,9 @@ import { createContext, useContext } from 'react';
 // The portal is for supervisors and admins; LHWs use the mobile app.
 export const PORTAL_ROLES = ['supervisor', 'admin'];
 
-// { token, user, login(username, password), logout() }, provided by <AuthProvider>.
+// { token, user, login(username, password), logout(), request(path, options) },
+// provided by <AuthProvider>. Pages call the API through request(), which adds
+// the token and refreshes it when it expires.
 export const AuthContext = createContext(null);
 
 export function useAuth() {

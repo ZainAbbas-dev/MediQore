@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { apiRequest } from '../api/client';
 import { useAuth } from '../auth/context';
 import AreaMap from '../components/AreaMap';
 
@@ -9,25 +8,23 @@ const NO_HOUSEHOLDS = [];
 // LHW app in the user's areas: the end of the end-to-end check (P0-6). Cards,
 // filters and auto-refresh are Module 10 work in Phase 1.
 export default function DashboardPage() {
-  const { token, logout } = useAuth();
+  const { request } = useAuth();
   const [households, setHouseholds] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
-    apiRequest('/households', { token })
+    request('/households')
       .then((data) => {
         if (!cancelled) setHouseholds(data.households);
       })
       .catch((err) => {
-        if (cancelled) return;
-        if (err.status === 401) logout();
-        else setError(err.message);
+        if (!cancelled) setError(err.message);
       });
     return () => {
       cancelled = true;
     };
-  }, [token, logout]);
+  }, [request]);
 
   return (
     <>

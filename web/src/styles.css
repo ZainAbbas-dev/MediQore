@@ -191,3 +191,150 @@ td {
   opacity: 0.6;
   cursor: default;
 }
+
+/* Page header, toolbar and buttons (Module 1 admin screens) */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.toolbar input,
+.toolbar select {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+button {
+  padding: 8px 14px;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  background: var(--primary);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+button.secondary {
+  background: var(--surface);
+  color: var(--primary);
+}
+
+button.danger {
+  border-color: var(--error);
+  background: var(--error);
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.row-actions button {
+  padding: 4px 10px;
+}
+
+.badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--border);
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.badge.ok {
+  margin-left: 0;
+  background: #c8e6c9;
+}
+
+.badge.off {
+  margin-left: 0;
+  background: #ffcdd2;
+}
+
+.warning {
+  padding: 8px 12px;
+  border-left: 4px solid #f9a825;
+  background: #fff8e1;
+}
+
+.notice {
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 1.6rem;
+  letter-spacing: 0.15em;
+}
+
+.credentials dt {
+  color: var(--muted);
+}
+
+.credentials dd {
+  margin: 0 0 12px;
+}
+
+/* Dialogs */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.dialog {
+  width: min(520px, 92vw);
+  padding: 20px 24px;
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.dialog h2 {
+  margin-top: 0;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stack input,
+.stack select {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}

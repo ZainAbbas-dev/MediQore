@@ -14,6 +14,8 @@ export default function AppLayout() {
           <NavLink to="/" end>
             Dashboard
           </NavLink>
+          <NavLink to="/devices">Phone approvals</NavLink>
+          {user?.role === 'admin' && <NavLink to="/admin/lhws">LHW accounts</NavLink>}
         </nav>
         <div className="sidebar-footer">
           <div className="user">
