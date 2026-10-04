@@ -174,7 +174,20 @@ class VitalField extends StatelessWidget {
               ],
               textDirection: TextDirection.ltr,
               style: const TextStyle(fontSize: 22),
-              decoration: InputDecoration(suffixText: unit),
+              // The unit shows while the field is still empty (a suffix would
+              // appear only once the field has focus).
+              decoration: InputDecoration(
+                suffixIcon: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    unit,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ),
+                suffixIconConstraints: const BoxConstraints(),
+              ),
             ),
           ),
         ],

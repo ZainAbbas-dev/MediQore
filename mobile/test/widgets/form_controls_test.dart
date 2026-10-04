@@ -39,6 +39,9 @@ void main() {
       final label = tester.element(find.text('اوپر والا بلڈ پریشر'));
       expect(Directionality.of(label), TextDirection.rtl);
       expect(find.text('mmHg'), findsOneWidget);
+      // The unit is visible before the field is touched, to the right of the number.
+      expect(tester.getRect(find.text('mmHg')).left, greaterThan(tester.getRect(find.byType(EditableText)).left));
+      expect(tester.getRect(find.text('mmHg')).width, greaterThan(0));
     });
 
     testWidgets('accepts digits only', (tester) async {
