@@ -2,7 +2,7 @@
 
 ## Project
 
-MediQore is the final-year project (BS Computer Science, COMSATS University Islamabad) of Muhammad Zain Abbas and Zain Ali: an offline-first digital health platform for Pakistan's Lady Health Workers (LHWs). LHWs use an Urdu Android app that works fully offline to register pregnant women, record home visits, get an on-device AI maternal risk result with an Urdu explanation, raise emergency alerts by internet, SMS or call, and run polio, EPI immunisation and child nutrition work (Modules 1–9). The app syncs to a central server whenever it has a connection, and supervisors and admins use a web portal for the dashboard, map, alerts, reports and administration (Module 10). The phone owns the field workflow and never needs the server to do its job; the server only collects, analyses and reports.
+MediQore is the final-year project (BS Computer Science, COMSATS University Islamabad) of Muhammad Zain Abbas and Zain Ali: an offline-first digital health platform for Pakistan's Lady Health Workers (LHWs). LHWs use an Android app, in Urdu by default with an English option, that works fully offline to register pregnant women, record home visits, get an on-device AI maternal risk result with an Urdu explanation, raise emergency alerts by internet, SMS or call, and run polio, EPI immunisation and child nutrition work (Modules 1–9). The app syncs to a central server whenever it has a connection, and supervisors and admins use a web portal for the dashboard, map, alerts, reports and administration (Module 10). The phone owns the field workflow and never needs the server to do its job; the server only collects, analyses and reports.
 
 Five components, one monorepo:
 
@@ -23,6 +23,7 @@ Five components, one monorepo:
 - `docs/decisions/`: decision records for the roadmap's open items (P0-11).
   - An **Accepted** record binds like the roadmap.
   - A **Proposed** record is not decided yet: ask before building on it.
+- Approved scope amendments are listed at the top of `docs/scope.md` and `docs/roadmap.md` ("Amendments after approval") and marked in the text, for example *(A1)*. They override the Word document and `roadmap.pdf` until those are updated.
 - Build only what the scope and roadmap describe. Do not add features, tables, endpoints or libraries they do not call for. If something is ambiguous or the documents disagree, ask instead of guessing.
 - Respect the limitations, for example: Android only (LI-1); the prototype sends SMS and places calls from the LHW's phone, with no server SMS gateway (LI-4); AI output is decision support only, and the app says so (LI-5).
 
@@ -35,7 +36,11 @@ These rules come from the roadmap's "Architecture and conventions" table. Changi
 - **API:** REST under `/api/v1`, JSON, Joi validation on every request body, JWT access token plus refresh token, HTTPS only (M1 FE-2).
 - **Units:** store exactly one unit per vital: BP in mmHg, temperature in °C, blood sugar in mmol/L, weight in kg, MUAC in mm. Convert only at the model input or display layer.
 - **Clinical rules:** danger-sign thresholds, EPI schedule, MUAC cut-offs and IMCI rules live in versioned JSON config files, never hard-coded, so clinical advisors can review them (M4 FE-4).
-- **Urdu text:** no visible string in Dart code. Every label goes into the Flutter ARB localisation files, with an Urdu and an English entry. Text is rendered in Jameel Noori Nastaleeq inside RTL `Directionality`; numeric values such as vitals stay left to right.
+- **Urdu and English text:** no visible string in Dart code. Every label goes into the Flutter ARB localisation files, with an Urdu and an English entry; users see both, because the LHW can switch languages (M1 FE-4, scope amendment A1).
+  - Urdu is the default and is rendered in Jameel Noori Nastaleeq inside RTL `Directionality`.
+  - English is rendered left to right in the standard Latin font.
+  - Numeric values such as vitals stay left to right in both.
+  - Voice guidance speaks Urdu only: it is off while the app is in English.
 - **Environments:** local PostgreSQL for development; one HTTPS staging server for supervisor reviews and demos.
 - **Data model:** the same tables exist in PostgreSQL and, for field data, in the device's Drift database. Every synced table carries the base columns `id` (UUID), `server_seq`, `area_id`, `created_by`, `created_on_device`, `synced_at` and `deleted_at`. Store the model version on every risk assessment (LI-2).
 
@@ -43,7 +48,7 @@ Cross-cutting rules from the roadmap, which every module follows instead of inve
 
 - **Offline sync:** every device write goes to its local table and to an outbox in the same transaction. Push sends outbox rows in batches of about 100; the server replies with the sequence number it assigned to each UUID. Pull uses the last sequence number the device has seen. Emergency alert records go first in the push order (M5 FE-4). Report images upload after the data rows. Resending the same UUID is harmless; a different record for the same woman on the same day goes to the supervisor conflict queue (M3 FE-2).
 - **Security and access:** bcrypt password hashes; short-lived access token and longer refresh token, both revocable on deactivation; role-check middleware on every route (LHW, supervisor, admin); area scoping in every query; parameterised SQL only, with Joi validation before any database call; local database AES-256 encrypted, report images stored encrypted, nothing patient-related in plain shared storage.
-- **Urdu screens:** test every screen on a small phone, because Nastaliq text is taller than Latin text and overflows easily.
+- **Urdu and English screens:** test every screen in both languages on a small phone, because Nastaliq text is taller than Latin text and overflows easily.
 - **Testing tools:** flutter_test (unit and widget), Jest + Supertest (API), pytest (ML, including the model recall threshold and ONNX parity).
 
 ## Git workflow
@@ -73,7 +78,7 @@ From the roadmap: a module counts as finished only when every item below is true
 
 - [ ] Every FE in the scope document for that module works on a real Android phone
 - [ ] Works fully offline where the scope says so, and syncs correctly afterwards
-- [ ] All screens in Urdu with no text overflow; numeric values display left to right
+- [ ] All screens in Urdu and English with no text overflow; numeric values display left to right
 - [ ] API routes validated with Joi, role-checked and area-scoped
 - [ ] Every create, edit and delete writes an audit row
 - [ ] Unit and API tests written and passing in CI

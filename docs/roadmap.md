@@ -1,8 +1,16 @@
 # MediQore Full-Stack Implementation Roadmap
 
-> Markdown copy of [`roadmap.pdf`](roadmap.pdf), made so the roadmap can be searched and read inside the repo. If this copy and the PDF ever differ, the PDF wins.
+> Markdown copy of [`roadmap.pdf`](roadmap.pdf), made so the roadmap can be searched and read inside the repo. If this copy and the PDF ever differ, the PDF wins, except for the approved amendments listed below, which the PDF has not caught up with yet.
 
 Oct 2, 2026 · @Mehdi
+
+## Amendments after approval
+
+These changes follow scope amendments the supervisor approved (see [`scope.md`](scope.md), "Amendments after approval"). Amended text below is marked *(A1)*.
+
+| No. | Date | Change | Record |
+|---|---|---|---|
+| A1 | 2026-10-04 | Urdu/English language switch in the LHW app (M1 FE-4); voice guidance only in Urdu. Adds a Phase 1 task and updates the Urdu conventions, the Phase 1 exit gate, the testing table and the definition of done. The base switch was built at the end of Phase 0. | [Decision 0005](decisions/0005-language-switch.md) |
 
 ## Overview
 
@@ -51,7 +59,7 @@ The highlighted path is the key design choice: an emergency SMS or call goes str
 
 | Component | Technology (from scope) | Responsibility |
 |---|---|---|
-| LHW mobile app | Flutter 3.x, Drift + sqflite_sqlcipher, flutter_tts, onnxruntime, google_mlkit_text_recognition, fl_chart | Modules 1–9 in Urdu, fully offline, on-device AI and danger-sign rules, emergency alerts |
+| LHW mobile app | Flutter 3.x, Drift + sqflite_sqlcipher, flutter_tts, onnxruntime, google_mlkit_text_recognition, fl_chart, shared_preferences *(A1)* | Modules 1–9 in Urdu (English selectable, A1), fully offline, on-device AI and danger-sign rules, emergency alerts |
 | REST API | Node.js 20 + Express, jsonwebtoken, Joi, pdfkit + ExcelJS | Auth, sync endpoints, conflict detection, alerts, reports, audit log |
 | Database | PostgreSQL 15 | Central store for all modules, audit log, sync sequence numbers |
 | Supervisor and admin portal | React 18, Leaflet.js | Module 10: dashboard, map, alerts, reports, admin panel |
@@ -77,7 +85,7 @@ mediqore/
 | API | REST under /api/v1, JSON, Joi validation on every request body, JWT access token plus refresh token, HTTPS only (M1 FE-2). |
 | Units | Store one unit per vital: BP in mmHg, temperature in °C, blood sugar in mmol/L, weight in kg, MUAC in mm. Convert only at the model input or display layer. |
 | Clinical rules | Danger-sign thresholds, EPI schedule, MUAC cut-offs and IMCI rules live in versioned JSON config files, never hard-coded, so clinical advisors can review them (M4 FE-4). |
-| Urdu text | All labels in Flutter ARB localisation files, rendered in Jameel Noori Nastaleeq inside RTL Directionality; numeric vitals stay left to right. |
+| Urdu text | All labels in Flutter ARB localisation files, with an Urdu and an English entry. Urdu, the default, is rendered in Jameel Noori Nastaleeq inside RTL Directionality. *(A1)* English, when the LHW selects it (M1 FE-4), is rendered left to right in the standard Latin font. Numeric vitals stay left to right in both. |
 | Git workflow | main is always demo-ready; feature branches per FE (for example feature/m3-fe1-visit-form); every merge reviewed by the other member; GitHub Actions runs lint and tests. |
 | Environments | Local PostgreSQL for development; one HTTPS staging server for supervisor reviews and demos. |
 
@@ -121,6 +129,7 @@ By the end of Phase 1 an LHW can log in, register a pregnant woman and record a 
 | Offline login: derive the SQLCipher key from the password with a slow key-derivation function (PBKDF2 or Argon2) and a stored salt; a correct password unlocks the local database | Mobile | FE-2, LI-8 | Zain Abbas |
 | Auto-lock after inactivity and session expiry; deactivated accounts are refused at next sync | Mobile + API | FE-2, FE-3 | Shared |
 | Admin area reassignment, activation and deactivation, password reset with a "sync before reset" warning | Web + API | FE-3, LI-8 | Zain Ali |
+| *(A1)* Language switch on the login screen and in settings: Urdu (default) or English, kept on the phone, the whole app follows it (Urdu right to left, English left to right); voice guidance only in Urdu. The base switch exists from Phase 0. | Mobile | FE-4, M3 FE-3 | Zain Abbas |
 
 ### Module 2: Expecting woman registration
 
@@ -143,7 +152,7 @@ By the end of Phase 1 an LHW can log in, register a pregnant woman and record a 
 | AES-256 encrypted local storage with Drift + sqflite_sqlcipher | Mobile | FE-2 | Zain Abbas |
 | Sync engine: outbox with retry, idempotent push by UUID, server sequence IDs, pull by cursor, background sync when online | Mobile + API | FE-2 | Shared |
 | Conflict detection for duplicate offline submissions; conflicted records flagged for supervisor review and kept in the audit log | API | FE-2, LI-7 | Zain Ali |
-| Voice guidance: on field focus, flutter_tts reads the Urdu label; mute toggle in settings | Mobile | FE-3, LI-6 | Zain Abbas |
+| Voice guidance: on field focus, flutter_tts reads the Urdu label; mute toggle in settings; *(A1)* off while the app is in English | Mobile | FE-3, LI-6, M1 FE-4 | Zain Abbas |
 
 ### Module 10 base: supervisor portal
 
@@ -162,6 +171,7 @@ Zain Abbas trains the model now so Module 4 starts in Phase 2 with a ready ONNX 
 **Exit gate for Phase 1**
 
 - [ ] LHW logs in online once, then works fully offline: login, registration, visit with voice guidance
+- [ ] *(A1)* The LHW can switch the app between Urdu and English; voice guidance works in Urdu and is off in English
 - [ ] Records sync automatically when online; a duplicate submission is flagged, not overwritten
 - [ ] Admin manages areas, accounts and hospitals; every action appears in the audit log
 - [ ] Supervisor sees patients, visits, LHW activity and the household map
@@ -340,14 +350,14 @@ Emergency alert records always go first in the push order (M5 FE-4). Report imag
 
 ### Urdu and voice
 
-Write no visible string in Dart code; every label goes into the ARB files from the start, with an Urdu and an English entry. Test every screen on a small phone, because Nastaliq text is taller than Latin text and overflows easily. For voice guidance, check whether the test phones have an Urdu text-to-speech voice in Phase 0; if not, record short audio clips for the fixed field labels (see Risks).
+Write no visible string in Dart code; every label goes into the ARB files from the start, with an Urdu and an English entry. *(A1)* The app runs in Urdu by default and in English when the LHW chooses it (M1 FE-4), so both entries are shown to users. Test every screen in both languages on a small phone, because Nastaliq text is taller than Latin text and overflows easily. Voice guidance speaks Urdu only, so it is switched off while the app is in English. For voice guidance, check whether the test phones have an Urdu text-to-speech voice in Phase 0; if not, record short audio clips for the fixed field labels (see Risks).
 
 ### Testing
 
 | Level | Tool | What it covers |
 |---|---|---|
 | Unit | flutter_test, Jest, pytest | Form validation, danger-sign rules, EPI dates, MUAC and Z-score maths, IMCI rules, regex extraction, model metrics |
-| Widget | flutter_test | Urdu screens render without overflow, RTL layout, emergency screen states |
+| Widget | flutter_test | Urdu and English *(A1)* screens render without overflow, RTL and LTR layout, emergency screen states |
 | API | Jest + Supertest | Auth, role checks, area scoping, sync push and pull, conflict detection |
 | Integration | Manual scripts on real phones | Offline-to-online flows, three alert options, multi-device sync |
 | Model | pytest + saved metrics | Hold-out recall threshold, ONNX parity |
@@ -400,7 +410,7 @@ A module counts as finished only when every item below is true. Copy this list i
 
 - [ ] Every FE in the scope document for that module works on a real Android phone
 - [ ] Works fully offline where the scope says so, and syncs correctly afterwards
-- [ ] All screens in Urdu with no text overflow; numeric values display left to right
+- [ ] All screens in Urdu and English *(A1)* with no text overflow; numeric values display left to right
 - [ ] API routes validated with Joi, role-checked and area-scoped
 - [ ] Every create, edit and delete writes an audit row
 - [ ] Unit and API tests written and passing in CI

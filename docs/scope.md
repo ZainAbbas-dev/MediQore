@@ -1,6 +1,14 @@
 # MediQore: Final Scope (FYP-I, Fall 2026)
 
-> Markdown copy of the approved scope document `MediQore_FYP-1_Final_Scope_Fall_2026.docx`, made so the scope can be searched and read inside the repo. The text and tables are copied unchanged; the images (logo, Gantt chart, scanned plagiarism report) are left out. If this copy and the Word document ever differ, the Word document wins.
+> Markdown copy of the approved scope document `MediQore_FYP-1_Final_Scope_Fall_2026.docx`, made so the scope can be searched and read inside the repo. The text and tables are copied unchanged; the images (logo, Gantt chart, scanned plagiarism report) are left out. If this copy and the Word document ever differ, the Word document wins, except for the approved amendments listed below, which the Word document has not caught up with yet.
+
+## Amendments after approval
+
+These changes were approved by the supervisor after the scope was signed off. They apply on top of the Word document; update the Word document to match before final submission. Amended text below is marked *(A1)*.
+
+| No. | Date | Change | Approved by | Record |
+|---|---|---|---|---|
+| A1 | 2026-10-04 | The LHW app gets an Urdu/English language switch (new M1 FE-4). Urdu stays the default. Voice guidance works only in Urdu (M3 FE-3, LI-6). shared_preferences joins the Tools table to keep the choice on the phone. | Ma'am Sajida Kalsoom (supervisor), as reported by the team | [Decision 0005](decisions/0005-language-switch.md) |
 
 **COMSATS University Islamabad (CUI)** · Project Proposal for **MediQore** (An AI-Assisted, Offline-Ready Digital Health Platform for Lady Health Workers in Pakistan) · Version 1.0
 
@@ -74,6 +82,7 @@ This module handles the creation and management of LHW accounts, login, and role
 - FE-1: LHW account creation by admin with assigned district, Union Council, and area: each LHW receives a unique ID, login credentials, and an area-specific patient list automatically generated at the time of account creation.
 - FE-2: Secure role-based authentication for LHWs, supervisors, and admin users using JWT-based login, OTP verification, HTTPS-secured communication, server-side API validation, and automatic session expiry to protect patient data and prevent unauthorized access, even if a device is lost.
 - FE-3: LHW profile management including area reassignment, account activation or deactivation, and password reset: all controlled from the admin panel by authorised administrators only.
+- FE-4: Interface language selection *(A1)*: the LHW mobile application can be used in Urdu, the default, or in English. The LHW chooses the language on the login screen or in the app settings; the choice is kept on the device and applies to every screen at once, with Urdu laid out right to left and English left to right. Voice guidance (Module 3 FE-3) is available only in Urdu and is switched off while English is selected.
 
 ### 7.2 Module 2: Expecting Woman Registration
 
@@ -89,7 +98,7 @@ This module is used during every home visit to collect the patient's current hea
 
 - FE-1: Structured Urdu data-entry form for recording blood pressure, weight, temperature, fetal movement, swelling, bleeding, fever, anaemia signs, and urine symptoms using checkboxes, dropdowns, and large touch-friendly controls. The interface uses the bundled Jameel Noori Nastaleeq font with Flutter RTL Directionality support to ensure proper Urdu rendering and layout on Android devices.
 - FE-2: An Offline, encrypted storage and synchronized data upload: Visit records are stored locally using encrypted SQLite (Drift + sqflite_sqlcipher) with AES-256 protection. Each record receives a client-generated UUID for offline operation. When connectivity is restored, records automatically sync to the central server, which assigns server-side sequence IDs and performs conflict detection for duplicate offline submissions. Conflicted records are flagged for supervisor review and preserved in the audit log instead of being overwritten.
-- FE-3: Voice-guided assistance during data entry that reads field labels aloud in Urdu, for example, when the blood pressure field is opened, the application announces the corresponding Urdu instruction: helping LHWs with lower reading ability to fill in forms accurately and independently.
+- FE-3: Voice-guided assistance during data entry that reads field labels aloud in Urdu, for example, when the blood pressure field is opened, the application announces the corresponding Urdu instruction: helping LHWs with lower reading ability to fill in forms accurately and independently. *(A1)* Voice guidance runs only while the application is in Urdu; it is switched off when the LHW selects English (Module 1 FE-4).
 
 ### 7.4 Module 4: AI-Based Maternal Risk Assessment
 
@@ -158,7 +167,7 @@ This web-based module serves supervisors and system administrators. It combines 
 - LI-3: Visual anaemia detection via conjunctiva photography and referral no-show prediction are not included in the current version, as both require training datasets that do not yet exist. Both are designated as future enhancements following production deployment.
 - LI-4: Layer 1 emergency alerts (in-app push and dashboard) require an internet connection. Layer 2 (SMS) and Layer 3 (voice call) require cellular network coverage and available SIM balance on the LHW's device. The prototype sends SMS and places calls directly from the LHW's device, so no paid gateway subscription is needed. Server-side SMS gateway delivery (for example automated bulk or backend-initiated SMS) is planned for production deployment and is not part of the prototype.
 - LI-5: All AI outputs are decision-support recommendations only. The system does not replace clinical diagnosis by a qualified health professional, and this limitation is clearly stated in the application interface and system documentation.
-- LI-6: The voice guidance feature reads field labels in Urdu only. LHWs operating in areas where Urdu is not the primary spoken language will benefit from the visual Urdu interface but may receive less benefit from the audio guidance.
+- LI-6: The voice guidance feature reads field labels in Urdu only. LHWs operating in areas where Urdu is not the primary spoken language will benefit from the visual Urdu interface but may receive less benefit from the audio guidance. *(A1)* When the LHW switches the application to English (Module 1 FE-4), voice guidance is switched off, because the spoken labels exist in Urdu only.
 - LI-7: Offline sync conflict resolution uses server-assigned sequence numbers rather than device timestamps, as low-cost Android handsets may have unsynchronised clocks. Conflicts currently require manual supervisor review; automated per-field merge resolution is planned for production.
 - LI-8: The local SQLite database on LHW devices is encrypted using AES-256 via sqflite_sqlcipher. The encryption key is derived from the LHW’s login credentials. If an LHW forgets their password and the admin resets it, the locally stored offline data on that device will become inaccessible until the device re-syncs after the new login. LHWs are instructed to sync before requesting resets. A key recovery mechanism using an admin-held device-specific recovery key is planned for the production deployment phase.
 - LI-9: OCR record scanning performs best on printed, structured hospital reports. Handwritten notes faded thermal receipts, and low-light photographs may reduce extraction accuracy and require manual entry. LHW confirmation is mandatory for every scanned record regardless of confidence level.
@@ -191,7 +200,7 @@ By combining AI, offline architecture, Urdu localisation, voice guidance, and co
 - Software Engineering: Requirements gathering, scope documentation, SDLC phases, use case modelling, and system design; all applied directly to this project across both semesters.
 - Artificial Intelligence / Machine Learning: Logistic Regression, Random Forest, Gradient Boosting used for maternal risk classification, and rule-based WHO algorithms applied to malnutrition and child health modules.
 - Database Systems: Structured patient data storage, relational data modelling for patient records, visit logs, referrals, immunisation history, and audit logs using PostgreSQL.
-- Mobile Application Development: Android application developed using Flutter with offline storage, SQLite (Drift), form-based data entry, and Urdu localisation including TTS voice guidance. Interface design and large-button layout used by LHW through the mobile app.
+- Mobile Application Development: Android application developed using Flutter with offline storage, SQLite (Drift), form-based data entry, and Urdu localisation including TTS voice guidance, with an English interface the LHW can switch to *(A1)*. Interface design and large-button layout used by LHW through the mobile app.
 - Web Technologies: React.js used for the supervisor web dashboard with real-time data visualisation, charts, heatmaps, and filterable analytics tables. REST API architecture connecting the mobile application to the backend server, with offline sync queuing managing data integrity across intermittent connections. Colour-coded risk results designed specifically for low-literacy users in a field environment with limited cognitive load.
 - Computer Vision: On-device medical document recognition using Google ML Kit's LSTM-based OCR model. Concepts applied include image preprocessing (grayscale conversion, contrast enhancement), text detection and recognition pipelines, confidence scoring, and post-OCR information extraction using pattern matching. The feature enables LHWs to digitise patient hospital reports through a single photograph, with the extracted clinical values (blood pressure, haemoglobin, glucose, weight) automatically mapped to structured health record fields for trend analysis and AI risk scoring.
 
@@ -201,7 +210,7 @@ Table 2: Tools and Technologies for the Proposed Project
 
 | Category | Tool / Technology | Version | Purpose |
 |---|---|---|---|
-| Mobile App | Flutter | 3.x | LHW Android application with Urdu UI, voice guidance, and offline support |
+| Mobile App | Flutter | 3.x | LHW Android application with Urdu UI (English selectable, A1), voice guidance, and offline support |
 | Web Frontend | React.js | 18.x | Supervisor web dashboard with charts, heatmaps, and analytics |
 | Backend API | Node.js + Express.js | 20.x | REST API server for mobile and web communication |
 | Authentication | jsonwebtoken (Node.js) | Latest | JWT access and refresh token generation and verification for all API endpoints |
@@ -214,7 +223,8 @@ Table 2: Tools and Technologies for the Proposed Project
 | Local Storage | SQLite (via Drift) | Latest | Offline data storage inside the Flutter mobile application |
 | Local Storage Encryption | sqflite_sqlcipher (Flutter) | Latest | AES-256 encryption of the local SQLite database on the LHW Android device, protecting patient data at rest in case of device loss or theft |
 | TTS (Voice) | flutter_tts | Latest | Voice-guided field label reading in Urdu for LHW data entry assistance |
-| Localisation | flutter_localizations + intl (Flutter) | Latest | RTL locale configuration, Urdu language support, and bidirectional text rendering throughout the application |
+| Localisation | flutter_localizations + intl (Flutter) | Latest | RTL locale configuration, Urdu language support, and bidirectional text rendering throughout the application; English (left-to-right) interface selectable by the LHW (A1) |
+| Device Settings *(A1)* | shared_preferences (Flutter) | Latest | Keeps the chosen interface language on the phone, outside the encrypted database so the login screen can read it before sign-in; never holds patient data |
 | Urdu Font | Jameel Noori Nastaleeq (bundled asset) | N/A | Urdu Nastaliq-script font bundled in Flutter assets for correct calligraphic rendering of all Urdu text labels, form fields, and risk explanations |
 | Bidirectional Text | Flutter Directionality widget | N/A | Wraps all Urdu-language UI sections in RTL context, ensuring correct layout for Urdu labels alongside left-to-right numeric vitals values |
 | Report Generation | pdfkit + ExcelJS | Latest | Automated PDF and Excel health report generation |

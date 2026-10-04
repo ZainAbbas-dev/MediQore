@@ -14,13 +14,15 @@ Everything here comes from the scope and roadmap. Where they leave a choice open
 
 From `CLAUDE.md` and the roadmap:
 
-- **Mobile app (LHW): Urdu only.**
-  - All text in Jameel Noori Nastaleeq, laid out right to left.
-  - Numbers and units read left to right, for example `120 mmHg`.
-  - Every label also gets an English entry in the ARB files.
+- **Mobile app (LHW): Urdu by default, English selectable** (M1 FE-4, scope amendment A1).
+  - Urdu text in Jameel Noori Nastaleeq, laid out right to left.
+  - English text in the standard Latin font, laid out left to right.
+  - Numbers and units read left to right in both, for example `120 mmHg`.
+  - Design each screen in Urdu first, then check the English version for length and layout.
+  - The language switch shows **اردو** and **English**, each in its own script.
 - **Large controls.** Buttons are at least 64 dp tall and full width. Field labels sit above the field, not inside it. Use checkboxes and dropdowns instead of typing wherever possible (M3 FE-1).
 - **Offline is normal.** The offline status bar is always visible on field screens and shows how many records are waiting to sync. Saving never needs the internet.
-- **Small phones.** Design at 360 × 780 and check every screen at 320 × 640, because Nastaliq text is tall and overflows easily.
+- **Small phones.** Design at 360 × 780 and check every screen at 320 × 640 in both languages, because Nastaliq text is tall and overflows easily.
 - **Risk colours** (Phase 2 screens): Green / Yellow / Red, always with an icon and a text label, never colour alone.
 - **Portal (supervisor/admin): English**, desktop first (1440 × 900), with a sidebar layout as built in P0-5.
 - **No real patient data** in any mockup (LI-10). Use made-up names.
@@ -39,7 +41,7 @@ From `CLAUDE.md` and the roadmap:
 
 | # | Screen | Platform | Scope | Scope mockup | Wireframe |
 |---|---|---|---|---|---|
-| 1 | Login | Mobile | M1 FE-2 | – | [`01-login.svg`](wireframes/01-login.svg) |
+| 1 | Login | Mobile | M1 FE-2, FE-4 | – | [`01-login.svg`](wireframes/01-login.svg) |
 | 2 | LHW home | Mobile | M2 FE-3, M3 FE-2, FE-3 | – | [`02-lhw-home.svg`](wireframes/02-lhw-home.svg) |
 | 3 | Registration | Mobile | M2 FE-1, FE-2, FE-3 | Mockup 1 | [`03-registration.svg`](wireframes/03-registration.svg) |
 | 4 | Visit form | Mobile | M3 FE-1, FE-3 | Mockup 2 | [`04-visit-form.svg`](wireframes/04-visit-form.svg) |
@@ -51,6 +53,7 @@ From `CLAUDE.md` and the roadmap:
 The LHW signs in with the ID and password the admin issued (M1 FE-1, FE-2).
 
 - **Fields:** username (LHW ID), password. **Button:** sign in.
+- **Language switch** (M1 FE-4) at the top: اردو / English. It works before sign-in and is remembered on the phone.
 - **First login** needs internet:
   - the server checks the password;
   - OTP verification follows on first login and on a new device (M1 FE-2);
@@ -74,7 +77,9 @@ The starting point after login.
   - Register a pregnant woman (screen 3).
   - Patient list / search, by area and sorted by village (M2 FE-3). Opening a patient leads to a new visit (screen 4).
   - Sync now. Sync also runs in the background when online (M3 FE-2).
-- **Settings:** voice guidance mute toggle (M3 FE-3).
+- **Settings:**
+  - language switch (M1 FE-4);
+  - voice guidance mute toggle (M3 FE-3). It is shown only in Urdu; in English, show a note instead: voice guidance works only in Urdu.
 - **Not in Phase 1:** risk alerts, ANC reminders, polio and child modules. Leave room for them, but do not design them now.
 
 ### 3. Registration (mobile, scope Mockup 1)
@@ -120,7 +125,7 @@ M3 FE-1, FE-3.
   - fever
   - anaemia signs
   - urine symptoms
-- **Voice guidance** (M3 FE-3): when a field gets focus, its Urdu label is read aloud. Show a speaker indicator on the focused field, and a mute toggle.
+- **Voice guidance** (M3 FE-3): when a field gets focus, its Urdu label is read aloud. Show a speaker indicator on the focused field, and a mute toggle. In English there is no voice guidance (M1 FE-4), so no speaker indicator.
 - **Range check:** a value outside the plausible range asks for confirmation instead of blocking. Example from the roadmap: systolic BP outside 60–250. Design this dialog.
 - **Offline status bar** at the top, "saved on the phone" confirmation after saving.
 - **Not in Phase 1:** the risk result screen (M4, Phase 2) follows this form later. Keep the Save button's position stable so that flow can be added.

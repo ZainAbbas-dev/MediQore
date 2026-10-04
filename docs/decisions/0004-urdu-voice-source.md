@@ -31,7 +31,7 @@ The **نمونے کا لیبل سنائیں** button (speak a sample label) read
    cd mobile
    flutter run
    ```
-2. Turn on **airplane mode**, the LHW's normal condition, and open the voice check.
+2. Keep the app in **Urdu** (the voice check speaks only in Urdu, decision 0005). Turn on **airplane mode**, the LHW's normal condition, and open the voice check.
 3. Write the results in the table below, then tap the sample button and note whether you heard clear, understandable Urdu.
 4. If Urdu is not installed, install it while online:
    1. Open Android **Settings → System → Languages → Text-to-speech output**. The path differs between brands.
