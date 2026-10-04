@@ -58,6 +58,11 @@ From the roadmap:
     - Reassignment keeps the old area in `lhw_profiles.previous_area_id`. Push files a new record under the area the phone made it in (`areaId`), if that is the LHW's current or previous area, so records made before the move and synced after it stay in the old area (M1 FE-3).
 - Sync accepts only a phone approved by code, and only the phone named in the token (`DEVICE_NOT_ALLOWED`).
 - `src/sync/tables.js`: the tables devices may push and pull, with their fields. Add a table here when its module is built. `services/sync.service.js` implements `/sync/push` and `/sync/pull`.
+  - Synced so far: `households` (M2 FE-3), `women`, `pregnancies` (M2 FE-1) and `obstetric_history` (M2 FE-2).
+  - A table with a `parent` (a woman's household, a pregnancy's woman) needs that parent on the server and in the same area, or the record is refused with `MISSING_PARENT` or `OUT_OF_AREA`.
+  - Each pushed record runs in a savepoint: a record that breaks a database rule is refused with a reason (`DUPLICATE_PATIENT_ID`, `ACTIVE_PREGNANCY_EXISTS`, `DUPLICATE_RECORD`) and the rest of the batch still applies.
+  - `src/db/pool.js` reads DATE columns as `YYYY-MM-DD` text, never as a JavaScript Date.
+- Portal reads: `GET /households` (map) and `GET /women` (registered women with household, latest pregnancy and obstetric history, search), both area-scoped for supervisors.
 - Error shape: `{ "error": { "code", "message", "details"? } }`.
 - `docs/openapi.yaml` is the API contract. Update it in the same pull request as any route change.
 - `tests/`: Jest + Supertest.

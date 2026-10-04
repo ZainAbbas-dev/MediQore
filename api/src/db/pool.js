@@ -1,5 +1,11 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 const config = require('../config');
+
+// DATE columns (for example a pregnancy's registered_on) come back as the text
+// the database holds, YYYY-MM-DD, instead of a JavaScript Date at local
+// midnight, which would shift the day in some time zones.
+const DATE_OID = 1082;
+types.setTypeParser(DATE_OID, (value) => value);
 
 // One connection pool for the whole API. Every query is parameterised: pass
 // values as the params array, never by building SQL strings from input.

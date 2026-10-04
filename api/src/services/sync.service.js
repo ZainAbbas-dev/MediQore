@@ -40,6 +40,29 @@ function areaForNewRecord(ctx, record) {
   return ctx.allowedAreaIds.includes(areaId) ? areaId : null;
 }
 
+// A record that belongs to another (its household, its woman) is accepted only
+// when that parent is on the server, not deleted, and in the record's area.
+// Returns the reason to refuse the record, or null. A deletion needs no parent.
+async function parentProblem(client, def, record, areaId) {
+  if (!def.parent || record.deleted) return null;
+  // def.parent.table comes from TABLES, never from input.
+  const { rows: [parent] } = await client.query(
+    `SELECT area_id FROM ${def.parent.table} WHERE id = $1 AND deleted_at IS NULL`,
+    [record.data[def.parent.field]],
+  );
+  if (!parent) return 'MISSING_PARENT';
+  return parent.area_id === areaId ? null : 'OUT_OF_AREA';
+}
+
+// Database constraints that a pushed record can break, and the reason the
+// device is given. The record is refused; the rest of the batch still applies.
+const CONSTRAINT_REASONS = {
+  women_patient_code_key: 'DUPLICATE_PATIENT_ID',
+  pregnancies_one_active_per_woman: 'ACTIVE_PREGNANCY_EXISTS',
+  obstetric_history_one_per_woman: 'DUPLICATE_RECORD',
+};
+const SQLSTATE_REASONS = { 23505: 'DUPLICATE_RECORD', 23503: 'MISSING_PARENT', 23514: 'INVALID_VALUE' };
+
 // Applies one pushed record and returns its result for the device.
 async function applyRecord(client, ctx, record) {
   const def = TABLES[record.table];
@@ -57,6 +80,8 @@ async function applyRecord(client, ctx, record) {
   if (!existing) {
     const areaId = areaForNewRecord(ctx, record);
     if (!areaId) return { ...result, status: 'rejected', reason: 'OUT_OF_AREA' };
+    const problem = await parentProblem(client, def, record, areaId);
+    if (problem) return { ...result, status: 'rejected', reason: problem };
     const placeholders = columns.map((_, i) => `$${i + 6}`).join(', ');
     const { rows: [inserted] } = await client.query(
       `INSERT INTO ${record.table} (id, area_id, created_by, created_on_device, deleted_at, ${columns.join(', ')})
@@ -82,6 +107,9 @@ async function applyRecord(client, ctx, record) {
     return { ...result, status: 'unchanged', serverSeq: Number(existing.server_seq) };
   }
 
+  const problem = await parentProblem(client, def, record, existing.area_id);
+  if (problem) return { ...result, status: 'rejected', reason: problem };
+
   const assignments = columns.map((column, i) => `${column} = $${i + 3}`).join(', ');
   const { rows: [updated] } = await client.query(
     `UPDATE ${record.table}
@@ -99,6 +127,23 @@ async function applyRecord(client, ctx, record) {
   return { ...result, status: 'updated', serverSeq };
 }
 
+// Runs applyRecord inside a savepoint, so a record that breaks a database
+// constraint (for example a patient ID already used) is refused on its own
+// instead of failing the whole batch.
+async function applyRecordOrRefuse(client, ctx, record) {
+  await client.query('SAVEPOINT pushed_record');
+  try {
+    const result = await applyRecord(client, ctx, record);
+    await client.query('RELEASE SAVEPOINT pushed_record');
+    return result;
+  } catch (error) {
+    const reason = CONSTRAINT_REASONS[error.constraint] || SQLSTATE_REASONS[error.code];
+    if (!reason) throw error;
+    await client.query('ROLLBACK TO SAVEPOINT pushed_record');
+    return { table: record.table, id: record.id, status: 'rejected', reason };
+  }
+}
+
 // POST /sync/push: one transaction for the whole batch.
 async function push(user, deviceId, records) {
   return db.withTransaction(async (client) => {
@@ -108,7 +153,7 @@ async function push(user, deviceId, records) {
     const ctx = { userId: user.id, deviceId, areaId, allowedAreaIds };
     const results = [];
     for (const record of records) {
-      results.push(await applyRecord(client, ctx, record));
+      results.push(await applyRecordOrRefuse(client, ctx, record));
     }
     return { results };
   });

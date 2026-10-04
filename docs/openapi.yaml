@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: MediQore REST API
-  version: 0.3.0
+  version: 0.4.0
   description: |
     REST API for the MediQore LHW app and the supervisor/admin portal (roadmap P0-3, P0-6; Phase 1 Module 1: M1 FE-1–3; M3 FE-2).
 
@@ -34,6 +34,8 @@ tags:
     description: Offline sync between the LHW app and the server (M3 FE-2)
   - name: Households
     description: Households for the supervisor portal (M2 FE-3, M10 FE-1)
+  - name: Women
+    description: Registered women for the supervisor portal (M2 FE-1, FE-2, M10 FE-1)
   - name: Admin
     description: LHW accounts, managed by admins (M1 FE-1, FE-3)
   - name: Devices
@@ -226,6 +228,12 @@ paths:
         old area and synced late keep that area. Without `areaId`, the current area is used. Resending an
         identical record is harmless (status `unchanged`). A record in any other area is not changed
         (status `rejected`, reason `OUT_OF_AREA`).
+
+        A woman needs her household, and a pregnancy or obstetric history needs its woman, already on
+        the server and in the same area (`MISSING_PARENT`, `OUT_OF_AREA`), so devices push parents first.
+        A record that breaks a database rule is refused on its own and the rest of the batch still
+        applies: a patient ID already used (`DUPLICATE_PATIENT_ID`), a second active pregnancy for the
+        same woman (`ACTIVE_PREGNANCY_EXISTS`), a second obstetric history (`DUPLICATE_RECORD`).
         Every create, edit and delete writes an audit row. The device is registered on first use.
       operationId: syncPush
       requestBody:
@@ -265,7 +273,9 @@ paths:
       description: |
         LHW only. Returns records with server_seq greater than `since`, oldest first, read from one
         consistent snapshot. Store `nextSince` and send it as `since` next time; repeat while
-        `hasMore` is true. Device clocks are never used for ordering (LI-7).
+        `hasMore` is true. Device clocks are never used for ordering (LI-7). An edit gives a record a
+        new number, so a child (a woman) can arrive before its parent (her household): apply pulled
+        rows without requiring the parent.
       operationId: syncPull
       parameters:
         - name: since
@@ -332,6 +342,52 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Household'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+
+  /women:
+    get:
+      tags: [Women]
+      summary: Registered women visible to a supervisor or admin
+      description: |
+        A supervisor sees only their assigned areas; an admin sees all. Newest first; deleted records
+        are left out. Each woman comes with her household, her latest pregnancy (the active one if
+        any) and her obstetric history.
+      operationId: listWomen
+      parameters:
+        - name: search
+          in: query
+          description: Part of a name, patient ID, husband's name or village, ignoring case.
+          schema:
+            type: string
+            maxLength: 100
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 200
+      responses:
+        '200':
+          description: Registered women.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [women, total]
+                properties:
+                  women:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RegisteredWoman'
+                  total:
+                    type: integer
+                    description: Number of matching women, which can be more than the list holds.
+        '400':
+          $ref: '#/components/responses/Error'
         '401':
           $ref: '#/components/responses/Error'
         '403':
@@ -854,6 +910,95 @@ components:
           minimum: -180
           maximum: 180
 
+    WomanData:
+      type: object
+      description: A registered woman (M2 FE-1).
+      required: [householdId, patientCode, name]
+      properties:
+        householdId:
+          type: string
+          format: uuid
+        patientCode:
+          type: string
+          maxLength: 40
+          pattern: '^[A-Za-z0-9-]+$'
+          description: The LHW code plus a counter kept on the phone, for example LHW-00001-0007. Unique.
+        name:
+          type: string
+          maxLength: 200
+        age:
+          type: [integer, 'null']
+          minimum: 10
+          maximum: 60
+        husbandName:
+          type: [string, 'null']
+          maxLength: 200
+        contactNumber:
+          type: [string, 'null']
+          maxLength: 20
+          pattern: '^[0-9+\- ]+$'
+
+    PregnancyData:
+      type: object
+      description: The pregnancy file (M2 FE-1). One active pregnancy per woman at a time.
+      required: [womanId, registeredOn, pregnancyMonthAtRegistration]
+      properties:
+        womanId:
+          type: string
+          format: uuid
+        registeredOn:
+          type: string
+          format: date
+        pregnancyMonthAtRegistration:
+          type: integer
+          minimum: 1
+          maximum: 10
+        status:
+          type: string
+          enum: [active, closed]
+          default: active
+        closedOn:
+          type: [string, 'null']
+          format: date
+          description: Only for a closed pregnancy.
+
+    ObstetricHistoryData:
+      type: object
+      description: Obstetric history at registration, the baseline risk profile (M2 FE-2). One per woman.
+      required: [womanId]
+      properties:
+        womanId:
+          type: string
+          format: uuid
+        previousPregnancies:
+          type: integer
+          minimum: 0
+          maximum: 30
+          default: 0
+        previousCSections:
+          type: integer
+          minimum: 0
+          maximum: 30
+          default: 0
+          description: At most previousPregnancies.
+        stillbirths:
+          type: integer
+          minimum: 0
+          maximum: 30
+          default: 0
+          description: At most previousPregnancies.
+        knownConditions:
+          type: [string, 'null']
+          maxLength: 1000
+
+    RecordData:
+      description: The fields of the record; which schema applies depends on `table`.
+      anyOf:
+        - $ref: '#/components/schemas/HouseholdData'
+        - $ref: '#/components/schemas/WomanData'
+        - $ref: '#/components/schemas/PregnancyData'
+        - $ref: '#/components/schemas/ObstetricHistoryData'
+
     SyncPushRequest:
       type: object
       required: [deviceId, records]
@@ -872,7 +1017,7 @@ components:
             properties:
               table:
                 type: string
-                enum: [households]
+                enum: [households, women, pregnancies, obstetric_history]
                 description: Tables are added as their modules are built.
               id:
                 type: string
@@ -890,7 +1035,7 @@ components:
                 type: boolean
                 default: false
               data:
-                $ref: '#/components/schemas/HouseholdData'
+                $ref: '#/components/schemas/RecordData'
 
     SyncPushResult:
       type: object
@@ -909,7 +1054,7 @@ components:
           description: Absent when rejected.
         reason:
           type: string
-          enum: [OUT_OF_AREA]
+          enum: [OUT_OF_AREA, MISSING_PARENT, DUPLICATE_PATIENT_ID, ACTIVE_PREGNANCY_EXISTS, DUPLICATE_RECORD, INVALID_VALUE]
 
     SyncRecord:
       type: object
@@ -934,7 +1079,80 @@ components:
         deleted:
           type: boolean
         data:
-          $ref: '#/components/schemas/HouseholdData'
+          $ref: '#/components/schemas/RecordData'
+
+    RegisteredWoman:
+      type: object
+      required: [id, patientCode, name, areaId, areaName, household, registeredBy, serverSeq, syncedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        patientCode:
+          type: string
+        name:
+          type: string
+        age:
+          type: [integer, 'null']
+        husbandName:
+          type: [string, 'null']
+        contactNumber:
+          type: [string, 'null']
+        areaId:
+          type: string
+          format: uuid
+        areaName:
+          type: string
+        household:
+          type: object
+          required: [id]
+          properties:
+            id:
+              type: string
+              format: uuid
+            village:
+              type: [string, 'null']
+            address:
+              type: [string, 'null']
+            latitude:
+              type: [number, 'null']
+            longitude:
+              type: [number, 'null']
+        registeredBy:
+          type: object
+          description: The LHW who registered her.
+          properties:
+            lhwCode:
+              type: [string, 'null']
+            fullName:
+              type: string
+        pregnancy:
+          type: [object, 'null']
+          properties:
+            registeredOn:
+              type: string
+              format: date
+            monthAtRegistration:
+              type: integer
+            status:
+              type: string
+              enum: [active, closed]
+        obstetricHistory:
+          type: [object, 'null']
+          properties:
+            previousPregnancies:
+              type: integer
+            previousCSections:
+              type: integer
+            stillbirths:
+              type: integer
+            knownConditions:
+              type: [string, 'null']
+        serverSeq:
+          type: integer
+        syncedAt:
+          type: string
+          format: date-time
 
     Household:
       type: object
