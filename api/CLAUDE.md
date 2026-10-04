@@ -58,11 +58,14 @@ From the roadmap:
     - Reassignment keeps the old area in `lhw_profiles.previous_area_id`. Push files a new record under the area the phone made it in (`areaId`), if that is the LHW's current or previous area, so records made before the move and synced after it stay in the old area (M1 FE-3).
 - Sync accepts only a phone approved by code, and only the phone named in the token (`DEVICE_NOT_ALLOWED`).
 - `src/sync/tables.js`: the tables devices may push and pull, with their fields. Add a table here when its module is built. `services/sync.service.js` implements `/sync/push` and `/sync/pull`.
-  - Synced so far: `households` (M2 FE-3), `women`, `pregnancies` (M2 FE-1) and `obstetric_history` (M2 FE-2).
+  - Synced so far: `households` (M2 FE-3), `women`, `pregnancies` (M2 FE-1), `obstetric_history` (M2 FE-2) and `visits` (M3 FE-1).
+  - Vital bounds in `tables.js` refuse only impossible values; the app confirms implausible ones from its range config.
+  - A table with `sameDay` (visits): a new record for the same parent on the same day, Pakistan time, as a stored one is not stored. It is held in `sync_conflicts` (status `conflict` with `conflictId` to the device, audit action `sync_conflict`); a resend returns the same conflict (M3 FE-2, LI-7).
   - A table with a `parent` (a woman's household, a pregnancy's woman) needs that parent on the server and in the same area, or the record is refused with `MISSING_PARENT` or `OUT_OF_AREA`.
   - Each pushed record runs in a savepoint: a record that breaks a database rule is refused with a reason (`DUPLICATE_PATIENT_ID`, `ACTIVE_PREGNANCY_EXISTS`, `DUPLICATE_RECORD`) and the rest of the batch still applies.
   - `src/db/pool.js` reads DATE columns as `YYYY-MM-DD` text, never as a JavaScript Date.
-- Portal reads: `GET /households` (map) and `GET /women` (registered women with household, latest pregnancy and obstetric history, search), both area-scoped for supervisors.
+- Portal reads: `GET /households` (map), `GET /women` (registered women with household, latest pregnancy, obstetric history and visit count, search) and `GET /dashboard/summary` (registered women, visits this week, pending conflicts), all area-scoped for supervisors.
+- `conflicts.service.js` (M3 FE-2, M10 base): `GET /conflicts` and `POST /conflicts/:id/resolve` for supervisors (their areas) and admins. `keep_both` stores the held record, `keep_existing` stores it as deleted, `keep_incoming` stores it and deletes the earlier one; the phone learns the outcome at its next pull. `insertRecord` in `sync.service.js` is shared with push.
 - Error shape: `{ "error": { "code", "message", "details"? } }`.
 - `docs/openapi.yaml` is the API contract. Update it in the same pull request as any route change.
 - `tests/`: Jest + Supertest.

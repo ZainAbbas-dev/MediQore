@@ -63,6 +63,67 @@ const CONSTRAINT_REASONS = {
 };
 const SQLSTATE_REASONS = { 23505: 'DUPLICATE_RECORD', 23503: 'MISSING_PARENT', 23514: 'INVALID_VALUE' };
 
+// Writes a new record with its audit row and returns its server number. Also
+// used when a supervisor accepts a record from the conflict queue.
+async function insertRecord(client, record, { areaId, userId, deviceId, details = {} }) {
+  const def = TABLES[record.table];
+  const names = Object.keys(def.fields);
+  const columns = names.map((name) => def.fields[name].column);
+  const values = names.map((name) => record.data[name]);
+  const placeholders = columns.map((_, i) => `$${i + 6}`).join(', ');
+  // record.table was validated against TABLES, so it is safe to place in SQL.
+  const { rows: [inserted] } = await client.query(
+    `INSERT INTO ${record.table} (id, area_id, created_by, created_on_device, deleted_at, ${columns.join(', ')})
+     VALUES ($1, $2, $3, $4, CASE WHEN $5::boolean THEN now() END, ${placeholders})
+     RETURNING server_seq`,
+    [record.id, areaId, userId, record.createdOnDevice, Boolean(record.deleted), ...values],
+  );
+  const serverSeq = Number(inserted.server_seq);
+  await writeAudit(client, {
+    userId, deviceId, action: 'create', entityType: record.table, entityId: record.id, details: { serverSeq, ...details },
+  });
+  return serverSeq;
+}
+
+// M3 FE-2: a new record for the same parent on the same day as one already on
+// the server (a visit to the same pregnancy, Pakistan time) is a possible
+// duplicate from another phone or a second submission. It is not stored but
+// held in sync_conflicts for the supervisor, and the attempt is audited.
+// Resending a held record returns the same conflict. Returns the conflict, or null.
+async function sameDayConflict(client, ctx, def, record, areaId) {
+  if (!def.sameDay || record.deleted) return null;
+  const { rows: [held] } = await client.query(
+    `SELECT id FROM sync_conflicts WHERE table_name = $1 AND incoming_record_id = $2 AND status = 'pending'`,
+    [record.table, record.id],
+  );
+  if (held) return held.id;
+
+  const { parentColumn, timeColumn, parentField, timeField } = def.sameDay;
+  // Table and column names come from TABLES, never from input.
+  const { rows: [other] } = await client.query(
+    `SELECT id FROM ${record.table}
+     WHERE ${parentColumn} = $1 AND id <> $2 AND deleted_at IS NULL
+       AND (${timeColumn} AT TIME ZONE 'Asia/Karachi')::date = ($3::timestamptz AT TIME ZONE 'Asia/Karachi')::date
+     ORDER BY server_seq
+     LIMIT 1`,
+    [record.data[parentField], record.id, record.data[timeField]],
+  );
+  if (!other) return null;
+
+  const { rows: [conflict] } = await client.query(
+    `INSERT INTO sync_conflicts
+       (area_id, table_name, incoming_record_id, existing_record_id, incoming_payload, reason, submitted_by, device_id)
+     VALUES ($1, $2, $3, $4, $5, 'same_parent_same_day', $6, $7)
+     RETURNING id`,
+    [areaId, record.table, record.id, other.id, JSON.stringify(record), ctx.userId, ctx.deviceId],
+  );
+  await writeAudit(client, {
+    userId: ctx.userId, deviceId: ctx.deviceId, action: 'sync_conflict', entityType: record.table, entityId: record.id,
+    details: { conflictId: conflict.id, existingRecordId: other.id, reason: 'same_parent_same_day' },
+  });
+  return conflict.id;
+}
+
 // Applies one pushed record and returns its result for the device.
 async function applyRecord(client, ctx, record) {
   const def = TABLES[record.table];
@@ -82,18 +143,11 @@ async function applyRecord(client, ctx, record) {
     if (!areaId) return { ...result, status: 'rejected', reason: 'OUT_OF_AREA' };
     const problem = await parentProblem(client, def, record, areaId);
     if (problem) return { ...result, status: 'rejected', reason: problem };
-    const placeholders = columns.map((_, i) => `$${i + 6}`).join(', ');
-    const { rows: [inserted] } = await client.query(
-      `INSERT INTO ${record.table} (id, area_id, created_by, created_on_device, deleted_at, ${columns.join(', ')})
-       VALUES ($1, $2, $3, $4, CASE WHEN $5::boolean THEN now() END, ${placeholders})
-       RETURNING server_seq`,
-      [record.id, areaId, ctx.userId, record.createdOnDevice, record.deleted, ...values],
-    );
-    const serverSeq = Number(inserted.server_seq);
-    await writeAudit(client, {
-      userId: ctx.userId, deviceId: ctx.deviceId, action: 'create',
-      entityType: record.table, entityId: record.id,
-      details: { serverSeq, ...(areaId !== ctx.areaId && { areaId, previousArea: true }) },
+    const conflictId = await sameDayConflict(client, ctx, def, record, areaId);
+    if (conflictId) return { ...result, status: 'conflict', conflictId };
+    const serverSeq = await insertRecord(client, record, {
+      areaId, userId: ctx.userId, deviceId: ctx.deviceId,
+      details: areaId !== ctx.areaId ? { areaId, previousArea: true } : {},
     });
     return { ...result, status: 'created', serverSeq };
   }
@@ -202,4 +256,4 @@ async function pull(user, since, limit) {
   }, { readOnly: true });
 }
 
-module.exports = { push, pull };
+module.exports = { push, pull, insertRecord };

@@ -95,6 +95,22 @@ describe('synthetic data (in memory)', () => {
     }
     assert.ok(data.visits.some((v) => v.blood_sugar_mmol_l === null), 'blood sugar is optional');
   });
+
+  test('a few visits wait in the conflict queue, each on the same Pakistan day as a stored visit (M3 FE-2)', () => {
+    const big = tablesOf(buildSynthetic({ ...SMALL, seed: 3, householdsPerLhw: 60 }, 'hash'));
+    assert.ok(big.sync_conflicts.length > 0);
+    const visits = new Map(big.visits.map((v) => [v.id, v]));
+    const pakistanDay = (date) => new Date(new Date(date).getTime() + 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    for (const c of big.sync_conflicts) {
+      const existing = visits.get(c.existing_record_id);
+      const incoming = JSON.parse(c.incoming_payload);
+      assert.equal(c.status, 'pending');
+      assert.equal(incoming.data.pregnancyId, existing.pregnancy_id);
+      assert.equal(c.area_id, existing.area_id);
+      assert.equal(pakistanDay(incoming.data.visitedAt), pakistanDay(existing.visited_at));
+      assert.ok(!visits.has(incoming.id), 'the held visit is not stored');
+    }
+  });
 });
 
 describe('seed:synthetic options', () => {

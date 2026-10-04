@@ -5,6 +5,9 @@ const Joi = require('joi');
 // can be synced, and their names are the only identifiers ever placed in SQL.
 // Add a table here when its module is built, together with its tests.
 //
+// `sameDay` marks a table whose new records go to the supervisor conflict
+// queue when another record for the same parent has the same day (M3 FE-2).
+//
 // `parent` names the record a row belongs to (a woman's household, a
 // pregnancy's woman). The parent must already be on the server and in the same
 // area, so the device pushes parents first. Pull order can still bring a child
@@ -18,6 +21,13 @@ const text = (max) => Joi.string().trim().max(max).empty('').allow(null).default
 const coordinate = (limit) => Joi.number().min(-limit).max(limit).precision(6).allow(null).default(null);
 const reference = () => Joi.string().guid({ version: 'uuidv4' }).required();
 const count = () => Joi.number().integer().min(0).max(30).default(0);
+const flag = () => Joi.boolean().default(false);
+
+// A vital sign in its stored unit. The bounds only refuse impossible values;
+// implausible ones (for example systolic BP outside 60-250) are confirmed in the
+// app, whose ranges live in a versioned config file.
+const vital = (min, max, decimals = 0) =>
+  (decimals ? Joi.number().precision(decimals) : Joi.number().integer()).min(min).max(max).allow(null).default(null);
 
 // A calendar date as YYYY-MM-DD (DATE columns are read back as the same text, see db/pool.js).
 const calendarDate = () =>
@@ -98,6 +108,34 @@ const TABLES = {
       return null;
     },
   },
+
+  // M3 FE-1: one home visit with its vitals and symptoms. Units are in the
+  // names and never converted in storage. Two visits for the same pregnancy on
+  // the same day (Pakistan time) are a possible duplicate: the second waits in
+  // the supervisor's conflict queue (M3 FE-2, LI-7).
+  visits: {
+    parent: { field: 'pregnancyId', table: 'pregnancies' },
+    sameDay: { parentColumn: 'pregnancy_id', timeColumn: 'visited_at', parentField: 'pregnancyId', timeField: 'visitedAt' },
+    fields: {
+      pregnancyId: { column: 'pregnancy_id', schema: reference() },
+      visitedAt: { column: 'visited_at', type: 'timestamp', schema: Joi.date().iso().required() },
+      systolicBpMmhg: { column: 'systolic_bp_mmhg', type: 'number', schema: vital(20, 300) },
+      diastolicBpMmhg: { column: 'diastolic_bp_mmhg', type: 'number', schema: vital(10, 200) },
+      weightKg: { column: 'weight_kg', type: 'number', schema: vital(10, 250, 2) },
+      temperatureC: { column: 'temperature_c', type: 'number', schema: vital(25, 45, 1) },
+      pulseBpm: { column: 'pulse_bpm', type: 'number', schema: vital(20, 250) },
+      bloodSugarMmolL: { column: 'blood_sugar_mmol_l', type: 'number', schema: vital(0.5, 50, 1) },
+      fetalMovement: {
+        column: 'fetal_movement',
+        schema: Joi.string().valid('normal', 'reduced', 'absent').allow(null).default(null),
+      },
+      swelling: { column: 'swelling', schema: flag() },
+      bleeding: { column: 'bleeding', schema: flag() },
+      fever: { column: 'fever', schema: flag() },
+      anaemiaSigns: { column: 'anaemia_signs', schema: Joi.string().valid('none', 'present', 'severe').default('none') },
+      urineSymptoms: { column: 'urine_symptoms', schema: flag() },
+    },
+  },
 };
 
 // Joi schema for the `data` object of one table.
@@ -112,7 +150,9 @@ function dataSchema(def) {
 // A value as it is stored, so a resent record can be compared with the database row.
 function normalise(field, value) {
   if (value === null || value === undefined) return null;
-  return field.type === 'number' ? Number(value) : value;
+  if (field.type === 'number') return Number(value);
+  if (field.type === 'timestamp') return new Date(value).toISOString();
+  return value;
 }
 
 module.exports = { TABLES, dataSchema, normalise };

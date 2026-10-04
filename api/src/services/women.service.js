@@ -2,7 +2,7 @@ const db = require('../db/pool');
 const { supervisorAreaIds } = require('./scope.service');
 
 // M2 FE-1, FE-2: registered women for the portal (M10 FE-1 shows registered
-// patients). A supervisor sees only their assigned areas, an admin sees all.
+// patients), with how many visits each has had (M3 FE-1). A supervisor sees only their assigned areas, an admin sees all.
 // Each row carries the woman's household, her latest pregnancy and her
 // obstetric history, so the list needs one request.
 async function listForPortal(user, { search, limit }) {
@@ -25,6 +25,7 @@ async function listForPortal(user, { search, limit }) {
             lp.lhw_code AS registered_by_code, u.full_name AS registered_by_name,
             p.registered_on, p.pregnancy_month_at_registration, p.status AS pregnancy_status,
             o.previous_pregnancies, o.previous_c_sections, o.stillbirths, o.known_conditions,
+            v.visit_count, v.last_visit_at,
             count(*) OVER () AS total
      FROM women w
      JOIN areas a ON a.id = w.area_id
@@ -37,6 +38,11 @@ async function listForPortal(user, { search, limit }) {
        ORDER BY (status = 'active') DESC, server_seq DESC LIMIT 1
      ) p ON true
      LEFT JOIN obstetric_history o ON o.woman_id = w.id AND o.deleted_at IS NULL
+     LEFT JOIN LATERAL (
+       SELECT count(*) AS visit_count, max(vi.visited_at) AS last_visit_at
+       FROM visits vi JOIN pregnancies pv ON pv.id = vi.pregnancy_id
+       WHERE pv.woman_id = w.id AND vi.deleted_at IS NULL
+     ) v ON true
      WHERE ${filters.join(' AND ')}
      ORDER BY w.server_seq DESC
      LIMIT $1`,
@@ -73,6 +79,7 @@ async function listForPortal(user, { search, limit }) {
         stillbirths: row.stillbirths,
         knownConditions: row.known_conditions,
       },
+      visits: { count: Number(row.visit_count), lastVisitAt: row.last_visit_at },
       serverSeq: Number(row.server_seq),
       syncedAt: row.synced_at,
     })),
