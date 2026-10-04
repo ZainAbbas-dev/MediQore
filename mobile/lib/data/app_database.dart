@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
-import 'package:drift_flutter/drift_flutter.dart';
 
 part 'app_database.g.dart';
 
@@ -151,17 +150,14 @@ Map<String, Object?> syncPayload({
       'data': data,
     };
 
-/// The phone's local database (Drift + SQLite).
-///
-/// AES-256 encryption with sqflite_sqlcipher (M3 FE-2) and the key derived from
-/// the LHW's password (M1 FE-2, LI-8) change only how the database is opened,
-/// not the tables.
+/// The phone's local database (Drift + SQLite), encrypted with AES-256 and the
+/// key derived from the LHW's password (M3 FE-2, M1 FE-2, LI-8). The encryption
+/// lives in how it is opened (database_opener.dart), not in the tables.
 @DriftDatabase(tables: [Households, Women, Pregnancies, ObstetricHistory, Outbox, SyncState])
 class AppDatabase extends _$AppDatabase {
+  /// On the phone, open it through EncryptedDatabaseOpener (M3 FE-2), never
+  /// directly: the file is only readable with the key from the password.
   AppDatabase(super.executor);
-
-  /// Opens the database file on the phone.
-  factory AppDatabase.onDevice() => AppDatabase(driftDatabase(name: 'mediqore'));
 
   /// 1: households (P0-6). 2: women, pregnancies, obstetric history (M2) and the
   /// area and creator of every record (M1 FE-3).

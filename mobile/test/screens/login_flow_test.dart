@@ -23,7 +23,7 @@ void main() {
     server = FakeSyncServer();
     services = testServices(server);
   });
-  tearDown(() => services.db.close());
+  tearDown(() => services.dispose());
 
   Future<void> pumpApp(WidgetTester tester) async {
     // Tall enough that every line of each screen is built and can be found.

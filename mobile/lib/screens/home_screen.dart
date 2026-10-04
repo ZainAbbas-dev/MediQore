@@ -45,7 +45,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _refreshPending() async {
-    final pending = await _services.db.pendingCount();
+    // After a lock the database is closed; the login screen replaces this one.
+    final data = _services.session.data;
+    if (data == null) return;
+    final pending = await data.db.pendingCount();
     if (mounted) setState(() => _pending = pending);
   }
 
@@ -100,6 +103,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(user.fullName, style: Theme.of(context).textTheme.titleLarge),
                 if (user.lhwCode != null) Text(l10n.homeLhwCode(user.lhwCode!)),
                 if (user.areaName != null) Text(l10n.homeArea(user.areaName!)),
+                if (session.lostUnsyncedRecords) ...[
+                  const SizedBox(height: 8),
+                  Text(l10n.homeLostUnsynced, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                ],
                 if (!session.isOnlineSession && _message == null) ...[
                   const SizedBox(height: 8),
                   Text(l10n.homeOfflineSignIn),

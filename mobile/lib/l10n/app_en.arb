@@ -707,5 +707,9 @@
   "fileLocationSaved": "Home location saved.",
   "@fileLocationSaved": {
     "description": "Shown after adding the home location from the file."
+  },
+  "homeLostUnsynced": "Your password was changed. Records on this phone that had not been synced could not be opened with the new password. Records already on the server have been downloaded again.",
+  "@homeLostUnsynced": {
+    "description": "Shown after an online sign-in with a new password when unsynced records under the old key were lost (LI-8)."
   }
 }

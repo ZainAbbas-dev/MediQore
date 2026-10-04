@@ -71,12 +71,13 @@ class AppSettings extends ChangeNotifier {
 
   static const String _languageKey = 'interface_language';
   static const String _deviceIdKey = 'device_id';
+  static const String _pendingRecordsKey = 'pending_records';
 
   /// Where the signed-in account is kept for offline login (see LocalAccount).
   static const String localAccountKey = 'local_account';
 
   /// Every key the app keeps in plain storage. Nothing patient-related.
-  static const Set<String> storedKeys = {_languageKey, _deviceIdKey, localAccountKey};
+  static const Set<String> storedKeys = {_languageKey, _deviceIdKey, localAccountKey, _pendingRecordsKey};
 
   static String _newDeviceId(SettingsStore store) {
     final id = const Uuid().v4();
@@ -117,6 +118,14 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
     await _store.setString(_languageKey, chosen.languageCode);
   }
+
+  /// How many records were waiting to be pushed when the encrypted database was
+  /// last open. Read before sign-in, when the database cannot be opened: another
+  /// LHW may sign in only when this is 0 (M1 FE-2, M3 FE-2). A number only, no
+  /// patient data. Null if never recorded (an older version of the app).
+  int? get pendingRecords => int.tryParse(_store.getString(_pendingRecordsKey) ?? '');
+
+  Future<void> setPendingRecords(int count) => _store.setString(_pendingRecordsKey, '$count');
 
   /// Anything other than English, including nothing saved yet, means Urdu.
   static Locale _localeFor(String? languageCode) => languageCode == english.languageCode ? english : urdu;

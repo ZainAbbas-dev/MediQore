@@ -1,25 +1,31 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mediqore/app_services.dart';
 import 'package:mediqore/auth/local_account.dart';
 import 'package:mediqore/auth/session.dart';
+import 'package:mediqore/data/household_repository.dart';
 import 'package:mediqore/data/patient_repository.dart';
 import 'package:mediqore/sync/sync_api.dart';
 
 import '../helpers.dart';
 import '../support/fake_sync_server.dart';
+import '../support/memory_database_opener.dart';
 
 void main() {
   late FakeSyncServer server;
   late AppServices services;
 
   Session session() => services.session;
-  Future<int> localHouseholds() async => (await services.households.all()).length;
+  // Through the test database, so it also works while the app is locked.
+  Future<int> localHouseholds() async => (await HouseholdRepository(dbOf(services)).all()).length;
+  MemoryDatabaseOpener opener() => services.opener as MemoryDatabaseOpener;
 
   setUp(() {
     server = FakeSyncServer();
     services = testServices(server);
   });
-  tearDown(() => services.db.close());
+  tearDown(() => services.dispose());
 
   group('first sign-in on a phone (M1 FE-2)', () {
     test('needs the internet', () async {
@@ -178,7 +184,7 @@ void main() {
     });
 
     test('starts with an empty phone once everything is synced', () async {
-      await services.db.delete(services.db.outbox).go();
+      await dbOf(services).delete(dbOf(services).outbox).go();
 
       expect(await session().signIn('lhw.second', 'demo-password'), SignInResult.signedIn);
       expect(await localHouseholds(), 0);
@@ -195,5 +201,64 @@ void main() {
     expect(session().notice, SessionNotice.signedOut);
     expect(server.revokedRefreshTokens, hasLength(1));
     expect(session().lastUsername, 'lhw.demo');
+  });
+
+  group('the encrypted database (M3 FE-2, LI-8)', () {
+    test('opens only at sign-in, with the password key, and closes when the app locks', () async {
+      expect(() => services.db, throwsStateError, reason: 'nothing is readable before sign-in');
+
+      await signInApproved(services, server);
+      await services.households.create(village: 'Before lock');
+      session().lock();
+      await session().closed;
+
+      expect(() => services.households, throwsStateError);
+      server.offline = true;
+      expect(await session().signIn('lhw.demo', 'demo-password'), SignInResult.signedInOffline);
+      expect((await services.households.all()).map((h) => h.village), ['Before lock']);
+      expect(opener().opened, 2);
+    });
+
+    test('keeps the number of waiting records outside the database, for the checks before sign-in', () async {
+      await signInApproved(services, server);
+      await services.households.create(village: 'Waiting');
+      session().lock();
+      await session().closed;
+
+      expect(services.settings.pendingRecords, 1);
+      await session().signIn('lhw.demo', 'demo-password');
+      await session().sync();
+      session().lock();
+      await session().closed;
+      expect(services.settings.pendingRecords, 0);
+    });
+
+    test('a new password gets a new key and an empty database, filled again from the server', () async {
+      server.addFromAnotherDevice('3f2b6c1a-5d4e-4f7a-9b8c-0d1e2f3a4b5c', 'On the server');
+      await signInApproved(services, server);
+      await services.households.create(village: 'Not synced');
+      final oldKey = session().passwordKey;
+      session().lock();
+      server.password = 'reset-by-admin';
+
+      expect(await session().signIn('lhw.demo', 'reset-by-admin'), SignInResult.signedIn);
+
+      expect(session().passwordKey, isNot(oldKey));
+      expect(opener().destroyed, 1);
+      expect(session().lostUnsyncedRecords, isTrue, reason: 'the home screen says the unsynced record is gone');
+      expect((await services.households.all()).map((h) => h.village), ['On the server']);
+    });
+
+    test('offline, a key that does not open the database is refused', () async {
+      await signInApproved(services, server);
+      session().lock();
+      await session().closed;
+      await opener().destroy(); // the file now belongs to no key
+      await opener().open(Uint8List.fromList(List.filled(32, 7))); // made with another key
+
+      server.offline = true;
+      expect(await session().signIn('lhw.demo', 'demo-password'), SignInResult.failed);
+      expect(session().isUnlocked, isFalse);
+    });
   });
 }

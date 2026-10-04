@@ -30,7 +30,7 @@ void main() {
     server = FakeSyncServer();
     services = testServices(server);
   });
-  tearDown(() => services.db.close());
+  tearDown(() => services.dispose());
 
   testWidgets('app starts on the login screen in Urdu, right to left', (tester) async {
     await tester.pumpWidget(MediQoreApp(services: services));
@@ -52,7 +52,7 @@ void main() {
 
   testWidgets('the language switch on the login screen changes the whole app and is saved (M1 FE-4)', (tester) async {
     final store = MemorySettingsStore();
-    await services.db.close();
+    await services.dispose();
     services = testServices(server, AppSettings(store: store));
     await tester.pumpWidget(MediQoreApp(services: services));
     await tester.pumpAndSettle();
@@ -230,6 +230,7 @@ void main() {
       });
 
       testWidgets('the sync test screen fits ($language)', (tester) async {
+        await tester.runAsync(() => signInApproved(services, server));
         await pumpScreen(tester, SyncTestScreen(services: services), english: english);
         await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
         await tester.pumpAndSettle();

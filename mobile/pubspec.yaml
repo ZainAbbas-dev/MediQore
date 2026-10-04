@@ -22,7 +22,9 @@ dependencies:
   geolocator: ^14.1.1
   http: ^1.6.0
   intl: ^0.20.3
+  path_provider: ^2.1.5
   shared_preferences: ^2.5.5
+  sqlite3: ^3.5.2
   uuid: ^4.6.0
 
 dev_dependencies:
@@ -44,3 +46,10 @@ flutter:
     - family: JameelNooriNastaleeq
       fonts:
         - asset: assets/fonts/JameelNooriNastaleeq.ttf
+
+# M3 FE-2, decision 0006: package:sqlite3 bundles SQLite3 Multiple Ciphers instead
+# of plain SQLite, so the local database is encrypted (AES-256, SQLCipher format).
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlite3mc

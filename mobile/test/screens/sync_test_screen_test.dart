@@ -16,7 +16,7 @@ void main() {
     server = FakeSyncServer();
     services = testServices(server);
   });
-  tearDown(() => services.db.close());
+  tearDown(() => services.dispose());
 
   Future<void> pumpScreen(WidgetTester tester) async {
     // Tall enough that the whole list is built, so every line can be found.

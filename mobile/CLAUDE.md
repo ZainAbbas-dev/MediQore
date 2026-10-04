@@ -8,7 +8,7 @@ Flutter app with Modules 1–9, fully offline, in Urdu by default with an Englis
 |---|---|---|
 | Flutter | 3.x; this project needs 3.47 or newer (`pubspec.yaml`) | Android app with Urdu UI (English selectable), voice guidance and offline support (Android only, LI-1) |
 | SQLite via Drift | Latest | Offline local storage |
-| sqflite_sqlcipher | Latest | AES-256 encryption of the local database |
+| sqflite_sqlcipher | Latest | AES-256 encryption of the local database. Built instead with the SQLite3 Multiple Ciphers build of `package:sqlite3` (SQLCipher format, AES-256), because sqflite_sqlcipher cannot back Drift: proposed decision 0006 |
 | flutter_localizations + intl | Latest | RTL locale, Urdu support, bidirectional text; English left to right (A1) |
 | shared_preferences | Latest | Keeps the chosen interface language (scope amendment A1), the installation ID and the saved account for offline sign-in, all readable before login; never patient data |
 | crypto (dart.dev) | Latest | HMAC-SHA256 for the PBKDF2 password key behind offline sign-in (roadmap M1 FE-2, LI-8) |
@@ -40,7 +40,8 @@ From the roadmap:
   - Don't hard-code a font family or text direction; the theme and locale set them. The exception is text that must stay in one script, such as اردو on the language switch, and numbers, which stay left to right.
 - Voice guidance speaks only when `AppSettings.voiceGuidanceAvailable` is true (Urdu). In English, show `voiceGuidanceUrduOnly` instead.
 - shared_preferences holds device settings only: the language, the installation ID and the saved account (user profile, PBKDF2 salt and verifier; never the password or a token). Patient data goes in the encrypted database.
-- Tokens stay in memory (`Session`). A locked app forgets them and the password key.
+- Tokens stay in memory (`Session`). A locked app forgets them and the password key, and closes the database.
+- The database is encrypted and opens only after sign-in (M3 FE-2): use `services.db`, `services.patients` and so on only while the app is unlocked; they throw while it is locked.
 - Every write goes to its local table and to the outbox in the same transaction.
 - Generate record IDs as UUID v4 on the device; order by `server_seq`, never by device clock.
 - Read clinical thresholds (danger signs, EPI, MUAC, IMCI) from versioned JSON config, never hard-code them.
@@ -62,7 +63,8 @@ From the roadmap:
     - Another LHW cannot sign in while the phone holds unsynced records of the previous one.
     - `sync()` uses the session's tokens and refreshes them once on 401. `ACCOUNT_INACTIVE` marks the saved account deactivated and locks the app; offline sign-in is refused from then on.
     - `lock()` and `signOut()` (which also revokes the refresh token).
-  - `password_key.dart`: PBKDF2-HMAC-SHA256 (120,000 iterations, in a background isolate). The phone keeps the salt and a verifier, never the password. The derived key will open the encrypted database (M3 FE-2).
+  - `password_key.dart`: PBKDF2-HMAC-SHA256 (120,000 iterations, in a background isolate). The phone keeps the salt and a verifier, never the password. The derived key opens the encrypted database (M3 FE-2).
+  - `Session` opens the database at sign-in (`data`, a `LocalData`) and closes it at lock. A new password means a new key: the old database is deleted and downloaded again, and `lostUnsyncedRecords` tells the home screen if unsynced records were lost (LI-8). The number of waiting records is kept in `AppSettings.pendingRecords` for the checks before sign-in.
   - `local_account.dart`: the signed-in user's profile and password key, saved for offline sign-in.
 - `lib/widgets/language_switch.dart`: the اردو / English switch, on the login screen and the home screen.
 - `lib/l10n/app_en.arb` (template, with descriptions) and `lib/l10n/app_ur.arb` hold every visible string. Add new keys to both files.
@@ -86,7 +88,8 @@ From the roadmap:
     - `enqueue(payload)` adds or replaces a record's outbox entry; `setServerSeq`, `clearAreaData` and `clearAllData` work on every synced table.
     - The patient counter: `raisePatientCounter` (from the server's `lastPatientNumber` at sign-in) and `takePatientNumber`.
     - `app_database.g.dart` is generated and committed. After changing tables, run `dart run build_runner build`, bump `schemaVersion` and add the step to `migration` (see `test/data/migration_test.dart`).
-    - Encryption (sqflite_sqlcipher, M3 FE-2) comes in Phase 1.
+    - On the phone it is opened only through `database_opener.dart` (M3 FE-2, decision 0006): `EncryptedDatabaseOpener` sets AES-256 in the SQLCipher format with the raw password key, refuses a wrong key (`WrongDatabaseKey`) and encrypts an older unencrypted database in place.
+    - `local_data.dart`: the open database with its repositories and sync service, which exist only while the app is unlocked.
   - `household_repository.dart`: every write saves the record and its outbox entry in one transaction, with a UUID v4 made on the device. `setLocation` adds GPS later.
   - `patient_repository.dart` (M2 FE-1–3):
     - `register` saves the household (or reuses a registered woman's home), the woman, her pregnancy file and her obstetric history with their outbox entries in one transaction, parents first.
@@ -115,7 +118,8 @@ From the roadmap:
 - `android/app/src/main/AndroidManifest.xml` declares the `TTS_SERVICE` query, so flutter_tts can find the phone's text-to-speech engines on Android 11 and later.
 - `assets/fonts/JameelNooriNastaleeq.ttf`: the bundled Urdu font, declared in `pubspec.yaml` as family `JameelNooriNastaleeq`.
 - `test/`: unit and widget tests.
-  - `test/helpers.dart`: `wrapInApp(widget, locale: …)` wraps a widget in the app theme and locale (Urdu by default); `testServices(server, settings, autoLockAfter)` builds the services; `signInApproved(services, server)` signs in on an already approved phone.
+  - `test/helpers.dart`: `wrapInApp(widget, locale: …)` wraps a widget in the app theme and locale (Urdu by default); `testServices(server, settings, autoLockAfter, location)` builds the services; `signInApproved(services, server)` signs in on an already approved phone; `dbOf(services)` reaches the test database while the app is locked. Call `services.dispose()` in `tearDown`.
+  - `test/support/memory_database_opener.dart`: an in-memory database that behaves like the encrypted file (it refuses another key and survives a lock). `test/data/encrypted_database_test.dart` checks the real encrypted file.
   - `test/support/fake_sync_server.dart` imitates the API's `/auth` (with phone approval and refresh tokens) and `/sync` endpoints.
   - `test/screens/login_flow_test.dart` runs the whole app from sign-in to home and back; `test/screens/registration_flow_test.dart` registers women offline through the screens.
   - `test/support/fake_location_service.dart` replaces the GPS; `testServices` uses it by default.

@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart' show driftRuntimeOptions;
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:mediqore/app_services.dart';
 import 'package:mediqore/data/app_database.dart';
@@ -10,6 +9,7 @@ import 'package:mediqore/sync/sync_api.dart';
 import 'package:mediqore/theme/app_theme.dart';
 
 import 'support/fake_location_service.dart';
+import 'support/memory_database_opener.dart';
 import 'support/fake_sync_server.dart';
 
 /// Wraps [child] in the app's theme and localisation (Urdu by default), so a
@@ -27,11 +27,15 @@ Widget wrapInApp(Widget child, {Locale locale = AppSettings.urdu}) {
 /// App services backed by an in-memory database and [server]. Settings start
 /// in Urdu and are kept in memory unless [settings] is given. Password keys use
 /// few PBKDF2 iterations so tests run fast, and the GPS is a
-/// [FakeLocationService] unless [location] is given. Close `services.db` at the end.
+/// [FakeLocationService] unless [location] is given. Call `services.dispose()`
+/// at the end.
+///
+/// The database opens at sign-in, as on the phone. [dbOf] reaches it while the
+/// app is locked.
 AppServices testServices([FakeSyncServer? server, AppSettings? settings, Duration? autoLockAfter, LocationService? location]) {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   return AppServices(
-    db: AppDatabase(NativeDatabase.memory()),
+    opener: MemoryDatabaseOpener(),
     api: SyncApi(client: (server ?? FakeSyncServer()).client, baseUrl: 'http://test/api/v1'),
     settings: settings,
     autoLockAfter: autoLockAfter,
@@ -46,3 +50,7 @@ Future<void> signInApproved(AppServices services, FakeSyncServer server) async {
   server.approve(services.settings.deviceId);
   await services.session.signIn(server.username, server.password);
 }
+
+/// The test database, also while the app is locked (on the phone it would be
+/// closed and encrypted).
+AppDatabase dbOf(AppServices services) => (services.opener as MemoryDatabaseOpener).db;

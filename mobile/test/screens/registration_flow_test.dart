@@ -29,7 +29,7 @@ void main() {
     gps = FakeLocationService();
     services = testServices(server, null, null, gps);
   });
-  tearDown(() => services.db.close());
+  tearDown(() => services.dispose());
 
   // Drift and the fake HTTP client finish their work outside the test clock.
   Future<void> settle(WidgetTester tester) async {

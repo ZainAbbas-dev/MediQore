@@ -21,6 +21,8 @@ import 'package:mediqore/sync/sync_api.dart';
 import 'package:mediqore/sync/sync_service.dart';
 import 'package:uuid/uuid.dart';
 
+import '../support/memory_database_opener.dart';
+
 const String apiBaseUrl = String.fromEnvironment('E2E_API_BASE_URL');
 const String password = String.fromEnvironment('E2E_PASSWORD', defaultValue: 'demo-password');
 
@@ -128,7 +130,7 @@ void main() {
   test(
     "the app's sign-in on a new phone: code, area download, sync, sign-out (M1 FE-2)",
     () async {
-      final services = AppServices(db: AppDatabase(NativeDatabase.memory()), api: SyncApi(baseUrl: apiBaseUrl));
+      final services = AppServices(opener: MemoryDatabaseOpener(), api: SyncApi(baseUrl: apiBaseUrl));
       final session = services.session;
 
       expect(await session.signIn('lhw.demo', password), SignInResult.needsCode);
@@ -146,7 +148,7 @@ void main() {
       await session.signOut();
       expect(await session.signIn('lhw.demo', password), SignInResult.signedIn);
       await session.signOut();
-      await services.db.close();
+      await services.dispose();
     },
     skip: apiBaseUrl.isEmpty ? 'Set --dart-define=E2E_API_BASE_URL to run against a real API' : false,
   );
@@ -155,7 +157,7 @@ void main() {
     'a woman registered offline on one phone reaches the portal and the next phone, and patient IDs continue (M2)',
     () async {
       Future<AppServices> newPhone() async {
-        final services = AppServices(db: AppDatabase(NativeDatabase.memory()), api: SyncApi(baseUrl: apiBaseUrl));
+        final services = AppServices(opener: MemoryDatabaseOpener(), api: SyncApi(baseUrl: apiBaseUrl));
         expect(await services.session.signIn('lhw.demo', password), SignInResult.needsCode);
         expect(await services.session.verifyCode(await issueCodeAsAdmin(services.settings.deviceId)), SignInResult.signedIn);
         return services;
@@ -206,7 +208,7 @@ void main() {
       print('E2E M2 OK: ${woman.patientCode} then ${next.patientCode}');
       for (final phone in [phone1, phone2]) {
         await phone.session.signOut();
-        await phone.db.close();
+        await phone.dispose();
       }
     },
     skip: apiBaseUrl.isEmpty ? 'Set --dart-define=E2E_API_BASE_URL to run against a real API' : false,
