@@ -1,6 +1,10 @@
 // M1 FE-4: interface language (Urdu or English), kept on the phone.
+// M1 FE-2: the phone's installation ID and the saved account for offline login.
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 /// Where [AppSettings] keeps its values between app starts.
 abstract interface class SettingsStore {
@@ -46,22 +50,51 @@ class MemorySettingsStore implements SettingsStore {
 /// (M1 FE-4). The whole app follows it: Urdu right to left, English left to
 /// right. Voice guidance reads Urdu labels only (LI-6), so it is available
 /// only while the app is in Urdu.
+///
+/// It also holds the installation ID the phone signs in with (M1 FE-2), made
+/// once on first start.
 class AppSettings extends ChangeNotifier {
-  /// Reads the saved language from [store]; without a store, nothing is saved.
+  /// Reads the saved values from [store]; without a store, nothing is saved.
   AppSettings({SettingsStore? store}) : this._(store ?? MemorySettingsStore());
 
-  AppSettings._(SettingsStore store) : _store = store, _locale = _localeFor(store.getString(_languageKey));
+  AppSettings._(SettingsStore store)
+    : _store = store,
+      _locale = _localeFor(store.getString(_languageKey)),
+      deviceId = store.getString(_deviceIdKey) ?? _newDeviceId(store);
 
-  /// Opens the phone's storage and reads the saved language.
-  static Future<AppSettings> load() async => AppSettings(store: await SharedPreferencesStore.open({_languageKey}));
+  /// Opens the phone's storage and reads the saved values.
+  static Future<AppSettings> load() async {
+    final store = await SharedPreferencesStore.open(storedKeys);
+    if (store.getString(_deviceIdKey) == null) await store.setString(_deviceIdKey, const Uuid().v4());
+    return AppSettings(store: store);
+  }
+
+  static const String _languageKey = 'interface_language';
+  static const String _deviceIdKey = 'device_id';
+
+  /// Where the signed-in account is kept for offline login (see LocalAccount).
+  static const String localAccountKey = 'local_account';
+
+  /// Every key the app keeps in plain storage. Nothing patient-related.
+  static const Set<String> storedKeys = {_languageKey, _deviceIdKey, localAccountKey};
+
+  static String _newDeviceId(SettingsStore store) {
+    final id = const Uuid().v4();
+    unawaited(store.setString(_deviceIdKey, id));
+    return id;
+  }
+
+  /// This installation's ID (UUID v4), sent at sign-in and with every push.
+  final String deviceId;
+
+  /// The plain storage behind these settings, also used for the saved account.
+  SettingsStore get store => _store;
 
   static const Locale urdu = Locale('ur');
   static const Locale english = Locale('en');
 
   /// The languages the app offers, in the order the switch shows them.
   static const List<Locale> languages = [urdu, english];
-
-  static const String _languageKey = 'interface_language';
 
   final SettingsStore _store;
   Locale _locale;

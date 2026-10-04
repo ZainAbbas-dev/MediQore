@@ -22,8 +22,10 @@ void main() {
   setUp(() {
     db = AppDatabase(NativeDatabase.memory());
     households = HouseholdRepository(db);
-    server = FakeSyncServer();
-    sync = SyncService(db: db, api: SyncApi(client: server.client, baseUrl: 'http://test/api/v1'));
+    server = FakeSyncServer()
+      ..approve('device-1')
+      ..validAccessTokens.add('token-1');
+    sync = SyncService(db: db, api: SyncApi(client: server.client, baseUrl: 'http://test/api/v1'), deviceId: 'device-1');
   });
 
   tearDown(() => db.close());
@@ -53,9 +55,15 @@ void main() {
     expect(report.lastServerSeq, stored.serverSeq);
   });
 
-  test('the device keeps one stable id across syncs', () async {
-    final first = await sync.deviceId();
-    expect(await sync.deviceId(), first);
+  test('pushes as this phone, which the server must have approved (M1 FE-2)', () async {
+    await households.create(village: 'Test village');
+    final unapproved = SyncService(db: db, api: SyncApi(client: server.client, baseUrl: 'http://test/api/v1'), deviceId: 'device-2');
+
+    await expectLater(
+      unapproved.syncNow('token-1'),
+      throwsA(isA<ApiException>().having((e) => e.code, 'code', 'DEVICE_NOT_ALLOWED')),
+    );
+    expect(await db.pendingCount(), 1, reason: 'nothing is lost');
   });
 
   test('pushes in batches of at most 100', () async {

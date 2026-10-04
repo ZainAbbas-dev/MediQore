@@ -8,12 +8,11 @@ import '../app_services.dart';
 import '../data/app_database.dart';
 import '../l10n/app_localizations.dart';
 import '../sync/sync_api.dart';
-import '../widgets/form_fields.dart';
 import '../widgets/large_button.dart';
 import '../widgets/offline_status_bar.dart';
 
-/// Signs in as an LHW, saves synthetic test households on the phone (works
-/// offline), and syncs them on demand. Replaced by the real screens in Phase 1.
+/// Saves synthetic test households on the phone (works offline) and syncs them
+/// with the signed-in session (M1 FE-2). Replaced by the real screens in Phase 1.
 class SyncTestScreen extends StatefulWidget {
   const SyncTestScreen({super.key, required this.services});
 
@@ -24,12 +23,8 @@ class SyncTestScreen extends StatefulWidget {
 }
 
 class _SyncTestScreenState extends State<SyncTestScreen> {
-  final _username = TextEditingController();
-  final _password = TextEditingController();
   final _random = Random();
 
-  String? _token;
-  String? _signedInAs;
   bool _busy = false;
   bool _lastSyncOk = false;
   String? _message;
@@ -43,13 +38,6 @@ class _SyncTestScreenState extends State<SyncTestScreen> {
   void initState() {
     super.initState();
     _refresh();
-  }
-
-  @override
-  void dispose() {
-    _username.dispose();
-    _password.dispose();
-    super.dispose();
   }
 
   Future<void> _refresh() async {
@@ -74,20 +62,10 @@ class _SyncTestScreenState extends State<SyncTestScreen> {
     }
   }
 
-  String _reason(Object error) => error is ApiException ? error.code : error.runtimeType.toString();
-
-  Future<void> _signIn(AppLocalizations l10n) => _run(() async {
-        try {
-          final token = await _services.api.login(_username.text.trim(), _password.text);
-          setState(() {
-            _token = token;
-            _signedInAs = _username.text.trim();
-            _message = null;
-          });
-        } catch (error) {
-          setState(() => _message = l10n.signInFailed(_reason(error)));
-        }
-      });
+  String _reason(Object error) => switch (error) {
+    ApiException() => error.code,
+    _ => error.runtimeType.toString(),
+  };
 
   // Synthetic household near Islamabad (LI-10: no real patient data). Real GPS
   // capture comes with M2 FE-3.
@@ -102,7 +80,7 @@ class _SyncTestScreenState extends State<SyncTestScreen> {
 
   Future<void> _syncNow(AppLocalizations l10n) => _run(() async {
         try {
-          final report = await _services.sync.syncNow(_token!);
+          final report = await _services.session.sync();
           setState(() {
             _lastSyncOk = true;
             _message = l10n.syncResult(report.pushed, report.pulled, report.rejected);
@@ -118,7 +96,7 @@ class _SyncTestScreenState extends State<SyncTestScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final signedIn = _token != null;
+    final signedIn = _services.session.isOnlineSession;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.syncTestTitle)),
@@ -129,14 +107,8 @@ class _SyncTestScreenState extends State<SyncTestScreen> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                if (!signedIn) ...[
-                  AppTextField(label: l10n.fieldUsername, controller: _username),
-                  const SizedBox(height: 12),
-                  AppTextField(label: l10n.fieldPassword, controller: _password, obscureText: true),
-                  const SizedBox(height: 12),
-                  LargeButton(label: l10n.signInButton, icon: Icons.login, onPressed: _busy ? null : () => _signIn(l10n)),
-                ] else
-                  Text(l10n.signedInAs(_signedInAs!), style: Theme.of(context).textTheme.titleMedium),
+                Text(l10n.signedInAs(_services.session.user?.username ?? ''), style: Theme.of(context).textTheme.titleMedium),
+                if (!signedIn) Text(l10n.homeSyncNeedsSignIn),
                 const SizedBox(height: 16),
                 LargeButton(
                   label: l10n.createTestHousehold,

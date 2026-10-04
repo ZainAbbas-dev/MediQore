@@ -8,9 +8,9 @@ import 'sync_test_screen.dart';
 import 'voice_check_screen.dart';
 import 'widget_kit_screen.dart';
 
-/// Temporary home screen for the Phase 0 checks (P0-2 widget kit, P0-6 sync,
-/// P0-11 Urdu voice), with the Urdu/English switch (M1 FE-4) at the top.
-/// The login screen replaces it in Phase 1 (M1 FE-2).
+/// The Phase 0 checks (P0-2 widget kit, P0-6 sync, P0-11 Urdu voice), with
+/// the Urdu/English switch (M1 FE-4) at the top. Opened from the home screen
+/// in debug builds only.
 class DevHomeScreen extends StatelessWidget {
   const DevHomeScreen({super.key, required this.services});
 

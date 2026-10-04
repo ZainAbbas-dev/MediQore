@@ -10,7 +10,8 @@ Flutter app with Modules 1–9, fully offline, in Urdu by default with an Englis
 | SQLite via Drift | Latest | Offline local storage |
 | sqflite_sqlcipher | Latest | AES-256 encryption of the local database |
 | flutter_localizations + intl | Latest | RTL locale, Urdu support, bidirectional text; English left to right (A1) |
-| shared_preferences | Latest | Keeps the chosen interface language on the phone, readable before login (scope amendment A1); never patient data |
+| shared_preferences | Latest | Keeps the chosen interface language (scope amendment A1), the installation ID and the saved account for offline sign-in, all readable before login; never patient data |
+| crypto (dart.dev) | Latest | HMAC-SHA256 for the PBKDF2 password key behind offline sign-in (roadmap M1 FE-2, LI-8) |
 | Jameel Noori Nastaleeq (bundled asset) | N/A | Urdu Nastaliq font for all Urdu text |
 | Flutter Directionality widget | N/A | RTL context for Urdu, with numeric vitals left to right |
 | flutter_tts | Latest | Urdu voice guidance for field labels |
@@ -38,7 +39,8 @@ From the roadmap:
   - Test every new screen in both languages, including on a 320 × 640 phone.
   - Don't hard-code a font family or text direction; the theme and locale set them. The exception is text that must stay in one script, such as اردو on the language switch, and numbers, which stay left to right.
 - Voice guidance speaks only when `AppSettings.voiceGuidanceAvailable` is true (Urdu). In English, show `voiceGuidanceUrduOnly` instead.
-- shared_preferences holds device settings only. Patient data goes in the encrypted database.
+- shared_preferences holds device settings only: the language, the installation ID and the saved account (user profile, PBKDF2 salt and verifier; never the password or a token). Patient data goes in the encrypted database.
+- Tokens stay in memory (`Session`). A locked app forgets them and the password key.
 - Every write goes to its local table and to the outbox in the same transaction.
 - Generate record IDs as UUID v4 on the device; order by `server_seq`, never by device clock.
 - Read clinical thresholds (danger signs, EPI, MUAC, IMCI) from versioned JSON config, never hard-code them.
@@ -46,12 +48,23 @@ From the roadmap:
 ## Layout
 
 - `lib/main.dart` → `lib/app.dart`:
-  - `main()` reads the saved language (`AppSettings.load()`) before the first frame.
+  - `main()` reads the saved settings (`AppSettings.load()`) before the first frame.
   - `MediQoreApp` rebuilds `MaterialApp` whenever the language changes. Its locale and theme follow `AppSettings`: Urdu right to left, English left to right.
-- `lib/settings/app_settings.dart`: `AppSettings` (M1 FE-4), with the language, the saved choice and the voice rule.
-  - Saved through `SharedPreferencesStore`.
+  - It shows `LoginScreen` until someone signs in, then `HomeScreen`. When the session locks, it closes every open screen.
+  - `InactivityLock` (`lib/widgets/inactivity_lock.dart`) wraps every screen and locks the session after `autoLockAfter` (5 minutes) without a touch (M1 FE-2).
+- `lib/settings/app_settings.dart`: `AppSettings` (M1 FE-4, FE-2), with the language, the saved choice, the voice rule and the installation ID (`deviceId`, a UUID v4 made once).
+  - Saved through `SharedPreferencesStore`; only the keys in `AppSettings.storedKeys`.
   - Tests use `MemorySettingsStore`.
-- `lib/widgets/language_switch.dart`: the اردو / English switch. It is on the Phase 0 home now; Phase 1 puts it on the login screen and in settings.
+- `lib/auth/` (M1 FE-2, FE-3):
+  - `session.dart`: `Session`, who is signed in.
+    - `signIn` tries the server first. A new phone gets `needsCode`, then `verifyCode`. Without a connection (or on a server error) it checks the password against the saved key instead.
+    - The first online sign-in, or one after an admin moved the LHW to another area, downloads the area's records.
+    - Another LHW cannot sign in while the phone holds unsynced records of the previous one.
+    - `sync()` uses the session's tokens and refreshes them once on 401. `ACCOUNT_INACTIVE` marks the saved account deactivated and locks the app; offline sign-in is refused from then on.
+    - `lock()` and `signOut()` (which also revokes the refresh token).
+  - `password_key.dart`: PBKDF2-HMAC-SHA256 (120,000 iterations, in a background isolate). The phone keeps the salt and a verifier, never the password. The derived key will open the encrypted database (M3 FE-2).
+  - `local_account.dart`: the signed-in user's profile and password key, saved for offline sign-in.
+- `lib/widgets/language_switch.dart`: the اردو / English switch, on the login screen and the home screen.
 - `lib/l10n/app_en.arb` (template, with descriptions) and `lib/l10n/app_ur.arb` hold every visible string. Add new keys to both files.
   - `AppLocalizations` is generated from them by `flutter pub get` into `lib/l10n/app_localizations*.dart`, which is git-ignored.
   - Use it as `AppLocalizations.of(context).key`.
@@ -63,31 +76,38 @@ From the roadmap:
   - `AppTextField`, `VitalField` (numbers and unit always left to right, digits only), `CheckboxField`, `DropdownField`
   - `RiskChip` with `RiskLevel`
   - `OfflineStatusBar`
-- `lib/app_services.dart`: the settings, database, API client, repositories and sync service, created once in `main()`. Tests build them with an in-memory database and Urdu settings kept in memory (`testServices()` in `test/helpers.dart`).
+- `lib/app_services.dart`: the settings, database, API client, repositories, sync service and session, created once in `main()`. Tests build them with an in-memory database, Urdu settings kept in memory and a fast password key (`testServices()` in `test/helpers.dart`).
 - `lib/data/`:
   - `app_database.dart`: the Drift database with `households`, `outbox` and `sync_state`.
     - `app_database.g.dart` is generated and committed. After changing tables, run `dart run build_runner build` and bump `schemaVersion` with a migration.
     - Encryption (sqflite_sqlcipher, M3 FE-2) comes in Phase 1.
   - `household_repository.dart`: every write saves the record and its outbox entry in one transaction, with a UUID v4 made on the device.
 - `lib/sync/`:
-  - `sync_api.dart`: the `/auth/login` and `/sync` client. Responses are always decoded as UTF-8.
+  - `sync_api.dart`: the `/auth` (login, code check, refresh, logout) and `/sync` client. Responses are always decoded as UTF-8.
   - `sync_service.dart`:
     - push sends the outbox in batches of up to 100, highest priority first, then stores each `serverSeq`;
     - pull fetches everything after the last server number seen;
     - records the server refuses stay on the phone, marked with `lastError`.
-- `lib/screens/`: temporary Phase 0 screens. The Phase 1 login screen replaces `DevHomeScreen` as home.
-  - `dev_home_screen.dart`: the Phase 0 home.
-  - `widget_kit_screen.dart`: the P0-2 kit preview.
-  - `sync_test_screen.dart`: the P0-6 end-to-end check (sign in as an LHW, create a synthetic household offline, sync).
-  - `voice_check_screen.dart`: the P0-11 Urdu voice check (flutter_tts).
-    - It reports whether the phone's text-to-speech supports Urdu offline and speaks a sample label, only while the app is in Urdu.
-    - Results go in `docs/decisions/0004-urdu-voice-source.md`.
+- `lib/screens/`:
+  - `login_screen.dart` (M1 FE-2, FE-4): LHW ID, password and the language switch. `signInMessage()` turns each `SignInResult` into its text.
+  - `otp_screen.dart` (M1 FE-2, decision 0002): the 6-digit code for a new phone, with the last six characters of the installation ID so the portal user can match the phone.
+  - `home_screen.dart`: who is signed in, sync, the language switch, lock and sign out. M2 and M3 add their screens here.
+  - Phase 0 checks, reached from the home screen in debug builds only:
+    - `dev_home_screen.dart`: the list of checks.
+    - `widget_kit_screen.dart`: the P0-2 kit preview.
+    - `sync_test_screen.dart`: the P0-6 end-to-end check (create a synthetic household offline, sync with the session).
+    - `voice_check_screen.dart`: the P0-11 Urdu voice check (flutter_tts).
+      - It reports whether the phone's text-to-speech supports Urdu offline and speaks a sample label, only while the app is in Urdu.
+      - Results go in `docs/decisions/0004-urdu-voice-source.md`.
 - `android/app/src/debug/AndroidManifest.xml` allows plain HTTP to a development server in debug builds only; release builds are HTTPS-only.
 - `android/app/src/main/AndroidManifest.xml` declares the `TTS_SERVICE` query, so flutter_tts can find the phone's text-to-speech engines on Android 11 and later.
 - `assets/fonts/JameelNooriNastaleeq.ttf`: the bundled Urdu font, declared in `pubspec.yaml` as family `JameelNooriNastaleeq`.
 - `test/`: unit and widget tests.
-  - `test/helpers.dart`: `wrapInApp(widget, locale: …)` wraps a widget in the app theme and locale (Urdu by default); `testServices(server, settings)` builds the services.
-  - `test/support/fake_sync_server.dart` imitates the API's `/auth` and `/sync` endpoints.
+  - `test/helpers.dart`: `wrapInApp(widget, locale: …)` wraps a widget in the app theme and locale (Urdu by default); `testServices(server, settings, autoLockAfter)` builds the services; `signInApproved(services, server)` signs in on an already approved phone.
+  - `test/support/fake_sync_server.dart` imitates the API's `/auth` (with phone approval and refresh tokens) and `/sync` endpoints.
+  - `test/screens/login_flow_test.dart` runs the whole app from sign-in to home and back.
+  - Drift, the password key isolate and the fake HTTP client run outside the widget test clock: wrap those actions in `tester.runAsync`. To test the auto-lock timer, sign in before `pumpWidget`, so the timer starts on the test clock.
+  - `test/e2e/sync_e2e_test.dart` runs against a real API when given `--dart-define=E2E_API_BASE_URL=...`; it approves its test phones as `admin.demo`.
   - Plugins are faked at their method channel, for example the `flutter_tts` channel in `test/screens/voice_check_screen_test.dart`.
 
 ## Commands

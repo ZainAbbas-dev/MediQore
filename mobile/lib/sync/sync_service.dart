@@ -2,7 +2,6 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
-import 'package:uuid/uuid.dart';
 
 import '../data/app_database.dart';
 import 'sync_api.dart';
@@ -24,37 +23,31 @@ class SyncReport {
 /// - pull asks for everything after the last sequence number seen, so nothing
 ///   depends on the phone's clock (LI-7).
 class SyncService {
-  SyncService({required this._db, required this._api, this._uuid = const Uuid()});
+  SyncService({required this._db, required this._api, required this.deviceId});
 
   static const int batchSize = 100;
-  static const String _deviceIdKey = 'device_id';
-  static const String _lastServerSeqKey = 'last_server_seq';
+  static const String lastServerSeqKey = 'last_server_seq';
 
   final AppDatabase _db;
   final SyncApi _api;
-  final Uuid _uuid;
 
-  /// The installation's UUID, created on first use and sent with every push.
-  Future<String> deviceId() async {
-    final existing = await _db.readState(_deviceIdKey);
-    if (existing != null) return existing;
-    final id = _uuid.v4();
-    await _db.writeState(_deviceIdKey, id);
-    return id;
-  }
+  /// The installation's UUID (AppSettings.deviceId), sent with every push. The
+  /// server accepts only the approved phone the token was issued to (M1 FE-2).
+  final String deviceId;
 
-  Future<int> lastServerSeq() async => int.parse(await _db.readState(_lastServerSeqKey) ?? '0');
+  Future<int> lastServerSeq() async => int.parse(await _db.readState(lastServerSeqKey) ?? '0');
 
   /// Pushes everything waiting, then pulls. Throws [ApiException] or a network
   /// error if the server cannot be reached; nothing is lost, the outbox stays.
   Future<SyncReport> syncNow(String token) async {
-    final (pushed, rejected) = await _pushAll(token);
-    final pulled = await _pullAll(token);
+    final (pushed, rejected) = await push(token);
+    final pulled = await pull(token);
     return SyncReport(pushed: pushed, rejected: rejected, pulled: pulled, lastServerSeq: await lastServerSeq());
   }
 
-  Future<(int, int)> _pushAll(String token) async {
-    final device = await deviceId();
+  /// Pushes the outbox; returns how many records were accepted and refused.
+  Future<(int, int)> push(String token) async {
+    final device = deviceId;
     var pushed = 0;
     var rejected = 0;
     while (true) {
@@ -98,7 +91,8 @@ class SyncService {
     }
   }
 
-  Future<int> _pullAll(String token) async {
+  /// Pulls everything after the last server number seen; returns how many records came.
+  Future<int> pull(String token) async {
     var since = await lastServerSeq();
     var pulled = 0;
     while (true) {
@@ -107,7 +101,7 @@ class SyncService {
         for (final record in page.records) {
           await _apply(record);
         }
-        await _db.writeState(_lastServerSeqKey, '${page.nextSince}');
+        await _db.writeState(lastServerSeqKey, '${page.nextSince}');
       });
       pulled += page.records.length;
       since = page.nextSince;

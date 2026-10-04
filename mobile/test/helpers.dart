@@ -23,13 +23,22 @@ Widget wrapInApp(Widget child, {Locale locale = AppSettings.urdu}) {
 }
 
 /// App services backed by an in-memory database and [server]. Settings start
-/// in Urdu and are kept in memory unless [settings] is given. Close
-/// `services.db` at the end of the test.
-AppServices testServices([FakeSyncServer? server, AppSettings? settings]) {
+/// in Urdu and are kept in memory unless [settings] is given. Password keys use
+/// few PBKDF2 iterations so tests run fast. Close `services.db` at the end.
+AppServices testServices([FakeSyncServer? server, AppSettings? settings, Duration? autoLockAfter]) {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   return AppServices(
     db: AppDatabase(NativeDatabase.memory()),
     api: SyncApi(client: (server ?? FakeSyncServer()).client, baseUrl: 'http://test/api/v1'),
     settings: settings,
+    autoLockAfter: autoLockAfter,
+    passwordIterations: 1000,
   );
+}
+
+/// Signs [services] in through an already approved phone, for tests that need
+/// a signed-in session but are not about signing in.
+Future<void> signInApproved(AppServices services, FakeSyncServer server) async {
+  server.approve(services.settings.deviceId);
+  await services.session.signIn(server.username, server.password);
 }

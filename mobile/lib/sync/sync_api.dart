@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../auth/local_account.dart';
+
 /// Base URL of the REST API, set at build time:
 ///   flutter run --dart-define=API_BASE_URL=http://192.168.1.10:3000/api/v1
 /// The default reaches a server on the development machine from the Android emulator.
@@ -48,6 +50,30 @@ class PullPage {
   final bool hasMore;
 }
 
+/// Tokens from a successful sign-in, code check or refresh (M1 FE-2).
+class AuthTokens {
+  AuthTokens({required this.accessToken, required this.refreshToken, required this.user});
+
+  factory AuthTokens.fromJson(Map<String, dynamic> json) => AuthTokens(
+    accessToken: json['accessToken'] as String,
+    refreshToken: json['refreshToken'] as String,
+    user: SessionUser.fromJson(Map<String, dynamic>.from(json['user'] as Map)),
+  );
+
+  final String accessToken;
+  final String refreshToken;
+  final SessionUser user;
+}
+
+/// The answer to a sign-in: tokens, or "this phone needs its one-time code".
+class LoginOutcome {
+  LoginOutcome.signedIn(AuthTokens this.tokens) : otpRequired = false;
+  LoginOutcome.needsCode() : tokens = null, otpRequired = true;
+
+  final AuthTokens? tokens;
+  final bool otpRequired;
+}
+
 /// The `/auth` and `/sync` endpoints (docs/openapi.yaml).
 class SyncApi {
   SyncApi({http.Client? client, this._baseUrl = apiBaseUrl}) : _client = client ?? http.Client();
@@ -57,11 +83,35 @@ class SyncApi {
 
   static const Duration _timeout = Duration(seconds: 30);
 
-  /// Signs in and returns the access token (M1 FE-2, Phase 0 skeleton).
-  Future<String> login(String username, String password) async {
-    final body = await _send('POST', '/auth/login', body: {'username': username, 'password': password});
-    return body['accessToken'] as String;
+  /// M1 FE-2: signs in from this phone. A phone that has not been approved
+  /// gets [LoginOutcome.needsCode] (HTTP 202) until [verifyOtp] succeeds.
+  Future<LoginOutcome> login(String username, String password, {required String deviceId}) async {
+    final (status, body) = await _sendWithStatus(
+      'POST',
+      '/auth/login',
+      body: {'username': username, 'password': password, 'deviceId': deviceId},
+    );
+    if (status == 202 || body['status'] == 'otp_required') return LoginOutcome.needsCode();
+    return LoginOutcome.signedIn(AuthTokens.fromJson(body));
   }
+
+  /// Approves this phone with the one-time code an admin or supervisor issued
+  /// for it (decision 0002), and signs in.
+  Future<AuthTokens> verifyOtp(String username, String password, {required String deviceId, required String code}) async {
+    final body = await _send(
+      'POST',
+      '/auth/otp/verify',
+      body: {'username': username, 'password': password, 'deviceId': deviceId, 'code': code},
+    );
+    return AuthTokens.fromJson(body);
+  }
+
+  /// Swaps a refresh token for a new pair; each refresh token works once.
+  Future<AuthTokens> refresh(String refreshToken) async =>
+      AuthTokens.fromJson(await _send('POST', '/auth/refresh', body: {'refreshToken': refreshToken}));
+
+  /// Revokes the refresh token (sign-out).
+  Future<void> logout(String refreshToken) => _send('POST', '/auth/logout', body: {'refreshToken': refreshToken});
 
   /// Pushes outbox payloads; returns the server's result for each record.
   Future<List<Map<String, dynamic>>> push(String token, String deviceId, List<Map<String, dynamic>> records) async {
@@ -78,7 +128,10 @@ class SyncApi {
     );
   }
 
-  Future<Map<String, dynamic>> _send(String method, String path, {String? token, Object? body}) async {
+  Future<Map<String, dynamic>> _send(String method, String path, {String? token, Object? body}) async =>
+      (await _sendWithStatus(method, path, token: token, body: body)).$2;
+
+  Future<(int, Map<String, dynamic>)> _sendWithStatus(String method, String path, {String? token, Object? body}) async {
     final request = http.Request(method, Uri.parse('$_baseUrl$path'))
       ..headers['Accept'] = 'application/json';
     if (token != null) request.headers['Authorization'] = 'Bearer $token';
@@ -95,6 +148,6 @@ class SyncApi {
       final error = (decoded['error'] as Map?) ?? const {};
       throw ApiException(response.statusCode, (error['code'] ?? 'HTTP_${response.statusCode}') as String, (error['message'] ?? '') as String);
     }
-    return decoded;
+    return (response.statusCode, decoded);
   }
 }

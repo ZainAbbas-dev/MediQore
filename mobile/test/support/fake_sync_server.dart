@@ -7,29 +7,122 @@ import 'package:http/testing.dart';
 http.Response _json(Object body, int status) =>
     http.Response.bytes(utf8.encode(jsonEncode(body)), status, headers: {'content-type': 'application/json; charset=utf-8'});
 
-/// A fake /sync server that keeps records in memory and numbers them like the
-/// real one (one global sequence, a new number on every change).
+http.Response _error(int status, String code) => _json({
+  'error': {'code': code, 'message': code},
+}, status);
+
+/// A fake API for tests: sign-in with phone approval by one-time code
+/// (decision 0002), rotating refresh tokens, and /sync that keeps records in
+/// memory and numbers them like the real server (one global sequence).
 class FakeSyncServer {
+  FakeSyncServer({this.username = 'lhw.demo', this.password = 'demo-password', this.userId = 'user-1'});
+
+  String username;
+  String password;
+  String userId;
+  String fullName = 'Demo LHW';
+  String areaId = 'area-1';
+  String areaName = 'Demo Area 1';
+  bool deactivated = false;
+  bool offline = false;
+
+  /// Phones allowed to sign in without a code.
+  final Set<String> approvedDevices = {};
+
+  /// One-time codes issued for pending phones.
+  final Map<String, String> codes = {};
+  final List<String> pendingDevices = [];
+  final Set<String> revokedRefreshTokens = {};
+  final Set<String> validAccessTokens = {};
+  final Set<String> validRefreshTokens = {};
+  final List<String> requests = [];
+
   final Map<String, Map<String, dynamic>> records = {};
   final List<List<Map<String, dynamic>>> pushedBatches = [];
   final Set<String> rejectIds = {};
   int _seq = 0;
-  bool offline = false;
+  int _tokens = 0;
+
+  /// Approves [deviceId] without the code step, as if it was approved earlier.
+  void approve(String deviceId) => approvedDevices.add(deviceId);
+
+  /// Issues a code for a pending phone, as an admin would on the portal.
+  String issueCode(String deviceId) => codes[deviceId] = '482913';
+
+  /// Makes every access token expire, so the next request gets 401.
+  void expireAccessTokens() => validAccessTokens.clear();
+
+  Map<String, dynamic> _session(String? deviceId) {
+    final access = 'access-${++_tokens}';
+    final refresh = 'refresh-$_tokens-0123456789abcdef';
+    validAccessTokens.add(access);
+    validRefreshTokens.add(refresh);
+    return {
+      'status': 'ok',
+      'accessToken': access,
+      'tokenType': 'Bearer',
+      'expiresIn': '15m',
+      'refreshToken': refresh,
+      'refreshExpiresAt': '2026-11-01T00:00:00.000Z',
+      'user': {
+        'id': userId,
+        'username': username,
+        'role': 'lhw',
+        'fullName': fullName,
+        'lhwCode': username.toUpperCase(),
+        'areaId': areaId,
+        'areaName': areaName,
+      },
+    };
+  }
 
   late final MockClient client = MockClient((request) async {
     if (offline) throw http.ClientException('no network');
-    if (request.url.path.endsWith('/auth/login')) {
-      final body = jsonDecode(request.body) as Map<String, dynamic>;
-      if (body['username'] == 'lhw.demo' && body['password'] == 'demo-password') {
-        return _json({'accessToken': 'token-1', 'tokenType': 'Bearer'}, 200);
+    final path = request.url.path;
+    requests.add('${request.method} ${path.replaceFirst('/api/v1', '')}');
+    final body = request.body.isEmpty ? <String, dynamic>{} : jsonDecode(request.body) as Map<String, dynamic>;
+
+    if (path.endsWith('/auth/login') || path.endsWith('/auth/otp/verify')) {
+      if ((body['username'] as String).toLowerCase() != username.toLowerCase() || body['password'] != password) {
+        return _error(401, 'INVALID_CREDENTIALS');
       }
-      return _json({'error': {'code': 'INVALID_CREDENTIALS', 'message': 'Username or password is incorrect'}}, 401);
+      if (deactivated) return _error(403, 'ACCOUNT_INACTIVE');
+      final deviceId = body['deviceId'] as String?;
+      if (deviceId == null) return _error(400, 'DEVICE_REQUIRED');
+      if (path.endsWith('/auth/otp/verify')) {
+        if (codes[deviceId] == null) return _error(400, 'OTP_NOT_ISSUED');
+        if (codes[deviceId] != body['code']) return _error(400, 'OTP_INVALID');
+        codes.remove(deviceId);
+        approvedDevices.add(deviceId);
+        return _json(_session(deviceId), 200);
+      }
+      if (!approvedDevices.contains(deviceId)) {
+        if (!pendingDevices.contains(deviceId)) pendingDevices.add(deviceId);
+        return _json({'status': 'otp_required', 'otp': {'channel': 'admin_issued'}}, 202);
+      }
+      return _json(_session(deviceId), 200);
     }
-    if (request.headers['Authorization'] != 'Bearer token-1') {
-      return _json({'error': {'code': 'UNAUTHORIZED', 'message': 'Sign in required'}}, 401);
+    if (path.endsWith('/auth/refresh')) {
+      final token = body['refreshToken'] as String;
+      if (!validRefreshTokens.remove(token)) return _error(401, 'INVALID_REFRESH_TOKEN');
+      if (deactivated) return _error(403, 'ACCOUNT_INACTIVE');
+      return _json(_session(null), 200);
     }
-    if (request.url.path.endsWith('/sync/push')) {
-      final body = jsonDecode(request.body) as Map<String, dynamic>;
+    if (path.endsWith('/auth/logout')) {
+      final token = body['refreshToken'] as String;
+      validRefreshTokens.remove(token);
+      revokedRefreshTokens.add(token);
+      return http.Response('', 204);
+    }
+
+    final auth = request.headers['Authorization'] ?? '';
+    if (!auth.startsWith('Bearer ') || !validAccessTokens.contains(auth.substring(7))) {
+      return _error(401, 'UNAUTHORIZED');
+    }
+    if (deactivated) return _error(403, 'ACCOUNT_INACTIVE');
+
+    if (path.endsWith('/sync/push')) {
+      if (!approvedDevices.contains(body['deviceId'])) return _error(403, 'DEVICE_NOT_ALLOWED');
       final batch = (body['records'] as List).cast<Map<String, dynamic>>();
       pushedBatches.add(batch);
       final results = [
@@ -41,13 +134,17 @@ class FakeSyncServer {
       ];
       return _json({'results': results}, 200);
     }
-    if (request.url.path.endsWith('/sync/pull')) {
+    if (path.endsWith('/sync/pull')) {
       final since = int.parse(request.url.queryParameters['since']!);
       final limit = int.parse(request.url.queryParameters['limit']!);
-      final newer = records.values.where((r) => (r['serverSeq'] as int) > since).toList()
+      final newer = records.values.where((r) => r['areaId'] == areaId && (r['serverSeq'] as int) > since).toList()
         ..sort((a, b) => (a['serverSeq'] as int).compareTo(b['serverSeq'] as int));
-      final page = newer.take(limit).toList();
-      return _json({'records': page, 'nextSince': page.isEmpty ? since : page.last['serverSeq'], 'hasMore': newer.length > limit}, 200);
+      final page = newer.take(limit).map((r) => Map.of(r)..remove('areaId')).toList();
+      return _json({
+        'records': page,
+        'nextSince': page.isEmpty ? since : page.last['serverSeq'],
+        'hasMore': newer.length > limit,
+      }, 200);
     }
     return http.Response('', 404);
   });
@@ -57,6 +154,7 @@ class FakeSyncServer {
     records[r['id'] as String] = {
       'table': r['table'],
       'id': r['id'],
+      'areaId': areaId,
       'serverSeq': ++_seq,
       'createdOnDevice': r['createdOnDevice'],
       'deleted': r['deleted'] ?? false,
@@ -65,11 +163,12 @@ class FakeSyncServer {
     return {'table': r['table'], 'id': r['id'], 'status': status, 'serverSeq': _seq};
   }
 
-  /// A record created by another phone in the same area.
-  void addFromAnotherDevice(String id, String village) {
+  /// A record created by another phone, in the current area unless [inArea] is given.
+  void addFromAnotherDevice(String id, String village, {String? inArea}) {
     records[id] = {
       'table': 'households',
       'id': id,
+      'areaId': inArea ?? areaId,
       'serverSeq': ++_seq,
       'createdOnDevice': '2026-10-01T08:00:00.000Z',
       'deleted': false,

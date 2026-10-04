@@ -85,6 +85,25 @@ class AppDatabase extends _$AppDatabase {
   Future<void> writeState(String key, String value) =>
       into(syncState).insertOnConflictUpdate(SyncStateCompanion.insert(key: key, value: value));
 
+  /// Removes the area's records and the pull cursor, so the next pull fetches
+  /// the whole area again. Used when an admin moves the LHW to another area
+  /// (M1 FE-3). Records still waiting in the outbox are kept.
+  Future<void> clearAreaData() => transaction(() async {
+    final queued = selectOnly(outbox)
+      ..addColumns([outbox.recordId])
+      ..where(outbox.entityTable.equals('households'));
+    await (delete(households)..where((h) => h.id.isNotInQuery(queued))).go();
+    await (delete(syncState)..where((s) => s.key.equals('last_server_seq'))).go();
+  });
+
+  /// Removes every local record, for when another user signs in on this phone.
+  /// The caller checks first that nothing is waiting to be pushed.
+  Future<void> clearAllData() => transaction(() async {
+    await delete(outbox).go();
+    await delete(households).go();
+    await delete(syncState).go();
+  });
+
   /// Number of records still waiting to be pushed (refused ones excluded).
   Future<int> pendingCount() async {
     final count = outbox.id.count();

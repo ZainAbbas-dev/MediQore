@@ -98,10 +98,6 @@
   "@syncTestTitle": {
     "description": "Title of the P0-6 sync test screen."
   },
-  "fieldUsername": "Username",
-  "@fieldUsername": {
-    "description": "Sign-in field label."
-  },
   "fieldPassword": "Password",
   "@fieldPassword": {
     "description": "Sign-in field label."
@@ -122,15 +118,6 @@
   "signInFirst": "Sign in to sync",
   "@signInFirst": {
     "description": "Shown when sync is not possible yet."
-  },
-  "signInFailed": "Sign-in failed: {reason}",
-  "@signInFailed": {
-    "description": "Shown when sign-in fails; reason is a short error code.",
-    "placeholders": {
-      "reason": {
-        "type": "String"
-      }
-    }
   },
   "createTestHousehold": "Create test household",
   "@createTestHousehold": {
@@ -284,5 +271,144 @@
   "voiceGuidanceUrduOnly": "Voice guidance works only in Urdu. Switch the app to Urdu to use it.",
   "@voiceGuidanceUrduOnly": {
     "description": "Shown where voice guidance would be offered while the app is in English (M1 FE-4, LI-6)."
+  },
+  "loginTitle": "Sign in",
+  "@loginTitle": {
+    "description": "Title of the login screen (M1 FE-2)."
+  },
+  "loginUsername": "LHW ID",
+  "@loginUsername": {
+    "description": "Login field for the username, which is the LHW ID such as LHW-00001."
+  },
+  "loginSigningIn": "Signing in…",
+  "@loginSigningIn": {
+    "description": "Shown while the sign-in is checked."
+  },
+  "loginDownloading": "Downloading your area's records…",
+  "@loginDownloading": {
+    "description": "Shown during the first sign-in while the area's records download."
+  },
+  "loginWrongPassword": "LHW ID or password is incorrect.",
+  "@loginWrongPassword": {
+    "description": "Login error: wrong username or password."
+  },
+  "loginNeedsInternet": "The first sign-in on this phone needs the internet. Connect and try again.",
+  "@loginNeedsInternet": {
+    "description": "Login error: first sign-in attempted without a connection."
+  },
+  "loginDeactivated": "This account has been deactivated. Contact your supervisor.",
+  "@loginDeactivated": {
+    "description": "Login error or notice: the account was deactivated by an admin (M1 FE-3)."
+  },
+  "loginTooManyAttempts": "Too many wrong tries. Wait a few minutes and try again.",
+  "@loginTooManyAttempts": {
+    "description": "Login error: rate limit reached."
+  },
+  "loginDeviceNotAllowed": "This phone belongs to another account or has been blocked. Contact your supervisor.",
+  "@loginDeviceNotAllowed": {
+    "description": "Login error: the phone is registered to another account."
+  },
+  "loginOtherUserData": "This phone has records from another LHW that are not synced yet. That LHW must sign in and sync first.",
+  "@loginOtherUserData": {
+    "description": "Login error: another user's unsynced records are on this phone."
+  },
+  "loginFailed": "Sign-in failed. Try again.",
+  "@loginFailed": {
+    "description": "Login error: anything else."
+  },
+  "loginLockedNotice": "The app locked after a few minutes without use. Sign in again.",
+  "@loginLockedNotice": {
+    "description": "Shown on the login screen after the inactivity auto-lock (M1 FE-2)."
+  },
+  "loginSignedOutNotice": "Signed out.",
+  "@loginSignedOutNotice": {
+    "description": "Shown on the login screen after signing out."
+  },
+  "otpTitle": "Approve this phone",
+  "@otpTitle": {
+    "description": "Title of the one-time code screen (decision 0002)."
+  },
+  "otpIntro": "This phone has not been used with your account before. Ask your supervisor or the admin for this phone's 6-digit code and type it here.",
+  "@otpIntro": {
+    "description": "Explains why the one-time code is needed and where to get it."
+  },
+  "otpPhoneId": "Phone ID ends in {suffix}",
+  "@otpPhoneId": {
+    "description": "Helps the supervisor find this phone on the portal.",
+    "placeholders": {
+      "suffix": {
+        "type": "String"
+      }
+    }
+  },
+  "otpCodeLabel": "6-digit code",
+  "@otpCodeLabel": {
+    "description": "Label of the one-time code field."
+  },
+  "otpVerifyButton": "Approve and sign in",
+  "@otpVerifyButton": {
+    "description": "Button that checks the one-time code."
+  },
+  "otpBackButton": "Back to sign-in",
+  "@otpBackButton": {
+    "description": "Button that leaves the code screen."
+  },
+  "otpInvalid": "The code is not correct.",
+  "@otpInvalid": {
+    "description": "Code error: wrong code."
+  },
+  "otpLocked": "Too many wrong codes. Ask for a new code.",
+  "@otpLocked": {
+    "description": "Code error: five wrong codes; the code is void."
+  },
+  "otpNotIssued": "No code has been issued for this phone, or it has expired. Ask your supervisor or the admin.",
+  "@otpNotIssued": {
+    "description": "Code error: no valid code exists for this phone."
+  },
+  "otpNeedsInternet": "Approving the phone needs the internet.",
+  "@otpNeedsInternet": {
+    "description": "Code error: no connection."
+  },
+  "homeLhwCode": "LHW ID: {code}",
+  "@homeLhwCode": {
+    "description": "Home screen: the signed-in LHW's ID.",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "homeArea": "Area: {area}",
+  "@homeArea": {
+    "description": "Home screen: the signed-in LHW's area.",
+    "placeholders": {
+      "area": {
+        "type": "String"
+      }
+    }
+  },
+  "homeOfflineSignIn": "Signed in without the internet. To sync, sign in again when you are connected.",
+  "@homeOfflineSignIn": {
+    "description": "Home screen note after an offline sign-in (LI-8)."
+  },
+  "homeSyncNeedsSignIn": "To sync, sign in again while connected to the internet.",
+  "@homeSyncNeedsSignIn": {
+    "description": "Shown when sync needs a fresh online sign-in."
+  },
+  "homeSyncOffline": "No internet. Your records are safe on the phone.",
+  "@homeSyncOffline": {
+    "description": "Shown when sync cannot reach the server."
+  },
+  "homeLockButton": "Lock",
+  "@homeLockButton": {
+    "description": "Button that locks the app."
+  },
+  "homeSignOutButton": "Sign out",
+  "@homeSignOutButton": {
+    "description": "Button that signs out."
+  },
+  "homeSignInAgainButton": "Sign in again",
+  "@homeSignInAgainButton": {
+    "description": "Button that returns to the login screen to sign in online."
   }
 }

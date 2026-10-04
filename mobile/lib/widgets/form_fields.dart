@@ -28,6 +28,8 @@ class AppTextField extends StatelessWidget {
     this.onChanged,
     this.keyboardType,
     this.obscureText = false,
+    this.ltr = false,
+    this.maxLength,
   });
 
   final String label;
@@ -38,6 +40,11 @@ class AppTextField extends StatelessWidget {
 
   /// Hides the text, for passwords.
   final bool obscureText;
+
+  /// Left to right even in the Urdu layout, for IDs, passwords and codes.
+  final bool ltr;
+
+  final int? maxLength;
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +58,10 @@ class AppTextField extends StatelessWidget {
           onChanged: onChanged,
           keyboardType: keyboardType,
           obscureText: obscureText,
+          textDirection: ltr ? TextDirection.ltr : null,
+          maxLength: maxLength,
+          autocorrect: !ltr,
+          enableSuggestions: !ltr && !obscureText,
           style: const TextStyle(fontSize: 20),
         ),
       ],
