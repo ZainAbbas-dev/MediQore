@@ -3,20 +3,10 @@
 // and reset the password after the "sync before reset" warning (LI-8).
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../auth/context';
+import Dialog from '../components/Dialog';
 
 const areaLabel = (a) => `${a.district} › ${a.tehsil} › ${a.unionCouncil} › ${a.name}`;
 const formatTime = (value) => (value ? new Date(value).toLocaleString() : 'Never');
-
-function Dialog({ title, children }) {
-  return (
-    <div className="dialog-backdrop">
-      <div className="dialog" role="dialog" aria-modal="true" aria-label={title}>
-        <h2>{title}</h2>
-        {children}
-      </div>
-    </div>
-  );
-}
 
 function LhwForm({ areas, lhw, onSubmit, onCancel }) {
   const [fullName, setFullName] = useState(lhw?.fullName ?? '');

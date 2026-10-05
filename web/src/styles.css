@@ -314,6 +314,8 @@ button.danger {
 
 .dialog {
   width: min(520px, 92vw);
+  max-height: 92vh;
+  overflow-y: auto;
   padding: 20px 24px;
   border-radius: 8px;
   background: var(--surface);
@@ -390,4 +392,143 @@ button.danger {
 
 .card.attention {
   border-color: #f9a825;
+}
+
+/* M10 FE-3: the admin panel. */
+.nav-heading {
+  margin: 16px 12px 4px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.toolbar.wrap {
+  flex-wrap: wrap;
+}
+
+.area-checklist {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.area-checklist input[type='search'] {
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.area-checklist-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.area-checklist-list label {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  padding: 2px 0;
+}
+
+.geography {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(200px, 1fr));
+  gap: 12px;
+  overflow-x: auto;
+}
+
+.geography-column {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.geography-column h2 {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+}
+
+.geography-column ul {
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.geography-column li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.geography-column li.chosen {
+  background: #e0f2f1;
+}
+
+.geography-column .unit-name {
+  color: var(--text);
+  text-align: left;
+}
+
+.unit-actions button {
+  padding: 2px 8px;
+  font-size: 0.8rem;
+}
+
+.add-unit {
+  display: flex;
+  gap: 6px;
+}
+
+.add-unit input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.coordinates {
+  display: flex;
+  gap: 12px;
+}
+
+.coordinates .stack {
+  flex: 1;
+}
+
+.permissions td {
+  text-align: center;
+}
+
+.permissions th[scope='row'] {
+  font-weight: normal;
+}
+
+.role-card {
+  max-width: 320px;
+}
+
+.role-card .card-value {
+  font-size: 1.3rem;
+}
+
+.audit-details {
+  font-size: 0.85rem;
+  word-break: break-word;
+}
+
+.refresh {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
