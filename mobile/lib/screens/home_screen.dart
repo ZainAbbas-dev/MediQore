@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../app_services.dart';
+import '../build_flags.dart';
 import '../l10n/app_localizations.dart';
 import '../sync/auto_sync.dart';
 import '../widgets/language_switch.dart';
@@ -175,7 +176,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 LargeButton(label: l10n.homeLockButton, icon: Icons.lock, secondary: true, onPressed: () => session.lock(null)),
                 const SizedBox(height: 12),
                 LargeButton(label: l10n.homeSignOutButton, icon: Icons.logout, secondary: true, onPressed: session.signOut),
-                if (kDebugMode) ...[
+                // The Phase 0 checks: in development and in test builds only.
+                if (kDebugMode || testBuild) ...[
                   const SizedBox(height: 24),
                   LargeButton(
                     label: l10n.devHomeTitle,

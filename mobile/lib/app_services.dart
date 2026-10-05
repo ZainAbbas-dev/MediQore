@@ -1,4 +1,5 @@
 import 'auth/password_key.dart';
+import 'build_flags.dart';
 import 'auth/session.dart';
 import 'clinical/visit_ranges.dart';
 import 'data/app_database.dart';
@@ -48,9 +49,14 @@ class AppServices {
   }
 
   /// Real services on the phone. [settings] come from [AppSettings.load] and
-  /// [visitRanges] from [VisitRanges.load].
-  factory AppServices.onDevice({required AppSettings settings, required VisitRanges visitRanges}) =>
-      AppServices(opener: EncryptedDatabaseOpener(), api: SyncApi(), settings: settings, visitRanges: visitRanges);
+  /// [visitRanges] from [VisitRanges.load]. A test build uses the server address
+  /// saved on the sign-in screen, if any.
+  factory AppServices.onDevice({required AppSettings settings, required VisitRanges visitRanges}) => AppServices(
+    opener: EncryptedDatabaseOpener(),
+    api: SyncApi(baseUrl: (testBuild ? settings.serverAddress : null) ?? apiBaseUrl),
+    settings: settings,
+    visitRanges: visitRanges,
+  );
 
   final DatabaseOpener opener;
   final SyncApi api;
@@ -84,6 +90,16 @@ class AppServices {
   /// Home visits (M3 FE-1).
   VisitRepository get visits => data.visits;
   SyncService get sync => data.sync;
+
+  /// The API address in use.
+  String get serverAddress => api.baseUrl;
+
+  /// Points the app at another server and remembers it on the phone. Only the
+  /// sign-in screen of a test build offers this (see `testBuild`).
+  Future<void> setServerAddress(String address) async {
+    api.baseUrl = address;
+    await settings.setServerAddress(address);
+  }
 
   /// Locks the session and closes the database, for example at the end of a test.
   Future<void> dispose() async {

@@ -198,5 +198,12 @@
   "voiceUnmute": "آواز چالو کریں",
   "voiceNoUrduVoice": "اس فون میں اردو آواز موجود نہیں۔ فون کی ٹیکسٹ ٹو اسپیچ سیٹنگ میں اردو آواز شامل کریں۔",
   "homeSettingsSection": "سیٹنگز",
-  "homeVisitHint": "وزٹ درج کرنے کے لیے رجسٹرڈ خواتین میں سے خاتون کی فائل کھولیں۔"
+  "homeVisitHint": "وزٹ درج کرنے کے لیے رجسٹرڈ خواتین میں سے خاتون کی فائل کھولیں۔",
+  "loginServerLabel": "سرور (ٹیسٹ ورژن)",
+  "loginServerChange": "سرور تبدیل کریں",
+  "loginServerTitle": "سرور کا پتہ",
+  "loginServerHint": "اس کمپیوٹر کا پتہ پورٹ سمیت لکھیں جس پر MediQore سرور چل رہا ہے۔",
+  "loginServerInvalid": "ایسا پتہ لکھیں جو http:// یا https:// سے شروع ہو",
+  "loginServerSave": "محفوظ کریں",
+  "loginServerCancel": "منسوخ کریں"
 }

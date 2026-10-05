@@ -46,6 +46,11 @@ From the roadmap:
 - Generate record IDs as UUID v4 on the device; order by `server_seq`, never by device clock.
 - Read clinical thresholds (danger signs, EPI, MUAC, IMCI) from versioned JSON config, never hard-code them. The visit form's ranges are in `assets/clinical/visit_ranges.json`; its `allowed` ranges must equal the server's bounds in `api/src/sync/tables.js` (`api/tests/visit-ranges.test.js` checks this).
 - Records sync on their own while the app is unlocked after an online sign-in (`AutoSync`); nothing syncs while it is locked, because the database is closed.
+- The server address is fixed at build time (`API_BASE_URL`), and release builds are HTTPS-only (M1 FE-2). The one exception is the test APK (`testBuild` in `lib/build_flags.dart`, set with `--dart-define=MEDIQORE_TEST_BUILD=true` by `.github/workflows/apk.yml`):
+  - its sign-in screen shows the server address with **Change server** (`LoginScreen.showServerSetting`, saved as `AppSettings.serverAddress`);
+  - it allows plain HTTP, because the workflow sets `MEDIQORE_ALLOW_HTTP=true` for `android/app/build.gradle.kts`;
+  - it shows the Phase 0 checks on the home screen.
+  Never ship a test build to LHWs.
 
 ## Layout
 
@@ -116,14 +121,15 @@ From the roadmap:
   - `register_screen.dart` (M2 FE-1–3): the registration form on one page. It uses a `Column` in a `SingleChildScrollView`, not a `ListView`, so every field is built and validated. Then `registration_saved_screen.dart` shows the new patient ID.
   - `patient_list_screen.dart` (M2 FE-3): search and village groups. `patient_file_screen.dart`: the pregnancy file, with "record home location" when GPS is missing, the **New visit** button for an active pregnancy and the visits with their sync state (M3).
   - `visit_screen.dart` (M3 FE-1, FE-3, P0-7 screen 4): the visit form in one `Column` in a `SingleChildScrollView`. Every vital but blood sugar is required; impossible values show the allowed range; values outside the usual range open a dialog that lists them ("correct them" or "yes, save"). The status bar is at the top and the mute toggle in the app bar (Urdu only). It closes with the saved visit, and the file shows "saved on the phone".
-  - Phase 0 checks, reached from the home screen in debug builds only:
+  - Phase 0 checks, reached from the home screen in debug builds and test APKs only:
     - `dev_home_screen.dart`: the list of checks.
     - `widget_kit_screen.dart`: the P0-2 kit preview.
     - `sync_test_screen.dart`: the P0-6 end-to-end check (create a synthetic household offline, sync with the session).
     - `voice_check_screen.dart`: the P0-11 Urdu voice check (flutter_tts).
       - It reports whether the phone's text-to-speech supports Urdu offline and speaks a sample label, only while the app is in Urdu.
       - Results go in `docs/decisions/0004-urdu-voice-source.md`.
-- `android/app/src/debug/AndroidManifest.xml` allows plain HTTP to a development server in debug builds only; release builds are HTTPS-only.
+- `android/app/build.gradle.kts` sets the manifest's `usesCleartextTraffic` placeholder: plain HTTP to a development server in debug builds, and in a release build only when `MEDIQORE_ALLOW_HTTP=true` (the test APK). Other release builds are HTTPS-only.
+- `.github/workflows/apk.yml` builds the test APK after each push to `dev` that changes `mobile/`, or on **Run workflow** with a starting server address, and attaches it to the run.
 - `android/app/src/main/AndroidManifest.xml` declares the `TTS_SERVICE` query, so flutter_tts can find the phone's text-to-speech engines on Android 11 and later.
 - `assets/fonts/JameelNooriNastaleeq.ttf`: the bundled Urdu font, declared in `pubspec.yaml` as family `JameelNooriNastaleeq`.
 - `test/`: unit and widget tests.
@@ -132,6 +138,7 @@ From the roadmap:
   - `test/support/fake_sync_server.dart` imitates the API's `/auth` (with phone approval and refresh tokens) and `/sync` endpoints.
   - `test/screens/login_flow_test.dart` runs the whole app from sign-in to home and back; `test/screens/registration_flow_test.dart` registers women offline through the screens.
   - `test/support/fake_location_service.dart` replaces the GPS and `test/support/fake_voice.dart` the text-to-speech (it records what would be spoken); `testServices` uses both by default. `FakeSyncServer.holdIds` makes the server hold records as same-day conflicts, and `resolveHeld` plays the supervisor's decision.
+  - `test/screens/server_setting_test.dart` changes the test build's server address on a small phone in both languages.
   - `test/screens/visit_flow_test.dart` records visits through the screens: required and impossible values, the range dialog, voice guidance on focus, mute and English, and a held visit.
   - Drift, the password key isolate and the fake HTTP client run outside the widget test clock: wrap those actions in `tester.runAsync`. To test the auto-lock timer, sign in before `pumpWidget`, so the timer starts on the test clock.
   - `test/e2e/sync_e2e_test.dart` runs against a real API when given `--dart-define=E2E_API_BASE_URL=...`; it approves its test phones as `admin.demo`, registers synthetic women, records visits and makes one same-day conflict, which it decides as the admin.
@@ -150,4 +157,7 @@ flutter test                # unit and widget tests (CI)
 # Run against the API on your laptop (find its Wi-Fi address with ipconfig):
 flutter run --dart-define=API_BASE_URL=http://192.168.1.10:3000/api/v1   # real phone, same Wi-Fi
 flutter run                                                              # emulator: defaults to http://10.0.2.2:3000/api/v1
+
+# The test APK, as .github/workflows/apk.yml builds it (needs the Android SDK; bash):
+MEDIQORE_ALLOW_HTTP=true flutter build apk --release --dart-define=MEDIQORE_TEST_BUILD=true --dart-define=API_BASE_URL=http://192.168.1.10:3000/api/v1
 ```

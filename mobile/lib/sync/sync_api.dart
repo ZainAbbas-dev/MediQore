@@ -95,10 +95,13 @@ class LoginOutcome {
 
 /// The `/auth` and `/sync` endpoints (docs/openapi.yaml).
 class SyncApi {
-  SyncApi({http.Client? client, this._baseUrl = apiBaseUrl}) : _client = client ?? http.Client();
+  SyncApi({http.Client? client, this.baseUrl = apiBaseUrl}) : _client = client ?? http.Client();
 
   final http.Client _client;
-  final String _baseUrl;
+
+  /// The API address, ending in `/api/v1`. Only a test build changes it after
+  /// start (AppServices.setServerAddress).
+  String baseUrl;
 
   static const Duration _timeout = Duration(seconds: 30);
 
@@ -151,7 +154,7 @@ class SyncApi {
       (await _sendWithStatus(method, path, token: token, body: body)).$2;
 
   Future<(int, Map<String, dynamic>)> _sendWithStatus(String method, String path, {String? token, Object? body}) async {
-    final request = http.Request(method, Uri.parse('$_baseUrl$path'))
+    final request = http.Request(method, Uri.parse('$baseUrl$path'))
       ..headers['Accept'] = 'application/json';
     if (token != null) request.headers['Authorization'] = 'Bearer $token';
     if (body != null) {

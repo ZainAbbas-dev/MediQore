@@ -1,0 +1,89 @@
+name: Test APK
+
+# A test build of the LHW app that installs on any Android phone (M1 FE-2).
+# See "Test APK: install the app on any phone" in docs/local-setup.md.
+# Testers can type the server address on its sign-in screen and it allows plain
+# HTTP, so the app can reach the API on a laptop on the same Wi-Fi. It also
+# shows the Phase 0 checks.
+# It is signed with a debug key, never a build for LHWs: their builds use one
+# HTTPS address fixed at build time (M1 FE-2).
+#
+# The APK is attached to the run as an artifact. "Run workflow" can set the
+# address the app starts with; otherwise it is the repository variable
+# MEDIQORE_API_BASE_URL, if set, or a typical laptop address on home Wi-Fi.
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/apk.yml'
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: 'Server address the app starts with, for example http://192.168.1.10:3000/api/v1 (testers can change it on the sign-in screen)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    name: test APK (Android)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # The same debug key for every build, so a new test APK installs over the
+      # old one and keeps the phone's data. The key stays in the Actions cache,
+      # never in git. When the cache expires (7 days without a build), the next
+      # APK has a new key and the old app must be uninstalled first.
+      - name: Reuse the debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: mediqore-test-apk-debug-keystore-v1
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build the test APK
+        env:
+          MEDIQORE_ALLOW_HTTP: 'true'
+          INPUT_API_BASE_URL: ${{ inputs.api_base_url }}
+          VAR_API_BASE_URL: ${{ vars.MEDIQORE_API_BASE_URL }}
+        run: |
+          API_BASE_URL="${INPUT_API_BASE_URL:-${VAR_API_BASE_URL:-http://192.168.1.10:3000/api/v1}}"
+          echo "The app starts with the server address $API_BASE_URL"
+          flutter build apk --release \
+            --dart-define=API_BASE_URL="$API_BASE_URL" \
+            --dart-define=MEDIQORE_TEST_BUILD=true
+          mkdir -p build/test-apk
+          cp build/app/outputs/flutter-apk/app-release.apk "build/test-apk/mediqore-test-${GITHUB_SHA::7}.apk"
+          ls -l build/test-apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mediqore-test-apk-${{ github.sha }}
+          path: mobile/build/test-apk/*.apk
+          if-no-files-found: error
+          retention-days: 30

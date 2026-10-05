@@ -27,9 +27,19 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Plain HTTP is refused: the app talks to the server over HTTPS only
+        // (M1 FE-2). Exceptions: debug builds (below) and the test APK built by
+        // .github/workflows/apk.yml, which sets MEDIQORE_ALLOW_HTTP=true so
+        // testers can use a server on a laptop on the same Wi-Fi.
+        manifestPlaceholders["usesCleartextTraffic"] = (System.getenv("MEDIQORE_ALLOW_HTTP") == "true").toString()
     }
 
     buildTypes {
+        debug {
+            // The API on the development machine, for example http://10.0.2.2:3000.
+            manifestPlaceholders["usesCleartextTraffic"] = "true"
+        }
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.

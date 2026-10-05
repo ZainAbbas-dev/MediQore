@@ -41,6 +41,9 @@ class FakeSyncServer {
   final Set<String> validRefreshTokens = {};
   final List<String> requests = [];
 
+  /// The full address of each request, to check which server the app called.
+  final List<Uri> urls = [];
+
   final Map<String, Map<String, dynamic>> records = {};
   final List<List<Map<String, dynamic>>> pushedBatches = [];
   final Set<String> rejectIds = {};
@@ -89,6 +92,7 @@ class FakeSyncServer {
     if (offline) throw http.ClientException('no network');
     final path = request.url.path;
     requests.add('${request.method} ${path.replaceFirst('/api/v1', '')}');
+    urls.add(request.url);
     final body = request.body.isEmpty ? <String, dynamic>{} : jsonDecode(request.body) as Map<String, dynamic>;
 
     if (path.endsWith('/auth/login') || path.endsWith('/auth/otp/verify')) {

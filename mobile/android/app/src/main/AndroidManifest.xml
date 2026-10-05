@@ -4,10 +4,13 @@
     <!-- Home location with GPS at registration (M2 FE-3), only while the app is open. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- usesCleartextTraffic is false (HTTPS only, M1 FE-2) except in debug
+         builds and test builds: see app/build.gradle.kts. -->
     <application
         android:label="MediQore"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="${usesCleartextTraffic}">
         <activity
             android:name=".MainActivity"
             android:exported="true"

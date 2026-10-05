@@ -63,4 +63,15 @@ void main() {
     expect(AppSettings(store: store).voiceMuted, isTrue, reason: 'read back on the next app start');
     expect(AppSettings.storedKeys, contains('voice_guidance_muted'));
   });
+
+  test('a test build\'s server address is saved on the phone', () async {
+    final store = MemorySettingsStore();
+    final settings = AppSettings(store: store);
+    expect(settings.serverAddress, isNull, reason: 'the build-time address until one is chosen');
+
+    await settings.setServerAddress('http://192.168.1.20:3000/api/v1');
+
+    expect(AppSettings(store: store).serverAddress, 'http://192.168.1.20:3000/api/v1', reason: 'read back on the next app start');
+    expect(AppSettings.storedKeys, contains('server_address'));
+  });
 }

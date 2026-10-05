@@ -73,6 +73,7 @@ class AppSettings extends ChangeNotifier {
   static const String _deviceIdKey = 'device_id';
   static const String _pendingRecordsKey = 'pending_records';
   static const String _voiceMutedKey = 'voice_guidance_muted';
+  static const String _serverAddressKey = 'server_address';
 
   /// Where the signed-in account is kept for offline login (see LocalAccount).
   static const String localAccountKey = 'local_account';
@@ -84,6 +85,7 @@ class AppSettings extends ChangeNotifier {
     localAccountKey,
     _pendingRecordsKey,
     _voiceMutedKey,
+    _serverAddressKey,
   };
 
   static String _newDeviceId(SettingsStore store) {
@@ -122,6 +124,12 @@ class AppSettings extends ChangeNotifier {
     await _store.setString(_voiceMutedKey, '$muted');
     notifyListeners();
   }
+
+  /// The server address a test build was pointed at on the sign-in screen, or
+  /// null for the address fixed at build time (see `testBuild`).
+  String? get serverAddress => _store.getString(_serverAddressKey);
+
+  Future<void> setServerAddress(String address) => _store.setString(_serverAddressKey, address);
 
   /// The same rule for a screen that only knows its locale, for example
   /// `Localizations.localeOf(context)`.

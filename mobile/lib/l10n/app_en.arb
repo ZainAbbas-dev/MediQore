@@ -905,5 +905,33 @@
   "homeVisitHint": "To record a visit, open the woman's file from Registered women.",
   "@homeVisitHint": {
     "description": "Home screen hint: how to record a visit."
+  },
+  "loginServerLabel": "Server (test build)",
+  "@loginServerLabel": {
+    "description": "Test builds only: heading of the server address on the sign-in screen."
+  },
+  "loginServerChange": "Change server",
+  "@loginServerChange": {
+    "description": "Test builds only: button that opens the server address dialog."
+  },
+  "loginServerTitle": "Server address",
+  "@loginServerTitle": {
+    "description": "Test builds only: title of the server address dialog."
+  },
+  "loginServerHint": "Type the address of the computer that runs the MediQore server, with its port.",
+  "@loginServerHint": {
+    "description": "Test builds only: explanation in the server address dialog."
+  },
+  "loginServerInvalid": "Type an address that starts with http:// or https://",
+  "@loginServerInvalid": {
+    "description": "Test builds only: the typed server address is not valid."
+  },
+  "loginServerSave": "Save",
+  "@loginServerSave": {
+    "description": "Test builds only: saves the server address."
+  },
+  "loginServerCancel": "Cancel",
+  "@loginServerCancel": {
+    "description": "Test builds only: closes the server address dialog without changing it."
   }
 }
