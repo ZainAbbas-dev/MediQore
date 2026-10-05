@@ -79,6 +79,8 @@ Run the task **MediQore: start API + portal**. Two terminals open, one for the A
 | `syn.admin` | Households from every area. The Phase 0 list stops at 200. |
 | `admin.demo` or `syn.admin` | Also **LHW accounts** (add an LHW, edit, deactivate, reset the password) and **Phone approvals** (M1) |
 | `syn.sup.01` → **Registered women** | The synthetic pregnant women in that supervisor's areas, with their obstetric history and visit count (M2, M3) |
+| `syn.sup.01` → **Dashboard** | Below the map, **LHW activity**: each LHW of the supervisor's areas with visits this week and in total, women registered, last visit, last sync and last sign-in. Choose a district, Union Council, LHW or period: the map and the households table follow. The page reloads itself every 5 minutes (M10) |
+| `syn.admin` → **Administration** | **Supervisors and admins** (add a supervisor, tick their areas, the password is shown once), **Areas** (add, rename and delete districts, tehsils, Union Councils and areas; a district still in use cannot be deleted), **Hospitals** (a DHQ per district and a THQ per tehsil from the synthetic data; add one), **Roles** (what each role may do) and **Audit log** (everything you just did, with your username) (M10) |
 | `syn.sup.01` → **Sync conflicts** | Visits held because the same pregnancy already had a visit that day, each next to the stored visit with the differences highlighted. Decide one: it moves to **Decided** and the dashboard count drops (M3) |
 | `supervisor.demo` | No households yet, until the phone syncs one in step 7. **Phone approvals** lists phones of LHWs in the supervisor's areas. |
 | `lhw.demo` | Refused: the portal is for supervisors and admins |
@@ -95,9 +97,9 @@ Run the task **MediQore: run all tests (db, api, web)**. You should see the same
 
 | Part | Expected |
 |---|---|
-| `db` | 21 passed |
-| `api` | lint clean, 128 passed |
-| `web` | lint clean, 38 passed, build succeeds |
+| `db` | 22 passed |
+| `api` | lint clean, 164 passed |
+| `web` | lint clean, 53 passed, build succeeds |
 
 After step 7, the task **mobile: analyze and test** should show "No issues found" and 141 tests passed, with four skipped (the opt-in end-to-end tests).
 

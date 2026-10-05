@@ -148,6 +148,7 @@ M10 FE-1. This is the base version; Phase 2 adds the risk distribution chart, re
   - auto-refresh every 5 minutes, plus a manual reload button.
 - **Layout:** sidebar and header as in the P0-5 portal; the signed-in supervisor and their areas.
 - **States to design:** no data yet, loading, API unreachable.
+- **Built (Module 10 base):** cards for registered women, visits this week, sync conflicts to review and households. The LHW visit counts and last login are a table under the map, one row per LHW: visits this week and in total, women registered, last visit, last sync and last sign-in. The filters (district, Union Council, LHW, period) sit above the map; district and Union Council also narrow the LHW table. "Updated … ; refreshes every 5 minutes" and a Reload button are at the top right. If one part fails to load, the others still show, with the error above.
 
 ### 6. Admin lists (web)
 
@@ -161,3 +162,4 @@ M10 FE-3, M1 FE-1, FE-3. One screen with tabs; each tab is a filterable table wi
 - **Hospitals and referral centres:** name, type, district, phone, location.
 - **Audit log:** filters by user, action and date (roadmap, Module 10 base).
 - **Related supervisor screen, not in the P0-7 list:** the sync conflict review queue (M3 FE-2). Plan where it sits in the navigation.
+- **Built (Module 10 base):** separate pages instead of tabs, under an **Administration** heading in the sidebar that only admins see: LHW accounts, Supervisors and admins, Areas (four columns: district, tehsil, Union Council, area), Hospitals (hospitals and referral centres as two tabs), Roles (what each fixed role may do) and Audit log. The sync conflict queue is in the main navigation, after Registered women.

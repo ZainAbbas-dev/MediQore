@@ -50,6 +50,12 @@ The app syncs with a central server whenever a connection is available. Supervis
 > - in Urdu, each field's label is read aloud when it gets focus, with a mute switch; off in English (FE-3);
 > - the dashboard shows visits this week and the conflicts waiting for review.
 >
+> **Phase 1, Module 10 base (supervisor portal and admin panel), built on `dev` and waiting for review:**
+> - dashboard: registered women, visits this week, conflicts to review and households; each LHW's visits, registrations, last sync and last sign-in; the household map filtered by district, Union Council, LHW and period, refreshing every 5 minutes (FE-1);
+> - admin panel: the district, tehsil, Union Council and area structure; LHW, supervisor and admin accounts; hospitals and referral centres; the roles and what each may do (FE-3);
+> - audit log viewer: every create, edit, delete, sign-in and sync conflict with who and when, filtered by user, action, record and date (FE-3);
+> - supervisors see only their areas everywhere; administration is for admins only.
+>
 > **Data notice:** MediQore is developed and demonstrated on synthetic data only. No real patient data is used before IEC approval (LI-10). AI results are decision support, not a clinical diagnosis (LI-5).
 
 ## Components
@@ -57,9 +63,9 @@ The app syncs with a central server whenever a connection is available. Supervis
 | Part | Folder | Stack | Status |
 |---|---|---|---|
 | LHW Android app (Modules 1–9) | [`mobile/`](mobile/) | Flutter 3.x, Drift + SQLCipher, ONNX Runtime | Urdu shell and widget kit (P0-2); local database, outbox and sync (P0-6); sign-in, phone approval, offline sign-in and auto-lock (M1); registration, patient list and pregnancy file (M2); encrypted database, visit form, automatic sync and voice guidance (M3) |
-| REST API | [`api/`](api/) | Node.js 20 + Express, JWT, Joi | Skeleton (P0-3); `/sync` push/pull (P0-6); login with phone approval, refresh tokens, LHW accounts, phone approvals (M1); registrations through `/sync` and `GET /women` (M2); visits through `/sync`, the same-day conflict queue and the dashboard summary (M3) |
-| Database | [`db/`](db/) | PostgreSQL 15 migrations and synthetic seed scripts | Schema v1 for all ten modules (P0-4); demo seed; synthetic data generator (P0-8); LHW ID numbering and the previous area after a reassignment (M1) |
-| Supervisor and admin portal (Module 10) | [`web/`](web/) | React 18 + Leaflet.js | Login, auth guard, sidebar layout, map dashboard (P0-5); LHW accounts and phone approvals (M1); registered women (M2); sync conflict review queue, visits on the dashboard (M3) |
+| REST API | [`api/`](api/) | Node.js 20 + Express, JWT, Joi | Skeleton (P0-3); `/sync` push/pull (P0-6); login with phone approval, refresh tokens, LHW accounts, phone approvals (M1); registrations through `/sync` and `GET /women` (M2); visits through `/sync`, the same-day conflict queue and the dashboard summary (M3); role permissions, admin panel, audit log, LHW activity and map filters (M10 base) |
+| Database | [`db/`](db/) | PostgreSQL 15 migrations and synthetic seed scripts | Schema v1 for all ten modules (P0-4); demo seed; synthetic data generator (P0-8); LHW ID numbering and the previous area after a reassignment (M1); held conflicts and hospitals in the synthetic data (M3, M10) |
+| Supervisor and admin portal (Module 10) | [`web/`](web/) | React 18 + Leaflet.js | Login, auth guard, sidebar layout, map dashboard (P0-5); LHW accounts and phone approvals (M1); registered women (M2); sync conflict review queue, visits on the dashboard (M3); LHW activity, map filters and auto-refresh, admin panel and audit log (M10 base) |
 | ML pipeline and analytics worker | [`ml/`](ml/) | Python 3.11, scikit-learn, SHAP, sklearn2onnx | Dataset download and exploratory notebook (P0-10); training in Phase 2 |
 
 ## Repository layout

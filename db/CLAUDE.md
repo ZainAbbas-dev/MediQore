@@ -16,7 +16,7 @@ PostgreSQL 15 schema for all ten modules (roadmap P0-4), managed with node-pg-mi
 - `migrations/`: plain SQL migrations, one file per table group of the roadmap's data model. Each file has an `-- Up Migration` section and an `-- Down Migration` section.
 - `tests/`: run against `DATABASE_URL` after the migrations, and every test rolls back its data.
   - `schema.test.js`: checks the schema against the rules below.
-  - `synthetic.test.js`: checks the generator (same seed gives the same data, area and date consistency, units and ranges) and loads it into the schema.
+  - `synthetic.test.js`: checks the generator (same seed gives the same data, area and date consistency, units and ranges, held conflicts, hospitals) and loads it into the schema.
 - `seeds/demo.js` (`npm run seed:demo`): minimal synthetic accounts for local end-to-end testing.
   - It creates one area, `admin.demo`, `supervisor.demo` (assigned to the area) and `lhw.demo` (in the area).
   - The password is `demo-password` unless you set `DEMO_PASSWORD`. It is for local development only.
