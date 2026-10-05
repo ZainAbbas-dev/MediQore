@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: MediQore REST API
-  version: 0.5.0
+  version: 0.6.0
   description: |
-    REST API for the MediQore LHW app and the supervisor/admin portal (roadmap P0-3, P0-6; Phase 1 Module 1: M1 FE-1–3; M3 FE-2).
+    REST API for the MediQore LHW app and the supervisor/admin portal (roadmap P0-3, P0-6; Phase 1: M1 FE-1–3, M2, M3 FE-2, M10 base).
 
     Conventions (see CLAUDE.md):
     - Every route is under `/api/v1` and exchanges JSON.
@@ -17,6 +17,7 @@ info:
     - Failed sign-ins are rate-limited per client address and username (429 TOO_MANY_ATTEMPTS with Retry-After).
     - HTTPS only in production: plain HTTP is refused with 403 HTTPS_REQUIRED.
     - Records are scoped by area: an LHW sees only her area, a supervisor only their assigned areas.
+    - Each route checks a permission, and each permission belongs to fixed roles (M10 FE-3, see GET /admin/roles).
 
     Document every new route here in the same pull request that adds it.
 servers:
@@ -39,9 +40,11 @@ tags:
   - name: Conflicts
     description: The supervisor's sync conflict review queue (M3 FE-2, M10 base)
   - name: Dashboard
-    description: Dashboard counts (M10 FE-1, Phase 1 base)
+    description: Dashboard counts, LHW activity and filters (M10 FE-1, Phase 1 base)
   - name: Admin
-    description: LHW accounts, managed by admins (M1 FE-1, FE-3)
+    description: LHW accounts (M1 FE-1, FE-3) and the admin panel (M10 FE-3)
+  - name: Audit
+    description: The audit log viewer (M10 FE-3)
   - name: Devices
     description: Phones waiting for approval and their one-time codes (M1 FE-2)
 paths:
@@ -328,7 +331,7 @@ paths:
     get:
       tags: [Households]
       summary: Households visible to a supervisor or admin
-      description: A supervisor sees only their assigned areas; an admin sees all. Newest first; deleted households are left out.
+      description: A supervisor sees only their assigned areas; an admin sees all. Newest first; deleted households are left out. The dashboard map filters them (M10 FE-1).
       operationId: listHouseholds
       parameters:
         - name: limit
@@ -338,6 +341,29 @@ paths:
             minimum: 1
             maximum: 500
             default: 200
+        - name: districtId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: unionCouncilId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: lhwId
+          in: query
+          description: The LHW who registered the household.
+          schema:
+            type: string
+            format: uuid
+        - name: days
+          in: query
+          description: Time period. Households the server received in the last so many days (server time, never the phone's clock).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 366
       responses:
         '200':
           description: Households.
@@ -510,6 +536,61 @@ paths:
                     type: integer
                   pendingConflicts:
                     type: integer
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+
+  /dashboard/filters:
+    get:
+      tags: [Dashboard]
+      summary: The districts, Union Councils and LHWs the viewer can filter by
+      description: Within the supervisor's areas; every one for an admin.
+      operationId: dashboardFilters
+      responses:
+        '200':
+          description: Filter options.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardFilters'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+
+  /dashboard/lhw-activity:
+    get:
+      tags: [Dashboard]
+      summary: Visit counts, registrations, last sync and last login per LHW (M10 FE-1)
+      description: Counts are by the LHW who made the records. Visit times come from the phone and are only counted; last sync is server time.
+      operationId: lhwActivity
+      parameters:
+        - name: districtId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: unionCouncilId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: LHWs, ordered by district, Union Council and LHW ID.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [lhws]
+                properties:
+                  lhws:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LhwActivity'
+        '400':
+          $ref: '#/components/responses/Error'
         '401':
           $ref: '#/components/responses/Error'
         '403':
@@ -691,6 +772,583 @@ paths:
         '404':
           $ref: '#/components/responses/Error'
 
+  /admin/staff:
+    get:
+      tags: [Admin]
+      summary: List supervisor and admin accounts (M10 FE-3)
+      operationId: listStaff
+      parameters:
+        - name: search
+          in: query
+          description: Part of the name or username.
+          schema:
+            type: string
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [supervisor, admin]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, all]
+            default: all
+      responses:
+        '200':
+          description: Accounts.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [staff]
+                properties:
+                  staff:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Staff'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+    post:
+      tags: [Admin]
+      summary: Create a supervisor or admin account
+      description: The admin chooses the username; the password is random, returned once and stored only as a hash. A supervisor needs at least one area.
+      operationId: createStaff
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role, username, fullName]
+              properties:
+                role:
+                  type: string
+                  enum: [supervisor, admin]
+                username:
+                  type: string
+                  pattern: '^[a-z][a-z0-9._-]{2,31}$'
+                  description: Stored in lower case.
+                fullName:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                phone:
+                  type: string
+                areaIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffWithCredentials'
+        '400':
+          description: VALIDATION_ERROR, AREAS_REQUIRED or UNKNOWN_AREA.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: USERNAME_TAKEN.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/staff/{id}:
+    patch:
+      tags: [Admin]
+      summary: Change the name, phone, role or areas of a supervisor or admin
+      description: A role change signs the account out. An admin cannot change their own role (OWN_ACCOUNT), and the last active admin stays an admin (LAST_ADMIN). Areas are replaced by the list given.
+      operationId: updateStaff
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                role:
+                  type: string
+                  enum: [supervisor, admin]
+                fullName:
+                  type: string
+                phone:
+                  type: string
+                areaIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        '200':
+          $ref: '#/components/responses/StaffResult'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+
+  /admin/staff/{id}/deactivate:
+    post:
+      tags: [Admin]
+      summary: Deactivate a supervisor or admin; their refresh tokens are revoked
+      description: Not your own account (OWN_ACCOUNT), and not the last active admin (LAST_ADMIN).
+      operationId: deactivateStaff
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/StaffResult'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+
+  /admin/staff/{id}/activate:
+    post:
+      tags: [Admin]
+      summary: Reactivate a supervisor or admin
+      operationId: activateStaff
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/StaffResult'
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /admin/staff/{id}/reset-password:
+    post:
+      tags: [Admin]
+      summary: Reset a supervisor's or admin's password; returned once, refresh tokens revoked
+      operationId: resetStaffPassword
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: The new credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffWithCredentials'
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /admin/roles:
+    get:
+      tags: [Admin]
+      summary: The fixed roles and what each may do (M10 FE-3)
+      description: The same permission list every route checks.
+      operationId: listRoles
+      responses:
+        '200':
+          description: Roles and permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [roles, permissions]
+                properties:
+                  roles:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, label, description]
+                      properties:
+                        id:
+                          type: string
+                          enum: [lhw, supervisor, admin]
+                        label:
+                          type: string
+                        description:
+                          type: string
+                  permissions:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, label, roles]
+                      properties:
+                        id:
+                          type: string
+                          example: audit.view
+                        label:
+                          type: string
+                        roles:
+                          type: array
+                          items:
+                            type: string
+                            enum: [lhw, supervisor, admin]
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+
+  /admin/geography:
+    get:
+      tags: [Admin]
+      summary: The district > tehsil > Union Council > area tree (M10 FE-3)
+      description: Deleted units are left out. Each area says how many LHWs and supervisors it has.
+      operationId: geographyTree
+      responses:
+        '200':
+          description: The tree, each level ordered by name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeographyTree'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+
+  /admin/geography/{level}:
+    post:
+      tags: [Admin]
+      summary: Add a district, tehsil, Union Council or area
+      description: Below district level, parentId is the unit above. Names are unique among siblings (case-insensitive); a name that belonged to a deleted sibling brings that unit back with its ID.
+      operationId: createUnit
+      parameters:
+        - $ref: '#/components/parameters/Level'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                parentId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          $ref: '#/components/responses/UnitResult'
+        '400':
+          description: VALIDATION_ERROR or UNKNOWN_PARENT.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: DUPLICATE_NAME.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/geography/{level}/{id}:
+    patch:
+      tags: [Admin]
+      summary: Rename a unit
+      operationId: renameUnit
+      parameters:
+        - $ref: '#/components/parameters/Level'
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+      responses:
+        '200':
+          $ref: '#/components/responses/UnitResult'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Admin]
+      summary: Delete a unit (soft delete), only when nothing uses it
+      description: Refused with 409 IN_USE while it has children, accounts, facilities or records; details.uses says what.
+      operationId: deleteUnit
+      parameters:
+        - $ref: '#/components/parameters/Level'
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+
+  /admin/hospitals:
+    get:
+      tags: [Admin]
+      summary: List hospitals (M10 FE-3)
+      operationId: listHospitals
+      parameters:
+        - name: districtId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: search
+          in: query
+          description: Part of the name or type.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Hospitals, ordered by district and name.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [facilities]
+                properties:
+                  facilities:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Facility'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+    post:
+      tags: [Admin]
+      summary: Add a hospital
+      description: Each serves a district, and optionally one area in it. The server numbers it (serverSeq), so phones can pull it later (M5 FE-1).
+      operationId: createHospital
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FacilityInput'
+      responses:
+        '201':
+          $ref: '#/components/responses/FacilityResult'
+        '400':
+          description: VALIDATION_ERROR, UNKNOWN_DISTRICT or AREA_NOT_IN_DISTRICT.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+
+  /admin/hospitals/{id}:
+    patch:
+      tags: [Admin]
+      summary: Change a hospital
+      operationId: updateHospital
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FacilityInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/FacilityResult'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Admin]
+      summary: Delete a hospital (soft delete)
+      operationId: deleteHospital
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /admin/referral-centres:
+    get:
+      tags: [Admin]
+      summary: List referral centres (M10 FE-3)
+      operationId: listReferralCentres
+      parameters:
+        - name: districtId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: search
+          in: query
+          description: Part of the name or type.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Referral centres, ordered by district and name.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [facilities]
+                properties:
+                  facilities:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Facility'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+    post:
+      tags: [Admin]
+      summary: Add a referral centre
+      description: A referral centre needs a type, for example Nutrition Rehabilitation Centre. The server numbers it (serverSeq), so phones can pull it later (M5 FE-1).
+      operationId: createReferralCentre
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FacilityInput'
+      responses:
+        '201':
+          $ref: '#/components/responses/FacilityResult'
+        '400':
+          description: VALIDATION_ERROR, UNKNOWN_DISTRICT or AREA_NOT_IN_DISTRICT.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+
+  /admin/referral-centres/{id}:
+    patch:
+      tags: [Admin]
+      summary: Change a referral centre
+      operationId: updateReferralCentre
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FacilityInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/FacilityResult'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Admin]
+      summary: Delete a referral centre (soft delete)
+      operationId: deleteReferralCentre
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Deleted.
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /admin/audit:
+    get:
+      tags: [Audit]
+      summary: The audit log, newest first (M10 FE-3)
+      description: Every create, edit, delete, referral, alert, login and sync conflict, with the user and time. Dates are whole days, Pakistan time. Page back with `before` = `nextBefore`.
+      operationId: listAudit
+      parameters:
+        - name: user
+          in: query
+          description: Part of the username or name of who did it.
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+            enum: [create, edit, delete, referral, alert, login, sync_conflict]
+        - name: entityType
+          in: query
+          description: The record type (table name), for example users or visits.
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: before
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        '200':
+          description: A page of entries, with the filter choices.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [entries, nextBefore, actions, entityTypes]
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditEntry'
+                  nextBefore:
+                    type: [integer, 'null']
+                    description: Pass as `before` for the next page; null on the last page.
+                  actions:
+                    type: array
+                    items:
+                      type: string
+                  entityTypes:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+
   /devices/pending:
     get:
       tags: [Devices]
@@ -759,6 +1417,13 @@ components:
       schema:
         type: string
         format: uuid
+    Level:
+      name: level
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [districts, tehsils, union-councils, areas]
   securitySchemes:
     bearerAuth:
       type: http
@@ -782,6 +1447,46 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+    StaffResult:
+      description: The account after the change.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [staff]
+            properties:
+              staff:
+                $ref: '#/components/schemas/Staff'
+    UnitResult:
+      description: The unit.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [unit]
+            properties:
+              unit:
+                type: object
+                required: [id, name, parentId]
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                  parentId:
+                    type: [string, 'null']
+                    format: uuid
+    FacilityResult:
+      description: The hospital or referral centre.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [facility]
+            properties:
+              facility:
+                $ref: '#/components/schemas/Facility'
     LhwResult:
       description: The LHW after the change.
       content:
@@ -976,6 +1681,285 @@ components:
               type: string
             password:
               type: string
+
+    Staff:
+      type: object
+      required: [id, role, username, fullName, isActive, areas]
+      properties:
+        id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [supervisor, admin]
+        username:
+          type: string
+        fullName:
+          type: string
+        phone:
+          type: [string, 'null']
+        isActive:
+          type: boolean
+        lastLoginAt:
+          type: [string, 'null']
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        areas:
+          type: array
+          description: A supervisor's areas; empty for an admin.
+          items:
+            $ref: '#/components/schemas/AreaOption'
+
+    StaffWithCredentials:
+      type: object
+      required: [staff, credentials]
+      properties:
+        staff:
+          $ref: '#/components/schemas/Staff'
+        credentials:
+          type: object
+          required: [username, password]
+          description: Shown to the admin once; never stored in plain text.
+          properties:
+            username:
+              type: string
+            password:
+              type: string
+
+    GeographyTree:
+      type: object
+      required: [districts]
+      properties:
+        districts:
+          type: array
+          items:
+            type: object
+            required: [id, name, tehsils]
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              tehsils:
+                type: array
+                items:
+                  type: object
+                  required: [id, name, unionCouncils]
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                    name:
+                      type: string
+                    unionCouncils:
+                      type: array
+                      items:
+                        type: object
+                        required: [id, name, areas]
+                        properties:
+                          id:
+                            type: string
+                            format: uuid
+                          name:
+                            type: string
+                          areas:
+                            type: array
+                            items:
+                              type: object
+                              required: [id, name, lhws, supervisors]
+                              properties:
+                                id:
+                                  type: string
+                                  format: uuid
+                                name:
+                                  type: string
+                                lhws:
+                                  type: integer
+                                supervisors:
+                                  type: integer
+
+    FacilityInput:
+      type: object
+      description: Required on create - name, districtId, and type for a referral centre. Give latitude and longitude together. Empty text is stored as null.
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 150
+        type:
+          type: [string, 'null']
+          description: Hospital - for example DHQ or THQ. Referral centre - for example Nutrition Rehabilitation Centre.
+        districtId:
+          type: string
+          format: uuid
+        areaId:
+          type: [string, 'null']
+          format: uuid
+          description: Optional; must be in the district.
+        address:
+          type: [string, 'null']
+        phone:
+          type: [string, 'null']
+        latitude:
+          type: [number, 'null']
+        longitude:
+          type: [number, 'null']
+
+    Facility:
+      type: object
+      required: [id, name, district, serverSeq]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: [string, 'null']
+        address:
+          type: [string, 'null']
+        phone:
+          type: [string, 'null']
+        latitude:
+          type: [number, 'null']
+        longitude:
+          type: [number, 'null']
+        district:
+          $ref: '#/components/schemas/NamedRef'
+        area:
+          oneOf:
+            - $ref: '#/components/schemas/NamedRef'
+            - type: 'null'
+        serverSeq:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+
+    AuditEntry:
+      type: object
+      required: [id, occurredAt, action, details]
+      properties:
+        id:
+          type: integer
+        occurredAt:
+          type: string
+          format: date-time
+        action:
+          type: string
+          enum: [create, edit, delete, referral, alert, login, sync_conflict]
+        entityType:
+          type: [string, 'null']
+        entityId:
+          type: [string, 'null']
+          format: uuid
+        entityLabel:
+          type: [string, 'null']
+          description: For accounts, the username.
+        deviceId:
+          type: [string, 'null']
+          format: uuid
+        details:
+          type: object
+        user:
+          description: Who did it; null when unknown, for example a failed sign-in.
+          oneOf:
+            - type: 'null'
+            - type: object
+              required: [id, username, fullName, role]
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                username:
+                  type: string
+                fullName:
+                  type: string
+                role:
+                  type: string
+
+    LhwActivity:
+      type: object
+      required: [id, lhwCode, fullName, isActive, area, unionCouncil, district, visitsThisWeek, visitsTotal, womenRegistered]
+      properties:
+        id:
+          type: string
+          format: uuid
+        lhwCode:
+          type: string
+        fullName:
+          type: string
+        isActive:
+          type: boolean
+        area:
+          type: string
+        unionCouncil:
+          type: string
+        district:
+          type: string
+        visitsThisWeek:
+          type: integer
+          description: This week starts on Monday, Pakistan time.
+        visitsTotal:
+          type: integer
+        womenRegistered:
+          type: integer
+        lastVisitAt:
+          type: [string, 'null']
+          format: date-time
+          description: The phone's clock.
+        lastSyncAt:
+          type: [string, 'null']
+          format: date-time
+          description: When the server last received one of her records.
+        lastLoginAt:
+          type: [string, 'null']
+          format: date-time
+
+    DashboardFilters:
+      type: object
+      required: [districts, unionCouncils, lhws]
+      properties:
+        districts:
+          type: array
+          items:
+            $ref: '#/components/schemas/NamedRef'
+        unionCouncils:
+          type: array
+          items:
+            type: object
+            required: [id, name, districtId]
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              districtId:
+                type: string
+                format: uuid
+        lhws:
+          type: array
+          items:
+            type: object
+            required: [id, lhwCode, fullName, unionCouncilId, districtId]
+            properties:
+              id:
+                type: string
+                format: uuid
+              lhwCode:
+                type: string
+              fullName:
+                type: string
+              unionCouncilId:
+                type: string
+                format: uuid
+              districtId:
+                type: string
+                format: uuid
 
     PendingDevice:
       type: object
@@ -1443,6 +2427,11 @@ components:
           format: uuid
         areaName:
           type: string
+        unionCouncilName:
+          type: string
+        registeredBy:
+          type: [string, 'null']
+          description: LHW ID of the LHW who registered it.
         serverSeq:
           type: integer
         syncedAt:
@@ -1482,20 +2471,37 @@ components:
                 - TOO_MANY_ATTEMPTS
                 - HTTPS_REQUIRED
                 - UNKNOWN_AREA
+                - ALREADY_RESOLVED
+                - UNKNOWN_PARENT
+                - DUPLICATE_NAME
+                - IN_USE
+                - USERNAME_TAKEN
+                - AREAS_REQUIRED
+                - OWN_ACCOUNT
+                - LAST_ADMIN
+                - UNKNOWN_DISTRICT
+                - AREA_NOT_IN_DISTRICT
                 - INTERNAL_ERROR
             message:
               type: string
             details:
-              type: array
-              description: Present for VALIDATION_ERROR, one entry per problem.
-              items:
-                type: object
-                required: [in, path, message]
-                properties:
-                  in:
-                    type: string
-                    enum: [params, query, body]
-                  path:
-                    type: string
-                  message:
-                    type: string
+              description: For VALIDATION_ERROR, one entry per problem. For IN_USE, `uses` lists what still uses the record.
+              oneOf:
+                - type: array
+                  items:
+                    type: object
+                    required: [in, path, message]
+                    properties:
+                      in:
+                        type: string
+                        enum: [params, query, body]
+                      path:
+                        type: string
+                      message:
+                        type: string
+                - type: object
+                  properties:
+                    uses:
+                      type: array
+                      items:
+                        type: string

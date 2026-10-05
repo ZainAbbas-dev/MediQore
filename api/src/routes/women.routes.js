@@ -2,7 +2,7 @@
 const { Router } = require('express');
 const Joi = require('joi');
 const validate = require('../middleware/validate');
-const { authenticate, requireRole } = require('../middleware/auth');
+const { authenticate, requirePermission } = require('../middleware/auth');
 const womenController = require('../controllers/women.controller');
 
 const router = Router();
@@ -12,6 +12,6 @@ const listSchema = Joi.object({
   limit: Joi.number().integer().min(1).max(500).default(200),
 });
 
-router.get('/', authenticate, requireRole('supervisor', 'admin'), validate({ query: listSchema }), womenController.list);
+router.get('/', authenticate, requirePermission('records.view'), validate({ query: listSchema }), womenController.list);
 
 module.exports = router;

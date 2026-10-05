@@ -21,7 +21,7 @@ From the roadmap:
 
 ## Key rules
 
-- All routes live under `/api/v1`. Validate every request body with Joi, run role-check middleware on every route, and scope every query by area.
+- All routes live under `/api/v1`. Validate every request body with Joi, check a permission on every route (`requirePermission`), and scope every query by area.
 - Parameterised SQL only. Hash passwords with bcrypt.
 - Assign `server_seq` on accept and never trust device clocks. Soft deletes only. Write an audit row for every create, edit, delete, referral, alert and login.
 
@@ -34,7 +34,8 @@ From the roadmap:
   - `src/services/` holds the business logic and database calls.
 - `src/db/pool.js`: `query(text, params)` and `withTransaction(fn)`. Every query is parameterised. Table and column names come only from code, never from input.
 - `src/middleware/`:
-  - `auth.js`: `authenticate` checks the JWT access token and that the account still exists, then sets `req.user = { id, role, fullName, deviceId }`. A deactivated account gets 403 `ACCOUNT_INACTIVE`. Use `requireRole(...)` after it.
+  - `auth.js`: `authenticate` checks the JWT access token and that the account still exists, then sets `req.user = { id, role, fullName, deviceId }`. A deactivated account gets 403 `ACCOUNT_INACTIVE`. Use `requirePermission('name')` after it.
+- `src/auth/permissions.js` (M10 FE-3): the three fixed roles and the permissions each holds (`sync`, `records.view`, `conflicts.resolve`, `devices.approve`, `accounts.manage`, `geography.manage`, `facilities.manage`, `audit.view`). Routes check these names, never role lists, and `GET /admin/roles` shows the same map on the portal. To change who may do something, change it here.
   - `require-https.js`: refuses plain HTTP with 403 `HTTPS_REQUIRED` when `REQUIRE_HTTPS` is on (default in production). Set `TRUST_PROXY` behind a TLS proxy.
   - `validate.js`: Joi middleware. It replaces `req.body`, `req.query` and `req.params` with the validated values, or answers 400 `VALIDATION_ERROR`.
   - `error-handler.js`: 404 and the central error handler. Throw `AppError(status, code, message, details)` from `src/utils/app-error.js` for expected errors; anything else becomes a generic 500.
@@ -64,7 +65,17 @@ From the roadmap:
   - A table with a `parent` (a woman's household, a pregnancy's woman) needs that parent on the server and in the same area, or the record is refused with `MISSING_PARENT` or `OUT_OF_AREA`.
   - Each pushed record runs in a savepoint: a record that breaks a database rule is refused with a reason (`DUPLICATE_PATIENT_ID`, `ACTIVE_PREGNANCY_EXISTS`, `DUPLICATE_RECORD`) and the rest of the batch still applies.
   - `src/db/pool.js` reads DATE columns as `YYYY-MM-DD` text, never as a JavaScript Date.
-- Portal reads: `GET /households` (map), `GET /women` (registered women with household, latest pregnancy, obstetric history and visit count, search) and `GET /dashboard/summary` (registered women, visits this week, pending conflicts), all area-scoped for supervisors.
+- Portal reads, all area-scoped for supervisors (M10 FE-1):
+  - `GET /households`: the map, filtered by `districtId`, `unionCouncilId`, `lhwId` and `days` (received by the server in the last so many days).
+  - `GET /women`: registered women with household, latest pregnancy, obstetric history and visit count, search.
+  - `GET /dashboard/summary`: registered women, visits this week, pending conflicts.
+  - `GET /dashboard/lhw-activity`: per LHW, visits this week and in total, women registered, last visit, last sync and last login.
+  - `GET /dashboard/filters`: the districts, Union Councils and LHWs the viewer may filter by.
+- Admin panel (M10 FE-3, admins only), every change with an audit row:
+  - `staff.service.js`: supervisor and admin accounts (`/admin/staff`). The admin picks the username; the password is random and shown once. Supervisors get areas (`supervisor_areas`). An admin cannot change their own role or deactivate themselves (`OWN_ACCOUNT`), and the last active admin stays (`LAST_ADMIN`).
+  - `geography.service.js`: the district > tehsil > Union Council > area tree (`/admin/geography/:level`). Names are unique among siblings; deleting is soft and refused while anything uses the unit (`IN_USE`, with `details.uses`); re-creating a deleted name restores it with its ID.
+  - `facilities.service.js`: hospitals and referral centres (`/admin/hospitals`, `/admin/referral-centres`), per district with optional area and GPS. They carry the sync columns, so phones can pull them in Phase 2 (M5 FE-1); the trigger numbers every change.
+  - `audit.service.js` `list`: the audit log viewer (`/admin/audit`), filtered by user, action, record type and Pakistan-time dates, paged with `before`.
 - `conflicts.service.js` (M3 FE-2, M10 base): `GET /conflicts` and `POST /conflicts/:id/resolve` for supervisors (their areas) and admins. `keep_both` stores the held record, `keep_existing` stores it as deleted, `keep_incoming` stores it and deletes the earlier one; the phone learns the outcome at its next pull. `insertRecord` in `sync.service.js` is shared with push.
 - Error shape: `{ "error": { "code", "message", "details"? } }`.
 - `docs/openapi.yaml` is the API contract. Update it in the same pull request as any route change.
@@ -72,6 +83,7 @@ From the roadmap:
   - Import `createApp()`; never start a real server in tests.
   - Database tests use `describeDb` from `tests/db.js`. They run only when `TEST_DATABASE_URL` points at a migrated database whose name ends in `_test`, and they empty it first.
   - `createFixtures()` gives each fixture LHW an approved phone (`deviceA`, `deviceB`). `tokenFor(userId, role, deviceId)` signs a token, and app tokens carry the phone.
+  - The `server_seq` trigger stamps `synced_at` on every update; a test that needs an old `synced_at` disables the trigger for that one update (see `tests/dashboard-activity.test.js`).
 
 ## Commands
 

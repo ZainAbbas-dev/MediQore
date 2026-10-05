@@ -2,7 +2,7 @@
 const { Router } = require('express');
 const Joi = require('joi');
 const validate = require('../middleware/validate');
-const { authenticate, requireRole } = require('../middleware/auth');
+const { authenticate, requirePermission } = require('../middleware/auth');
 const { TABLES, dataSchema } = require('../sync/tables');
 const syncController = require('../controllers/sync.controller');
 
@@ -35,7 +35,7 @@ const pullSchema = Joi.object({
   limit: Joi.number().integer().min(1).max(500).default(100),
 });
 
-router.use(authenticate, requireRole('lhw'));
+router.use(authenticate, requirePermission('sync'));
 router.post('/push', validate({ body: pushSchema }), syncController.push);
 router.get('/pull', validate({ query: pullSchema }), syncController.pull);
 

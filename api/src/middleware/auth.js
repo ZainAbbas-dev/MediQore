@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const config = require('../config');
 const AppError = require('../utils/app-error');
 const usersService = require('../services/users.service');
+const { rolesFor } = require('../auth/permissions');
 
 // M1 FE-2: requires a valid JWT access token (Authorization: Bearer <token>) and
 // an active account. Sets req.user = { id, role, fullName, deviceId }; deviceId
@@ -43,4 +44,11 @@ function requireRole(...roles) {
   };
 }
 
-module.exports = { authenticate, requireRole };
+// Permission check for a route (M10 FE-3), used after authenticate. The roles
+// that hold each permission are listed once in auth/permissions.js:
+//   router.get('/', authenticate, requirePermission('records.view'), controller.list);
+function requirePermission(permission) {
+  return requireRole(...rolesFor(permission)); // an unknown name fails at startup
+}
+
+module.exports = { authenticate, requireRole, requirePermission };

@@ -1,7 +1,7 @@
 const householdsService = require('../services/households.service');
 
 async function list(req, res) {
-  res.json({ households: await householdsService.listForPortal(req.user, req.query.limit) });
+  res.json({ households: await householdsService.listForPortal(req.user, req.query) });
 }
 
 module.exports = { list };

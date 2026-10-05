@@ -2,7 +2,7 @@
 const { Router } = require('express');
 const Joi = require('joi');
 const validate = require('../middleware/validate');
-const { authenticate, requireRole } = require('../middleware/auth');
+const { authenticate, requirePermission } = require('../middleware/auth');
 const conflictsController = require('../controllers/conflicts.controller');
 const { RESOLUTIONS } = require('../services/conflicts.service');
 
@@ -16,7 +16,7 @@ const resolveBody = Joi.object({
   resolution: Joi.string().valid(...RESOLUTIONS).required(),
 });
 
-router.use(authenticate, requireRole('supervisor', 'admin'));
+router.use(authenticate, requirePermission('conflicts.resolve'));
 router.get('/', validate({ query: listQuery }), conflictsController.list);
 router.post('/:id/resolve', validate({ params: idParams, body: resolveBody }), conflictsController.resolve);
 

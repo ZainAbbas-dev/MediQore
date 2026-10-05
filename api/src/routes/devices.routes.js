@@ -2,12 +2,12 @@
 const { Router } = require('express');
 const Joi = require('joi');
 const validate = require('../middleware/validate');
-const { authenticate, requireRole } = require('../middleware/auth');
+const { authenticate, requirePermission } = require('../middleware/auth');
 const devicesController = require('../controllers/devices.controller');
 
 const router = Router();
 
-router.use(authenticate, requireRole('admin', 'supervisor'));
+router.use(authenticate, requirePermission('devices.approve'));
 router.get('/pending', devicesController.listPending);
 router.post(
   '/:id/code',
