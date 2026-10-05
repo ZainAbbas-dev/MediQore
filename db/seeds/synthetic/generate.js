@@ -1,6 +1,6 @@
 // LI-10: synthetic data generator (P0-8). Builds made-up districts, Union
-// Councils, areas, accounts, households with GPS, pregnant women, visits and a
-// few visits waiting in the conflict queue (M3 FE-2), so
+// Councils, areas, accounts, households with GPS, pregnant women, visits, a
+// few visits waiting in the conflict queue (M3 FE-2) and hospitals (M10 FE-3), so
 // all development, testing and demos run without real patient data.
 //
 // generateSynthetic(client, options) inserts everything through `client`; the
@@ -13,6 +13,7 @@ const accounts = require('./steps/accounts');
 const households = require('./steps/households');
 const maternal = require('./steps/maternal');
 const conflicts = require('./steps/conflicts');
+const facilities = require('./steps/facilities');
 
 const DEFAULTS = {
   seed: 1,
@@ -58,6 +59,7 @@ function buildSynthetic(overrides, passwordHash) {
   const homes = households.build(ctx, people.lhws);
   const pregnant = maternal.build(ctx, homes);
   const held = conflicts.build(ctx, pregnant);
+  const care = facilities.build(ctx, geo, people);
 
   // In insert order: parents before children.
   const tables = [
@@ -74,6 +76,7 @@ function buildSynthetic(overrides, passwordHash) {
     ['obstetric_history', pregnant.obstetricHistory],
     ['visits', pregnant.visits],
     ['sync_conflicts', held.conflicts],
+    ['hospitals', care.hospitals],
   ];
   return { tables, accounts: people.summary };
 }

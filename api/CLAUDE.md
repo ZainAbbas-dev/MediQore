@@ -35,11 +35,11 @@ From the roadmap:
 - `src/db/pool.js`: `query(text, params)` and `withTransaction(fn)`. Every query is parameterised. Table and column names come only from code, never from input.
 - `src/middleware/`:
   - `auth.js`: `authenticate` checks the JWT access token and that the account still exists, then sets `req.user = { id, role, fullName, deviceId }`. A deactivated account gets 403 `ACCOUNT_INACTIVE`. Use `requirePermission('name')` after it.
-- `src/auth/permissions.js` (M10 FE-3): the three fixed roles and the permissions each holds (`sync`, `records.view`, `conflicts.resolve`, `devices.approve`, `accounts.manage`, `geography.manage`, `facilities.manage`, `audit.view`). Routes check these names, never role lists, and `GET /admin/roles` shows the same map on the portal. To change who may do something, change it here.
   - `require-https.js`: refuses plain HTTP with 403 `HTTPS_REQUIRED` when `REQUIRE_HTTPS` is on (default in production). Set `TRUST_PROXY` behind a TLS proxy.
   - `validate.js`: Joi middleware. It replaces `req.body`, `req.query` and `req.params` with the validated values, or answers 400 `VALIDATION_ERROR`.
   - `error-handler.js`: 404 and the central error handler. Throw `AppError(status, code, message, details)` from `src/utils/app-error.js` for expected errors; anything else becomes a generic 500.
   - `request-logger.js`: one JSON log line per request, path only (no query string or body).
+- `src/auth/permissions.js` (M10 FE-3): the three fixed roles and the permissions each holds (`sync`, `records.view`, `conflicts.resolve`, `devices.approve`, `accounts.manage`, `geography.manage`, `facilities.manage`, `audit.view`). Routes check these names, never role lists, and `GET /admin/roles` shows the same map on the portal. To change who may do something, change it here.
 - `src/services/`:
   - `scope.service.js`: area scoping, `lhwAreaId`, `lhwAreas` (current and previous area) and `supervisorAreaIds`. Use it in every query that returns records.
   - `audit.service.js`: `writeAudit(client, ...)`. Call it inside the same transaction as the change.

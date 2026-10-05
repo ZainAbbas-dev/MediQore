@@ -49,6 +49,18 @@ describe('synthetic data (in memory)', () => {
     }
   });
 
+  test('a DHQ hospital per district and a THQ per tehsil, near their district, made by the admin (M10 FE-3)', () => {
+    const admin = data.users.find((u) => u.role === 'admin');
+    assert.deepEqual(data.hospitals.map((h) => h.facility_type).sort(), ['DHQ', 'DHQ', 'THQ', 'THQ']);
+    const centres = DISTRICTS.slice(0, 2);
+    for (const h of data.hospitals) {
+      assert.equal(h.created_by, admin.id);
+      assert.match(h.phone, /^0000-\d{7}$/);
+      assert.ok(data.districts.some((d) => d.id === h.district_id));
+      assert.ok(centres.some((d) => Math.abs(h.latitude - d.lat) < 0.4 && Math.abs(h.longitude - d.lng) < 0.4), h.name);
+    }
+  });
+
   test('patient IDs are the LHW code plus a counter, and unique', () => {
     const codes = new Map(data.lhw_profiles.map((p) => [p.user_id, p.lhw_code]));
     for (const woman of data.women) {
@@ -149,7 +161,7 @@ describe('synthetic data (in PostgreSQL)', () => {
       const { counts, accounts } = await generateSynthetic(client, { ...SMALL, prefix: 'pgtest', seed: 11 });
       assert.equal(accounts.lhws.length, 4);
 
-      for (const table of ['households', 'women', 'pregnancies', 'obstetric_history', 'visits']) {
+      for (const table of ['households', 'women', 'pregnancies', 'obstetric_history', 'visits', 'hospitals']) {
         const { rows: [row] } = await client.query(
           `SELECT count(*)::int AS n, count(server_seq)::int AS numbered, count(synced_at)::int AS synced
            FROM ${table} WHERE created_by IN (SELECT id FROM users WHERE username LIKE 'pgtest.%')`,
