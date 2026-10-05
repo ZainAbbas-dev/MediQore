@@ -1,0 +1,37 @@
+# Staging server on Render (roadmap: Environments, "one HTTPS staging server
+# for supervisor reviews and demos"). Set up and used as in docs/staging.md.
+#
+# One web service serves the REST API under /api/v1 and the built portal on the
+# same HTTPS address. The database is PostgreSQL on Neon: its connection string
+# is entered in the Render dashboard (DATABASE_URL) and never committed.
+# Each start applies new migrations first. Synthetic data only (LI-10).
+services:
+  - type: web
+    name: mediqore-staging
+    runtime: node
+    plan: free
+    region: singapore
+    branch: dev
+    buildCommand: >-
+      cd db && npm ci --include=dev &&
+      cd ../api && npm ci --omit=dev &&
+      cd ../web && npm ci --include=dev && npm run build
+    startCommand: cd db && npm run migrate:up && cd ../api && npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      # Render ends TLS in front of the service: trust its proxy so the API
+      # sees https and refuses plain HTTP (M1 FE-2).
+      - key: TRUST_PROXY
+        value: "1"
+      # The portal, built into web/dist; relative to api/.
+      - key: PORTAL_DIR
+        value: ../web/dist
+      # Signs access tokens; Render makes a random value.
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      # Neon's connection string, entered in the dashboard.
+      - key: DATABASE_URL
+        sync: false

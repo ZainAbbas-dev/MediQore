@@ -35,4 +35,8 @@ module.exports = {
   // set TRUST_PROXY (for example 1) so the API sees the original https scheme.
   requireHttps: process.env.REQUIRE_HTTPS ? process.env.REQUIRE_HTTPS === 'true' : nodeEnv === 'production',
   trustProxy: process.env.TRUST_PROXY ? int(process.env.TRUST_PROXY, process.env.TRUST_PROXY) : false,
+  // Staging: the built portal (web/dist) to serve next to /api/v1, so both
+  // share one HTTPS address. A path relative to api/. Unset in development,
+  // where Vite serves the portal.
+  portalDir: process.env.PORTAL_DIR ? path.resolve(__dirname, '../..', process.env.PORTAL_DIR) : null,
 };

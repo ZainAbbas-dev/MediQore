@@ -1,5 +1,6 @@
 const { Pool, types } = require('pg');
 const config = require('../config');
+const logger = require('../utils/logger');
 
 // DATE columns (for example a pregnancy's registered_on) come back as the text
 // the database holds, YYYY-MM-DD, instead of a JavaScript Date at local
@@ -14,6 +15,9 @@ let pool;
 function getPool() {
   if (!pool) {
     pool = new Pool({ connectionString: config.databaseUrl });
+    // The server can close an idle connection, for example when a hosted
+    // database pauses. Log it instead of crashing; the pool opens a new one.
+    pool.on('error', (error) => logger.warn('Idle database connection closed', { message: error.message }));
   }
   return pool;
 }

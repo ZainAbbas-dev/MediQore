@@ -28,11 +28,12 @@ From the roadmap:
 ## Layout
 
 - `src/app.js` builds the Express app. `src/server.js` starts it and exits if `DATABASE_URL` or `JWT_ACCESS_SECRET` is missing.
+  - With `PORTAL_DIR` set (staging only, `render.yaml` and `docs/staging.md`), the app also serves the built portal: its files, and `index.html` for any other GET address outside `/api`. Unset in development.
 - Each request flows route → controller → service:
   - `src/routes/<name>.routes.js` holds the paths, auth, role checks and the `validate(...)` call. Mount it in `src/routes/index.js`.
   - `src/controllers/` reads `req` and writes `res`. Keep controllers thin.
   - `src/services/` holds the business logic and database calls.
-- `src/db/pool.js`: `query(text, params)` and `withTransaction(fn)`. Every query is parameterised. Table and column names come only from code, never from input.
+- `src/db/pool.js`: `query(text, params)` and `withTransaction(fn)`. Every query is parameterised. Table and column names come only from code, never from input. An idle connection closed by the server (for example a paused hosted database) is logged, not fatal.
 - `src/middleware/`:
   - `auth.js`: `authenticate` checks the JWT access token and that the account still exists, then sets `req.user = { id, role, fullName, deviceId }`. A deactivated account gets 403 `ACCOUNT_INACTIVE`. Use `requirePermission('name')` after it.
   - `require-https.js`: refuses plain HTTP with 403 `HTTPS_REQUIRED` when `REQUIRE_HTTPS` is on (default in production). Set `TRUST_PROXY` behind a TLS proxy.

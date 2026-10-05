@@ -98,7 +98,7 @@ Run the task **MediQore: run all tests (db, api, web)**. You should see the same
 | Part | Expected |
 |---|---|
 | `db` | 22 passed |
-| `api` | lint clean, 164 passed |
+| `api` | lint clean, 169 passed |
 | `web` | lint clean, 53 passed, build succeeds |
 
 After step 7, the task **mobile: analyze and test** should show "No issues found" and 149 tests passed, with four skipped (the opt-in end-to-end tests).
@@ -177,7 +177,7 @@ It is signed with a test key and is for testing only. Builds for LHWs will use o
    2. Tap **محفوظ کریں** (save). The app remembers the address.
 6. Sign in as `lhw.demo` and continue from step 7.5: the phone approval, offline sign-in, registration, visits and the conflict queue all work the same way.
 
-To build a test APK that starts with another address, for example a staging server later, open **Actions** → **Test APK** → **Run workflow** and type the address.
+To build a test APK that starts with another address, for example the staging server ([`staging.md`](staging.md)), open **Actions** → **Test APK** → **Run workflow** and type the address.
 
 ## 8. ML notebook (optional)
 
@@ -207,12 +207,6 @@ Run the task **MediQore: empty the database and reload the data**. It empties th
 | `flutter pub get` says *version solving failed* or *requires SDK version ^3.13.0* | Your Flutter is older than 3.47. Run `flutter upgrade`, then **mobile: get packages** again. |
 | `flutter doctor` complains about Android licences | `flutter doctor --android-licenses` and accept them. |
 
-## Later: a staging server
+## The staging server
 
-The roadmap plans one HTTPS staging server for supervisor reviews and demos ("Environments"). Vercel alone cannot host it:
-
-- Vercel serves the React portal well.
-- The API needs an always-on Node.js server and a PostgreSQL database.
-- The app is an Android APK, which is installed on the phone.
-
-Set the staging server up when the supervisor first needs to see the system, with a non-default password for the demo accounts, because the repository is public.
+To use the app and the portal from anywhere with internet, without the laptop, set up the staging server on Render and Neon: see [`staging.md`](staging.md).

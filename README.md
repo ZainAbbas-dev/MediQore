@@ -94,7 +94,7 @@ mediqore/
 
 ## Getting started (Windows)
 
-> **Quickest way to run and test everything:** [docs/local-setup.md](docs/local-setup.md). It uses ready-made VS Code tasks (first-time setup, start API + portal, run all tests) and a launch configuration for the phone.
+> **Quickest way to run and test everything:** [docs/local-setup.md](docs/local-setup.md). It uses ready-made VS Code tasks (first-time setup, start API + portal, run all tests) and a launch configuration for the phone. The test APK installs on any Android phone, and [docs/staging.md](docs/staging.md) puts the API and portal online (Render + Neon).
 
 Both team members develop on Windows. Install:
 
