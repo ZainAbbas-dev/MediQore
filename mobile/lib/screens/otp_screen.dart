@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../app_services.dart';
 import '../auth/session.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/app_cards.dart';
 import '../widgets/form_fields.dart';
 import '../widgets/large_button.dart';
 import 'login_screen.dart';
@@ -61,6 +62,7 @@ class _OtpScreenState extends State<OtpScreen> {
     final l10n = AppLocalizations.of(context);
     final deviceId = widget.services.settings.deviceId;
     final session = widget.services.session;
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.otpTitle)),
@@ -69,24 +71,33 @@ class _OtpScreenState extends State<OtpScreen> {
         builder: (context, _) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(l10n.otpIntro, style: Theme.of(context).textTheme.bodyLarge),
-            const SizedBox(height: 8),
-            Text(l10n.otpPhoneId(deviceId.substring(deviceId.length - 6))),
-            const SizedBox(height: 16),
-            AppTextField(
-              label: l10n.otpCodeLabel,
-              controller: _code,
-              keyboardType: TextInputType.number,
-              ltr: true,
-              maxLength: 6,
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: CircleAvatar(
+                        radius: 32,
+                        backgroundColor: theme.colorScheme.primaryContainer,
+                        child: Icon(Icons.phonelink_lock, size: 36, color: theme.colorScheme.onPrimaryContainer),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(l10n.otpIntro, style: theme.textTheme.bodyLarge),
+                    const SizedBox(height: 12),
+                    NoticeCard(text: l10n.otpPhoneId(deviceId.substring(deviceId.length - 6)), icon: Icons.smartphone),
+                    const SizedBox(height: 16),
+                    AppTextField(label: l10n.otpCodeLabel, controller: _code, keyboardType: TextInputType.number, ltr: true, maxLength: 6),
+                    if (_error != null) ...[const SizedBox(height: 8), NoticeCard(text: _error!, warning: true)],
+                    if (_busy && session.isDownloading) ...[const SizedBox(height: 8), Text(l10n.loginDownloading)],
+                    const SizedBox(height: 16),
+                    LargeButton(label: l10n.otpVerifyButton, icon: Icons.verified_user, onPressed: _busy ? null : () => _verify(l10n)),
+                  ],
+                ),
+              ),
             ),
-            if (_error != null) ...[
-              const SizedBox(height: 8),
-              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-            ],
-            if (_busy && session.isDownloading) ...[const SizedBox(height: 8), Text(l10n.loginDownloading)],
-            const SizedBox(height: 16),
-            LargeButton(label: l10n.otpVerifyButton, icon: Icons.verified_user, onPressed: _busy ? null : () => _verify(l10n)),
             const SizedBox(height: 12),
             LargeButton(label: l10n.otpBackButton, icon: Icons.arrow_back, secondary: true, onPressed: _busy ? null : _back),
           ],

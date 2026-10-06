@@ -119,7 +119,7 @@ class AppTextField extends StatelessWidget {
             maxLength: maxLength,
             autocorrect: !ltr,
             enableSuggestions: !ltr && !obscureText,
-            style: const TextStyle(fontSize: 20),
+            style: const TextStyle(fontSize: 18),
           ),
         ],
       ),
@@ -173,7 +173,7 @@ class VitalField extends StatelessWidget {
                 _KeepIfMatches(decimals > 0 ? RegExp('^\\d*\\.?\\d{0,$decimals}\$') : RegExp(r'^\d*$')),
               ],
               textDirection: TextDirection.ltr,
-              style: const TextStyle(fontSize: 22),
+              style: const TextStyle(fontSize: 20),
               // The unit shows while the field is still empty (a suffix would
               // appear only once the field has focus).
               decoration: InputDecoration(
@@ -234,7 +234,7 @@ class NumberField extends StatelessWidget {
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(maxDigits)],
               textDirection: TextDirection.ltr,
-              style: const TextStyle(fontSize: 22),
+              style: const TextStyle(fontSize: 20),
             ),
           ),
         ],

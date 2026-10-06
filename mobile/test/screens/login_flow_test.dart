@@ -144,9 +144,15 @@ void main() {
     expect(find.text(l10n.loginLockedNotice), findsOneWidget);
   });
 
+  Future<void> openSettings(WidgetTester tester) async {
+    await tester.tap(find.byTooltip(l10n.homeSettingsSection));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('locking closes every open screen', (tester) async {
     await tester.runAsync(() => signInApproved(services, server));
     await pumpApp(tester);
+    await openSettings(tester);
     await tapAndWait(tester, l10n.devHomeTitle);
     expect(find.byType(HomeScreen), findsNothing);
 
@@ -172,11 +178,13 @@ void main() {
     await tester.runAsync(() => signInApproved(services, server));
     await pumpApp(tester);
 
+    await openSettings(tester);
     await tapAndWait(tester, l10n.homeLockButton);
     expect(find.byType(LoginScreen), findsOneWidget);
     expect(find.text(l10n.loginLockedNotice), findsNothing);
 
     await signInOnScreen(tester);
+    await openSettings(tester);
     await tapAndWait(tester, l10n.homeSignOutButton);
     expect(find.byType(LoginScreen), findsOneWidget);
     expect(find.text(l10n.loginSignedOutNotice), findsOneWidget);

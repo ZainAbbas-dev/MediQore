@@ -37,6 +37,8 @@ From `CLAUDE.md` and the roadmap:
 - `RiskChip`
 - `OfflineStatusBar`
 
+**Built after the first phone test (layout update, owner's request):** a teal app bar, white cards on a soft grey background, and the standard Latin font for Latin text and digits inside Urdu screens (Urdu letters stay in Nastaliq). Shared pieces in `mobile/lib/widgets/app_cards.dart`: `SectionCard` (a card with a heading and icon), `InfoRow` (label and value), `SyncStatusChip`, `NoticeCard`, `InitialAvatar` and `VoiceMuteButton`. `LiveStatusBar` is the status strip of the data entry screens.
+
 ## Screens
 
 | # | Screen | Platform | Scope | Scope mockup | Wireframe |
@@ -67,6 +69,7 @@ The LHW signs in with the ID and password the admin issued (M1 FE-1, FE-2).
 - **OTP step:** a separate screen with a code field and resend.
   - **Built (Module 1, proposed decision 0002):** the code is issued by an admin or supervisor on the portal's **Phone approvals** page, so the screen has no resend button. It shows the last six characters of the phone's ID (the portal shows the same six), the 6-digit code field, **approve and sign in** and **back to sign-in**, with messages for a wrong code, too many wrong codes, no code issued yet and no internet.
 - **Session:** auto-lock after inactivity returns here (M1 FE-2).
+- **Built (layout update):** a teal header with the app's name and, at the top, a language button that shows the other language (**English** or **اردو**); the fields and the sign-in button are in a card below it.
 
 ### 2. LHW home (mobile)
 
@@ -82,6 +85,7 @@ The starting point after login.
   - voice guidance mute toggle (M3 FE-3). It is shown only in Urdu; in English, show a note instead: voice guidance works only in Urdu.
 - **Not in Phase 1:** risk alerts, ANC reminders, polio and child modules. Leave room for them, but do not design them now.
 - **Built (Module 3):** a **Settings** heading holds the language switch and the voice guidance switch (or, in English, the note). A visit starts from the woman's file; a short line under **Registered women** says so. The status bar follows the automatic sync.
+- **Built (layout update, replaces the Settings heading):** the status strip, a card with the LHW's name, ID and area, two task cards (**Register a pregnant woman**, **Registered women**) and a **Sync** card. A gear icon in the app bar opens **Settings**: the language (اردو / English), voice (the switch, **Test the voice**, and how to install an Urdu voice when the phone has none), the account with **Lock** and **Sign out**, and, in test builds only, the server address and the Phase 0 checks.
 
 ### 3. Registration (mobile, scope Mockup 1)
 
@@ -107,6 +111,7 @@ M2 FE-1, FE-2, FE-3.
 - **States to design:** validation errors under each field, GPS unavailable, saved offline.
 - **Decide:** whether obstetric history is a second step or the same scrolling page. The scope says it is captured "at the time of registration".
   - **Built (Module 2):** one scrolling page with four sections (woman, pregnancy, home, obstetric history) and one Save button, so nothing is half-saved. The home section also offers "same home as a registered woman", for a second woman in one household. After saving, a screen shows the patient ID and that the record is on the phone.
+  - **Built (layout update):** each section is a card; the status strip is at the top. Voice guidance reads each field's label in Urdu here too (M3 FE-3, scope: "built into the data entry screens"), with the mute button in the app bar.
 
 ### 4. Visit form (mobile, scope Mockup 2)
 

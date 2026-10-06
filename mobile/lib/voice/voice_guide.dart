@@ -1,14 +1,17 @@
-// M3 FE-3: voice guidance during data entry. When a field of the visit form
-// gets focus, the phone reads its Urdu label aloud with flutter_tts (scope
-// Tools table). It is on by default and can be muted in settings, and it is off
-// while the app is in English (M1 FE-4, LI-6).
+// M3 FE-3: voice guidance during data entry. When a field of a data entry form
+// (registration, visit) gets focus, the phone reads its Urdu label aloud with
+// flutter_tts (scope Tools table). It is on by default and can be muted in
+// settings, and it is off while the app is in English (M1 FE-4, LI-6).
 import 'package:flutter/widgets.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import '../settings/app_settings.dart';
 
-/// The language tag the voice is asked for.
+/// The language tag the voice is asked for first.
 const String urduLanguageTag = 'ur-PK';
+
+/// Every tag tried, in order: Pakistan's Urdu, then any Urdu voice.
+const List<String> urduLanguageTags = [urduLanguageTag, 'ur', 'ur-IN'];
 
 /// What speaks: the phone's text-to-speech, or a fake in tests.
 abstract interface class Voice {
@@ -20,6 +23,11 @@ abstract interface class Voice {
 }
 
 /// The phone's text-to-speech engine (flutter_tts), set to Urdu.
+///
+/// Many phones' default engine (often the maker's own) has no Urdu while
+/// another installed engine, such as Google's, does: then that engine is used.
+/// A failed attempt is tried again at the next label, for example after the
+/// LHW has installed the Urdu voice data.
 class TtsVoice implements Voice {
   TtsVoice([this._engine]);
 
@@ -28,9 +36,36 @@ class TtsVoice implements Voice {
   FlutterTts get _tts => _engine ??= FlutterTts();
   Future<bool>? _urdu;
 
-  // True once the engine is set to Urdu. Android answers 1 when the language
-  // is available, 0 when it is not.
-  Future<bool> _setUrdu() => _urdu ??= _tts.setLanguage(urduLanguageTag).then((result) => result == 1 || result == true);
+  // True once an engine is set to Urdu.
+  Future<bool> _setUrdu() {
+    final attempt = _urdu ??= _findUrdu().catchError((Object _) => false);
+    attempt.then((ok) {
+      if (!ok && identical(_urdu, attempt)) _urdu = null;
+    });
+    return attempt;
+  }
+
+  Future<bool> _findUrdu() async {
+    if (await _trySetUrdu()) return true;
+    final engines = ((await _tts.getEngines) as List?)?.map((e) => '$e').toList() ?? const <String>[];
+    final defaultEngine = '${await _tts.getDefaultEngine}';
+    for (final engine in engines.where((e) => e != defaultEngine)) {
+      await _tts.setEngine(engine);
+      if (await _trySetUrdu()) return true;
+    }
+    if (engines.length > 1) await _tts.setEngine(defaultEngine);
+    return false;
+  }
+
+  // Android answers 1 when the language is available, 0 when it is not (also
+  // when the engine knows Urdu but its voice data is not on the phone).
+  Future<bool> _trySetUrdu() async {
+    for (final tag in urduLanguageTags) {
+      final result = await _tts.setLanguage(tag);
+      if (result == 1 || result == true) return true;
+    }
+    return false;
+  }
 
   @override
   Future<void> speak(String text) async {
@@ -46,15 +81,13 @@ class TtsVoice implements Voice {
   }
 
   @override
-  Future<bool?> canSpeakUrdu() async {
-    final available = await _tts.isLanguageAvailable(urduLanguageTag);
-    return available is bool ? available : null;
-  }
+  Future<bool?> canSpeakUrdu() => _setUrdu();
 }
 
 /// Decides whether a label is read aloud: only in Urdu and only when the LHW
 /// has not muted voice guidance. A phone without an Urdu voice stays silent;
 /// the form works the same (decision 0004 covers recorded clips instead).
+/// The settings screen says so and has a button to test the voice.
 class VoiceGuidance {
   VoiceGuidance({required this.settings, required this._voice}) {
     settings.addListener(_onSettingsChanged);
@@ -84,6 +117,18 @@ class VoiceGuidance {
     }
   }
 
+  /// The settings' "test the voice" button: speaks [sample] even while voice
+  /// guidance is muted. False when the phone has no Urdu voice.
+  Future<bool> test(String sample) async {
+    if (await canSpeakUrdu() == false) return false;
+    try {
+      await _voice.speak(sample);
+      return true;
+    } on Object catch (_) {
+      return false;
+    }
+  }
+
   // Muting or switching to English silences a label that is being read.
   void _onSettingsChanged() {
     if (!isActive) _voice.stop().catchError((Object _) {});
@@ -100,6 +145,5 @@ class VoiceScope extends InheritedNotifier<AppSettings> {
 
   final VoiceGuidance guidance;
 
-  static VoiceGuidance? maybeOf(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<VoiceScope>()?.guidance;
+  static VoiceGuidance? maybeOf(BuildContext context) => context.dependOnInheritedWidgetOfExactType<VoiceScope>()?.guidance;
 }

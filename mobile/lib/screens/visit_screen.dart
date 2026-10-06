@@ -12,6 +12,7 @@ import '../data/app_database.dart';
 import '../data/visit_repository.dart';
 import '../l10n/app_localizations.dart';
 import '../voice/voice_guide.dart';
+import '../widgets/app_cards.dart';
 import '../widgets/form_fields.dart';
 import '../widgets/large_button.dart';
 import '../widgets/offline_status_bar.dart';
@@ -60,7 +61,6 @@ class _VisitScreenState extends State<VisitScreen> {
   String _anaemia = 'none';
 
   VisitRanges? _ranges;
-  int _pending = 0;
   bool _saving = false;
   bool _hasErrors = false;
 
@@ -75,9 +75,6 @@ class _VisitScreenState extends State<VisitScreen> {
         if (mounted) setState(() => _ranges = ranges);
       });
     }
-    _services.db.pendingCount().then((pending) {
-      if (mounted) setState(() => _pending = pending);
-    });
   }
 
   @override
@@ -92,14 +89,14 @@ class _VisitScreenState extends State<VisitScreen> {
 
   // Required, then possible (inside what the server accepts).
   FormFieldValidator<String> _vital(String field, AppLocalizations l10n, {bool required = true}) => (text) {
-        final value = num.tryParse((text ?? '').trim());
-        if ((text ?? '').trim().isEmpty) return required ? l10n.regErrorRequired : null;
-        final range = _ranges![field];
-        if (value == null || !range.isAllowed(value)) {
-          return l10n.visitErrorNotPossible(_number(range.allowed.$1), _number(range.allowed.$2));
-        }
-        return null;
-      };
+    final value = num.tryParse((text ?? '').trim());
+    if ((text ?? '').trim().isEmpty) return required ? l10n.regErrorRequired : null;
+    final range = _ranges![field];
+    if (value == null || !range.isAllowed(value)) {
+      return l10n.visitErrorNotPossible(_number(range.allowed.$1), _number(range.allowed.$2));
+    }
+    return null;
+  };
 
   int? _int(TextEditingController c) => int.tryParse(c.text.trim());
   double? _double(TextEditingController c) => double.tryParse(c.text.trim());
@@ -208,10 +205,6 @@ class _VisitScreenState extends State<VisitScreen> {
     final settings = _services.settings;
     final ranges = _ranges;
 
-    Widget section(String title) => Padding(
-          padding: const EdgeInsets.only(top: 24, bottom: 8),
-          child: Text(title, style: theme.textTheme.titleLarge),
-        );
     const gap = SizedBox(height: 12);
 
     return Scaffold(
@@ -219,27 +212,12 @@ class _VisitScreenState extends State<VisitScreen> {
         title: Text(l10n.visitTitle),
         actions: [
           // M3 FE-3: mute toggle; voice guidance exists only in Urdu (M1 FE-4).
-          ListenableBuilder(
-            listenable: settings,
-            builder: (context, _) => !settings.voiceGuidanceAvailable
-                ? const SizedBox.shrink()
-                : IconButton(
-                    icon: Icon(settings.voiceMuted ? Icons.volume_off : Icons.volume_up),
-                    tooltip: settings.voiceMuted ? l10n.voiceUnmute : l10n.voiceMute,
-                    onPressed: () => settings.setVoiceMuted(!settings.voiceMuted),
-                  ),
-          ),
+          VoiceMuteButton(settings: settings),
         ],
       ),
       body: Column(
         children: [
-          ListenableBuilder(
-            listenable: _services.autoSync,
-            builder: (context, _) => OfflineStatusBar(
-              isOnline: _services.autoSync.online ?? _services.session.isOnlineSession,
-              pendingCount: _pending,
-            ),
-          ),
+          LiveStatusBar(services: _services),
           Expanded(
             child: ranges == null
                 ? const Center(child: CircularProgressIndicator())
@@ -252,108 +230,104 @@ class _VisitScreenState extends State<VisitScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Text(widget.title, style: theme.textTheme.titleMedium),
-                            section(l10n.visitVitalsSection),
-                            VitalField(
-                              label: l10n.fieldSystolicBp,
-                              unit: l10n.unitMmHg,
-                              controller: _systolic,
-                              validator: _vital('systolicBpMmhg', l10n),
+                            Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  children: [
+                                    InitialAvatar(widget.title, radius: 20),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: Text(widget.title, style: theme.textTheme.titleMedium)),
+                                  ],
+                                ),
+                              ),
                             ),
                             gap,
-                            VitalField(
-                              label: l10n.fieldDiastolicBp,
-                              unit: l10n.unitMmHg,
-                              controller: _diastolic,
-                              validator: (text) {
-                                final problem = _vital('diastolicBpMmhg', l10n)(text);
-                                if (problem != null) return problem;
-                                final systolic = _int(_systolic);
-                                return systolic != null && int.parse(text!.trim()) >= systolic
-                                    ? l10n.visitErrorDiastolic
-                                    : null;
-                              },
-                            ),
-                            gap,
-                            VitalField(
-                              label: l10n.fieldWeight,
-                              unit: l10n.unitKg,
-                              decimals: ranges['weightKg'].decimals,
-                              controller: _weight,
-                              validator: _vital('weightKg', l10n),
-                            ),
-                            gap,
-                            VitalField(
-                              label: l10n.fieldTemperature,
-                              unit: l10n.unitCelsius,
-                              decimals: ranges['temperatureC'].decimals,
-                              controller: _temperature,
-                              validator: _vital('temperatureC', l10n),
-                            ),
-                            gap,
-                            VitalField(
-                              label: l10n.fieldPulse,
-                              unit: l10n.unitPerMinute,
-                              controller: _pulse,
-                              validator: _vital('pulseBpm', l10n),
-                            ),
-                            gap,
-                            VitalField(
-                              label: l10n.fieldBloodSugar,
-                              unit: l10n.unitMmolL,
-                              decimals: ranges['bloodSugarMmolL'].decimals,
-                              controller: _sugar,
-                              validator: _vital('bloodSugarMmolL', l10n, required: false),
-                            ),
-                            section(l10n.visitSymptomsSection),
-                            DropdownField<String>(
-                              label: l10n.fieldFetalMovement,
-                              value: _fetalMovement,
-                              options: [
-                                DropdownOption('normal', l10n.fetalMovementNormal),
-                                DropdownOption('reduced', l10n.fetalMovementReduced),
-                                DropdownOption('absent', l10n.fetalMovementAbsent),
+                            SectionCard(
+                              title: l10n.visitVitalsSection,
+                              icon: Icons.monitor_heart,
+                              children: [
+                                VitalField(
+                                  label: l10n.fieldSystolicBp,
+                                  unit: l10n.unitMmHg,
+                                  controller: _systolic,
+                                  validator: _vital('systolicBpMmhg', l10n),
+                                ),
+                                VitalField(
+                                  label: l10n.fieldDiastolicBp,
+                                  unit: l10n.unitMmHg,
+                                  controller: _diastolic,
+                                  validator: (text) {
+                                    final problem = _vital('diastolicBpMmhg', l10n)(text);
+                                    if (problem != null) return problem;
+                                    final systolic = _int(_systolic);
+                                    return systolic != null && int.parse(text!.trim()) >= systolic ? l10n.visitErrorDiastolic : null;
+                                  },
+                                ),
+                                VitalField(
+                                  label: l10n.fieldWeight,
+                                  unit: l10n.unitKg,
+                                  decimals: ranges['weightKg'].decimals,
+                                  controller: _weight,
+                                  validator: _vital('weightKg', l10n),
+                                ),
+                                VitalField(
+                                  label: l10n.fieldTemperature,
+                                  unit: l10n.unitCelsius,
+                                  decimals: ranges['temperatureC'].decimals,
+                                  controller: _temperature,
+                                  validator: _vital('temperatureC', l10n),
+                                ),
+                                VitalField(
+                                  label: l10n.fieldPulse,
+                                  unit: l10n.unitPerMinute,
+                                  controller: _pulse,
+                                  validator: _vital('pulseBpm', l10n),
+                                ),
+                                VitalField(
+                                  label: l10n.fieldBloodSugar,
+                                  unit: l10n.unitMmolL,
+                                  decimals: ranges['bloodSugarMmolL'].decimals,
+                                  controller: _sugar,
+                                  validator: _vital('bloodSugarMmolL', l10n, required: false),
+                                ),
                               ],
-                              onChanged: (value) => setState(() => _fetalMovement = value),
                             ),
                             gap,
-                            CheckboxField(
-                              label: l10n.fieldSwelling,
-                              value: _swelling,
-                              onChanged: (v) => setState(() => _swelling = v),
-                            ),
-                            CheckboxField(
-                              label: l10n.fieldBleeding,
-                              value: _bleeding,
-                              onChanged: (v) => setState(() => _bleeding = v),
-                            ),
-                            CheckboxField(label: l10n.fieldFever, value: _fever, onChanged: (v) => setState(() => _fever = v)),
-                            CheckboxField(
-                              label: l10n.fieldUrineSymptoms,
-                              value: _urine,
-                              onChanged: (v) => setState(() => _urine = v),
-                            ),
-                            gap,
-                            DropdownField<String>(
-                              label: l10n.fieldAnaemia,
-                              value: _anaemia,
-                              options: [
-                                DropdownOption('none', l10n.anaemiaNone),
-                                DropdownOption('present', l10n.anaemiaPresent),
-                                DropdownOption('severe', l10n.anaemiaSevere),
+                            SectionCard(
+                              title: l10n.visitSymptomsSection,
+                              icon: Icons.checklist,
+                              spacing: 4,
+                              children: [
+                                DropdownField<String>(
+                                  label: l10n.fieldFetalMovement,
+                                  value: _fetalMovement,
+                                  options: [
+                                    DropdownOption('normal', l10n.fetalMovementNormal),
+                                    DropdownOption('reduced', l10n.fetalMovementReduced),
+                                    DropdownOption('absent', l10n.fetalMovementAbsent),
+                                  ],
+                                  onChanged: (value) => setState(() => _fetalMovement = value),
+                                ),
+                                CheckboxField(label: l10n.fieldSwelling, value: _swelling, onChanged: (v) => setState(() => _swelling = v)),
+                                CheckboxField(label: l10n.fieldBleeding, value: _bleeding, onChanged: (v) => setState(() => _bleeding = v)),
+                                CheckboxField(label: l10n.fieldFever, value: _fever, onChanged: (v) => setState(() => _fever = v)),
+                                CheckboxField(label: l10n.fieldUrineSymptoms, value: _urine, onChanged: (v) => setState(() => _urine = v)),
+                                DropdownField<String>(
+                                  label: l10n.fieldAnaemia,
+                                  value: _anaemia,
+                                  options: [
+                                    DropdownOption('none', l10n.anaemiaNone),
+                                    DropdownOption('present', l10n.anaemiaPresent),
+                                    DropdownOption('severe', l10n.anaemiaSevere),
+                                  ],
+                                  onChanged: (value) => setState(() => _anaemia = value ?? 'none'),
+                                ),
                               ],
-                              onChanged: (value) => setState(() => _anaemia = value ?? 'none'),
                             ),
                             const SizedBox(height: 24),
-                            if (_hasErrors) ...[
-                              Text(l10n.regErrorFix, style: TextStyle(color: theme.colorScheme.error)),
-                              gap,
-                            ],
-                            LargeButton(
-                              label: l10n.visitSaveButton,
-                              icon: Icons.save,
-                              onPressed: _saving ? null : () => _save(l10n),
-                            ),
+                            if (_hasErrors) ...[Text(l10n.regErrorFix, style: TextStyle(color: theme.colorScheme.error)), gap],
+                            LargeButton(label: l10n.visitSaveButton, icon: Icons.save, onPressed: _saving ? null : () => _save(l10n)),
                           ],
                         ),
                       ),

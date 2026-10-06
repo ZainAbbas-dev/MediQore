@@ -1,4 +1,5 @@
-// M1 FE-2: login screen (P0-7 screen 1), with the language switch (M1 FE-4).
+// M1 FE-2: login screen (P0-7 screen 1), with the language button (M1 FE-4)
+// at the top.
 // The first sign-in on a phone is online; later ones also work offline.
 // A test build also shows the server address, which testers can change.
 import 'package:flutter/material.dart';
@@ -7,6 +8,8 @@ import '../app_services.dart';
 import '../auth/session.dart';
 import '../build_flags.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_cards.dart';
 import '../widgets/form_fields.dart';
 import '../widgets/language_switch.dart';
 import '../widgets/large_button.dart';
@@ -102,6 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     final notice = switch (_session.notice) {
       SessionNotice.lockedAfterInactivity => l10n.loginLockedNotice,
       SessionNotice.deactivated => l10n.loginDeactivated,
@@ -111,52 +115,112 @@ class _LoginScreenState extends State<LoginScreen> {
     final message = _error ?? notice;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.loginTitle)),
       body: ListenableBuilder(
         listenable: _session,
-        builder: (context, _) => ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            LanguageSwitch(settings: widget.services.settings),
-            const SizedBox(height: 24),
-            AppTextField(label: l10n.loginUsername, controller: _username, ltr: true),
-            const SizedBox(height: 12),
-            AppTextField(label: l10n.fieldPassword, controller: _password, obscureText: true, ltr: true),
-            const SizedBox(height: 16),
-            if (message != null) ...[
-              Text(message, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-              const SizedBox(height: 12),
-            ],
-            if (_busy) ...[
-              Row(
-                children: [
-                  const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 3)),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text(_session.isDownloading ? l10n.loginDownloading : l10n.loginSigningIn)),
-                ],
-              ),
-              const SizedBox(height: 12),
-            ],
-            LargeButton(label: l10n.signInButton, icon: Icons.login, onPressed: _busy ? null : () => _signIn(l10n)),
-            if (widget.showServerSetting) ...[
-              const SizedBox(height: 32),
-              Text(l10n.loginServerLabel, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 4),
-              // The address reads left to right in both languages.
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: Text(widget.services.serverAddress, textDirection: TextDirection.ltr),
-              ),
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: TextButton.icon(
-                  onPressed: _busy ? null : _changeServer,
-                  icon: const Icon(Icons.dns),
-                  label: Text(l10n.loginServerChange),
+        // A short page: everything is built at once, also on a small phone.
+        builder: (context, _) => SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Header(services: widget.services),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(l10n.loginTitle, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 12),
+                        AppTextField(label: l10n.loginUsername, controller: _username, ltr: true),
+                        const SizedBox(height: 12),
+                        AppTextField(label: l10n.fieldPassword, controller: _password, obscureText: true, ltr: true),
+                        const SizedBox(height: 16),
+                        if (message != null) ...[
+                          NoticeCard(text: message, warning: _error != null || _session.notice == SessionNotice.deactivated),
+                          const SizedBox(height: 12),
+                        ],
+                        if (_busy) ...[
+                          Row(
+                            children: [
+                              const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 3)),
+                              const SizedBox(width: 12),
+                              Expanded(child: Text(_session.isDownloading ? l10n.loginDownloading : l10n.loginSigningIn)),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        LargeButton(label: l10n.signInButton, icon: Icons.login, onPressed: _busy ? null : () => _signIn(l10n)),
+                      ],
+                    ),
+                  ),
                 ),
               ),
+              if (widget.showServerSetting)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  child: Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.dns),
+                      title: Text(l10n.loginServerLabel, style: theme.textTheme.bodyMedium),
+                      // The address reads left to right in both languages.
+                      subtitle: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(widget.services.serverAddress, textDirection: TextDirection.ltr),
+                      ),
+                      trailing: TextButton(onPressed: _busy ? null : _changeServer, child: Text(l10n.loginServerChange)),
+                    ),
+                  ),
+                ),
             ],
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The teal header: the app's name, what it is for, and the language button.
+class _Header extends StatelessWidget {
+  const _Header({required this.services});
+
+  final AppServices services;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Container(
+      color: theme.colorScheme.primary,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+          child: Column(
+            children: [
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: LanguageToggle(settings: services.settings),
+              ),
+              const SizedBox(height: 8),
+              const CircleAvatar(
+                radius: 36,
+                backgroundColor: Colors.white,
+                child: Icon(Icons.health_and_safety, size: 44, color: AppColors.primary),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.appTitle,
+                style: theme.textTheme.headlineMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+              ),
+              Text(
+                l10n.appTagline,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white.withValues(alpha: 0.9)),
+              ),
+            ],
+          ),
         ),
       ),
     );

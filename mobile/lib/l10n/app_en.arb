@@ -882,7 +882,7 @@
   "@voiceGuidanceLabel": {
     "description": "Settings: voice guidance switch."
   },
-  "voiceGuidanceHint": "Reads the name of each field aloud on the visit form",
+  "voiceGuidanceHint": "Reads the name of each field aloud on the registration and visit forms",
   "@voiceGuidanceHint": {
     "description": "Settings: explanation under the voice guidance switch."
   },
@@ -894,7 +894,7 @@
   "@voiceUnmute": {
     "description": "Tooltip of the visit form button that turns voice guidance on."
   },
-  "voiceNoUrduVoice": "This phone has no Urdu voice. Add one in the phone's text-to-speech settings.",
+  "voiceNoUrduVoice": "This phone has no Urdu voice yet. Open the phone's Settings → Text-to-speech output, choose Google's engine, install the Urdu voice data, then test again.",
   "@voiceNoUrduVoice": {
     "description": "Settings: the phone cannot speak Urdu."
   },
@@ -902,7 +902,7 @@
   "@homeSettingsSection": {
     "description": "Heading of the settings on the home screen."
   },
-  "homeVisitHint": "To record a visit, open the woman's file from Registered women.",
+  "homeVisitHint": "Open a woman's file to record a visit",
   "@homeVisitHint": {
     "description": "Home screen hint: how to record a visit."
   },
@@ -933,5 +933,65 @@
   "loginServerCancel": "Cancel",
   "@loginServerCancel": {
     "description": "Test builds only: closes the server address dialog without changing it."
+  },
+  "appTagline": "For Lady Health Workers",
+  "@appTagline": {
+    "description": "Sign-in screen: under the app name, who the app is for."
+  },
+  "homeRegisterHint": "Start a new pregnancy file",
+  "@homeRegisterHint": {
+    "description": "Home: line under the Register a pregnant woman button."
+  },
+  "homeSyncSection": "Sync",
+  "@homeSyncSection": {
+    "description": "Home: heading of the sync card."
+  },
+  "homeSyncHint": "Records are also sent on their own whenever the internet is available.",
+  "@homeSyncHint": {
+    "description": "Home: explanation in the sync card."
+  },
+  "settingsAccountSection": "Account",
+  "@settingsAccountSection": {
+    "description": "Settings: heading of the signed-in account."
+  },
+  "settingsName": "Name",
+  "@settingsName": {
+    "description": "Settings: label of the signed-in user's name."
+  },
+  "settingsArea": "Area",
+  "@settingsArea": {
+    "description": "Settings: label of the signed-in LHW's area."
+  },
+  "settingsVoiceSection": "Voice",
+  "@settingsVoiceSection": {
+    "description": "Settings: heading of the voice guidance settings."
+  },
+  "settingsTestingSection": "Testing",
+  "@settingsTestingSection": {
+    "description": "Settings: heading of the tools shown only in test builds."
+  },
+  "voiceTestButton": "Test the voice",
+  "@voiceTestButton": {
+    "description": "Settings: button that speaks a sample Urdu sentence."
+  },
+  "voiceTestSample": "Voice guidance is on",
+  "@voiceTestSample": {
+    "description": "Settings: the sentence spoken by Test the voice (spoken in Urdu only)."
+  },
+  "voiceTestPlayed": "Did you hear the sentence in Urdu? If not, check the phone's volume.",
+  "@voiceTestPlayed": {
+    "description": "Settings: after Test the voice played the sample."
+  },
+  "syncSent": "Sent",
+  "@syncSent": {
+    "description": "A record that has reached the server."
+  },
+  "syncInProgress": "Syncing…",
+  "@syncInProgress": {
+    "description": "Home: shown while the Sync now button is working."
+  },
+  "patientsNewButton": "New registration",
+  "@patientsNewButton": {
+    "description": "Registered women: the button that opens the registration form."
   }
 }

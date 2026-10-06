@@ -49,8 +49,9 @@ From the roadmap:
 - The server address is fixed at build time (`API_BASE_URL`), and release builds are HTTPS-only (M1 FE-2). The one exception is the test APK (`testBuild` in `lib/build_flags.dart`, set with `--dart-define=MEDIQORE_TEST_BUILD=true` by `.github/workflows/apk.yml`):
   - its sign-in screen shows the server address with **Change server** (`LoginScreen.showServerSetting`, saved as `AppSettings.serverAddress`);
   - it allows plain HTTP, because the workflow sets `MEDIQORE_ALLOW_HTTP=true` for `android/app/build.gradle.kts`;
-  - it shows the Phase 0 checks on the home screen.
+  - it shows the Phase 0 checks in the settings.
   Never ship a test build to LHWs.
+- Layout: build screens from the shared pieces (`lib/widgets/app_cards.dart`, the theme) so every screen looks the same: a teal app bar, white `SectionCard`s on the grey background, `InfoRow` for label and value, `SyncStatusChip` for a record's sync state, `NoticeCard` for messages. Data entry screens have `LiveStatusBar` at the top, a `VoiceScope` around the form and `VoiceMuteButton` in the app bar.
 
 ## Layout
 
@@ -72,25 +73,26 @@ From the roadmap:
   - `password_key.dart`: PBKDF2-HMAC-SHA256 (120,000 iterations, in a background isolate). The phone keeps the salt and a verifier, never the password. The derived key opens the encrypted database (M3 FE-2).
   - `Session` opens the database at sign-in (`data`, a `LocalData`) and closes it at lock. A new password means a new key: the old database is deleted and downloaded again, and `lostUnsyncedRecords` tells the home screen if unsynced records were lost (LI-8). The number of waiting records is kept in `AppSettings.pendingRecords` for the checks before sign-in.
   - `local_account.dart`: the signed-in user's profile and password key, saved for offline sign-in.
-- `lib/widgets/language_switch.dart`: the اردو / English switch, on the login screen and the home screen.
+- `lib/widgets/language_switch.dart`: `LanguageToggle`, the button at the top of the sign-in screen that shows the other language, and `LanguageChoice`, the list in the settings. Each language name is written in its own script.
 - `lib/l10n/app_en.arb` (template, with descriptions) and `lib/l10n/app_ur.arb` hold every visible string. Add new keys to both files.
   - `AppLocalizations` is generated from them by `flutter pub get` into `lib/l10n/app_localizations*.dart`, which is git-ignored.
   - Use it as `AppLocalizations.of(context).key`.
 - `lib/theme/`:
-  - `AppTheme.light(urdu: …)`: 64 dp controls in both languages. Urdu uses the Nastaleeq font with a taller line height; English uses the standard Latin font.
-  - `AppColors`: the Green/Yellow/Red risk colours.
+  - `AppTheme.light(urdu: …)`: 64 dp buttons in both languages, a teal app bar, white cards with a thin border, white fields. In Urdu the font is the phone's Latin font (`sans-serif`) with Nastaleeq as the fallback, so Urdu letters are Nastaliq and Latin text and digits keep the standard font; the line height is taller. English uses the standard Latin font.
+  - `AppColors`: the brand teal, background, border and muted text colours, the status colours (offline, waiting, synced, problem) and the Green/Yellow/Red risk colours.
 - `lib/widgets/`: the shared kit.
   - `LargeButton`
   - `AppTextField`, `VitalField` (numbers and unit always left to right; digits and up to `decimals` decimals; a keystroke that does not fit is ignored), `CheckboxField`, `DropdownField`. Inside a `VoiceScope` each reads its label aloud on focus (a checkbox or dropdown on tap) and shows a speaker while focused (M3 FE-3).
   - `NumberField` (whole numbers without a unit, digits only, left to right)
   - `RiskChip` with `RiskLevel`
-  - `OfflineStatusBar`
+  - `OfflineStatusBar`, and `LiveStatusBar`, which follows `AutoSync` and counts the waiting records itself
+  - `app_cards.dart`: `SectionCard`, `InfoRow`, `SyncStatusChip`, `StatusPill`, `NoticeCard`, `InitialAvatar`, `VoiceMuteButton`
   - `GpsCapture` (M2 FE-3): records a position with its status and the reason it failed
-  - `VoiceSetting` (M3 FE-3): the voice guidance switch in the home settings, or the Urdu-only note in English
+  - `VoiceSetting` (M3 FE-3): the voice guidance switch and **Test the voice** in the settings (with install steps when the phone has no Urdu voice), or the Urdu-only note in English
   - `syncStatusText()`: the words for waiting, refused and held records
 - `lib/app_services.dart`: the settings, database, API client, repositories, sync service, session, automatic sync, voice guidance and visit ranges, created once in `main()`. Tests build them with an in-memory database, Urdu settings kept in memory, a fast password key, a fake voice and no automatic sync (`testServices()` in `test/helpers.dart`).
 - `lib/clinical/visit_ranges.dart` (M3 FE-1): `VisitRanges` from `assets/clinical/visit_ranges.json`. Per vital: `allowed` (outside it the value is impossible and cannot be saved), `plausible` (outside it the LHW confirms the value) and `decimals`. The file is versioned and marked as a draft for clinical advisor review.
-- `lib/voice/voice_guide.dart` (M3 FE-3): `Voice` (`TtsVoice` with flutter_tts and `ur-PK`; it stays silent when the phone has no Urdu voice), `VoiceGuidance` (speaks only in Urdu and unmuted; muting stops it) and `VoiceScope`.
+- `lib/voice/voice_guide.dart` (M3 FE-3): `Voice` (`TtsVoice` with flutter_tts: it asks for `ur-PK`, then any Urdu; when the default engine has none it tries the phone's other engines, such as Google's; a failure is retried at the next label; it stays silent when no engine has Urdu), `VoiceGuidance` (speaks only in Urdu and unmuted; muting stops it; `test()` speaks a sample for the settings) and `VoiceScope`.
 - `lib/data/`:
   - `app_database.dart`: the Drift database (schema version 3) with `households`, `women`, `pregnancies`, `obstetric_history` (M2), `visits` (M3), `outbox` and `sync_state`.
     - Every synced table has the base columns, including `areaId` (the area the record was made in, M1 FE-3) and `createdBy`.
@@ -115,13 +117,14 @@ From the roadmap:
     - a visit the server holds for supervisor review (status `conflict`, M3 FE-2) leaves the outbox and gets `conflictId`; the decision arrives by pull, which clears it (a duplicate arrives deleted). `SyncReport.held` counts them.
   - `auto_sync.dart` (M3 FE-2): `AutoSync` syncs while the app is unlocked after an online sign-in: a few seconds after a save, every two minutes (the retry) and when the app returns to the foreground. `run()` is also the Sync button; `Session.sync()` joins a sync that is already running, so the refresh token is never used twice. True background sync with the app closed is not possible: the database key exists only while the app is unlocked (LI-8).
 - `lib/screens/`:
-  - `login_screen.dart` (M1 FE-2, FE-4): LHW ID, password and the language switch. `signInMessage()` turns each `SignInResult` into its text.
+  - `login_screen.dart` (M1 FE-2, FE-4): a teal header with the app's name and the language button, then LHW ID and password in a card. `signInMessage()` turns each `SignInResult` into its text.
   - `otp_screen.dart` (M1 FE-2, decision 0002): the 6-digit code for a new phone, with the last six characters of the installation ID so the portal user can match the phone.
-  - `home_screen.dart`: who is signed in, registration and the patient list (LHWs only), sync (the status bar follows `AutoSync`), the settings (language switch and voice guidance), lock and sign out.
-  - `register_screen.dart` (M2 FE-1–3): the registration form on one page. It uses a `Column` in a `SingleChildScrollView`, not a `ListView`, so every field is built and validated. Then `registration_saved_screen.dart` shows the new patient ID.
+  - `home_screen.dart`: the status strip, who is signed in, the task cards for registration and the patient list (LHWs only) and the Sync card (the status strip follows `AutoSync`). The gear icon in the app bar opens the settings.
+  - `settings_screen.dart` (M1 FE-4, M3 FE-3, M1 FE-2): the language, voice guidance (LHWs), the account with Lock and Sign out, and in debug builds and test APKs the server address and the Phase 0 checks.
+  - `register_screen.dart` (M2 FE-1–3, M3 FE-3): the registration form on one page, a card per section, with voice guidance and the mute button. It uses a `Column` in a `SingleChildScrollView`, not a `ListView`, so every field is built and validated. Then `registration_saved_screen.dart` shows the new patient ID.
   - `patient_list_screen.dart` (M2 FE-3): search and village groups. `patient_file_screen.dart`: the pregnancy file, with "record home location" when GPS is missing, the **New visit** button for an active pregnancy and the visits with their sync state (M3).
   - `visit_screen.dart` (M3 FE-1, FE-3, P0-7 screen 4): the visit form in one `Column` in a `SingleChildScrollView`. Every vital but blood sugar is required; impossible values show the allowed range; values outside the usual range open a dialog that lists them ("correct them" or "yes, save"). The status bar is at the top and the mute toggle in the app bar (Urdu only). It closes with the saved visit, and the file shows "saved on the phone".
-  - Phase 0 checks, reached from the home screen in debug builds and test APKs only:
+  - Phase 0 checks, reached from the settings in debug builds and test APKs only:
     - `dev_home_screen.dart`: the list of checks.
     - `widget_kit_screen.dart`: the P0-2 kit preview.
     - `sync_test_screen.dart`: the P0-6 end-to-end check (create a synthetic household offline, sync with the session).
@@ -139,7 +142,8 @@ From the roadmap:
   - `test/screens/login_flow_test.dart` runs the whole app from sign-in to home and back; `test/screens/registration_flow_test.dart` registers women offline through the screens.
   - `test/support/fake_location_service.dart` replaces the GPS and `test/support/fake_voice.dart` the text-to-speech (it records what would be spoken); `testServices` uses both by default. `FakeSyncServer.holdIds` makes the server hold records as same-day conflicts, and `resolveHeld` plays the supervisor's decision.
   - `test/screens/server_setting_test.dart` changes the test build's server address on a small phone in both languages.
-  - `test/screens/visit_flow_test.dart` records visits through the screens: required and impossible values, the range dialog, voice guidance on focus, mute and English, and a held visit.
+  - `test/screens/visit_flow_test.dart` records visits through the screens: required and impossible values, the range dialog, voice guidance on focus (also on the registration form), mute and English, the voice settings and **Test the voice**, and a held visit.
+  - Lock, Sign out, the language list, voice guidance and the Phase 0 checks are in the settings: tests open them with `find.byTooltip(l10n.homeSettingsSection)`.
   - Drift, the password key isolate and the fake HTTP client run outside the widget test clock: wrap those actions in `tester.runAsync`. To test the auto-lock timer, sign in before `pumpWidget`, so the timer starts on the test clock.
   - `test/e2e/sync_e2e_test.dart` runs against a real API when given `--dart-define=E2E_API_BASE_URL=...`; it approves its test phones as `admin.demo`, registers synthetic women, records visits and makes one same-day conflict, which it decides as the admin.
   - Plugins are faked at their method channel, for example the `flutter_tts` channel in `test/screens/voice_check_screen_test.dart`.

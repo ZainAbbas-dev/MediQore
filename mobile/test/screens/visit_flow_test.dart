@@ -76,10 +76,8 @@ void main() {
     expect(find.byType(VisitScreen), findsOneWidget);
   }
 
-  Finder vital(String label) => find.descendant(
-        of: find.byWidgetPredicate((w) => w is VitalField && w.label == label),
-        matching: find.byType(TextFormField),
-      );
+  Finder vital(String label) =>
+      find.descendant(of: find.byWidgetPredicate((w) => w is VitalField && w.label == label), matching: find.byType(TextFormField));
 
   Future<void> enter(WidgetTester tester, String label, String text) async {
     await tester.ensureVisible(vital(label));
@@ -222,8 +220,14 @@ void main() {
     expect(find.text(ur.syncHeld), findsOneWidget);
   });
 
-  testWidgets('the home settings hold the voice guidance switch in Urdu, and a note in English (M3 FE-3)', (tester) async {
+  Future<void> openSettings(WidgetTester tester) async {
+    await tester.tap(find.byTooltip(ur.homeSettingsSection));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('the settings hold the voice guidance switch in Urdu, and a note in English (M3 FE-3)', (tester) async {
     await pumpHome(tester);
+    await openSettings(tester);
     final toggle = find.widgetWithText(SwitchListTile, ur.voiceGuidanceLabel);
     await tester.ensureVisible(toggle);
     expect(tester.widget<SwitchListTile>(toggle).value, isTrue, reason: 'on until the LHW mutes it');
@@ -243,6 +247,32 @@ void main() {
   testWidgets('a phone without an Urdu voice says so in the settings', (tester) async {
     voice.hasUrdu = false;
     await pumpHome(tester);
+    await openSettings(tester);
     expect(find.text(ur.voiceNoUrduVoice), findsOneWidget);
+  });
+
+  testWidgets('the settings test the voice, also while voice guidance is muted', (tester) async {
+    await services.settings.setVoiceMuted(true);
+    await pumpHome(tester);
+    await openSettings(tester);
+
+    await tester.tap(find.text(ur.voiceTestButton));
+    await tester.pumpAndSettle();
+
+    expect(voice.spoken, [ur.voiceTestSample]);
+    expect(find.text(ur.voiceTestPlayed), findsOneWidget);
+  });
+
+  testWidgets('the registration form reads its labels aloud too (M3 FE-3)', (tester) async {
+    await pumpHome(tester);
+    await tapAndWait(tester, find.text(ur.homeRegisterButton));
+
+    await tester.tap(
+      find.descendant(of: find.byWidgetPredicate((w) => w is AppTextField && w.label == ur.regName), matching: find.byType(TextFormField)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(voice.spoken, [ur.regName]);
+    expect(find.byTooltip(ur.voiceMute), findsOneWidget, reason: 'the mute button is in the app bar');
   });
 }

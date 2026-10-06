@@ -24,6 +24,11 @@ From the app's Phase 0 home, open **اردو آواز کی جانچ** (Urdu voic
 
 The **نمونے کا لیبل سنائیں** button (speak a sample label) reads a real field label, اوپر والا بلڈ پریشر (systolic blood pressure), the way voice guidance will.
 
+## In the app now
+
+- The app asks the phone's default text-to-speech engine for Urdu (`ur-PK`, then any Urdu). If it has none, it tries the phone's other engines, for example Google's, and uses the first one with Urdu. It asks again at the next field, so installing the voice data works without restarting the app.
+- **Settings → آواز → آواز آزمائیں** (test the voice) speaks a sample sentence. When the phone has no Urdu voice, it says how to install one.
+
 ## Procedure for each test phone
 
 1. Install the debug build:

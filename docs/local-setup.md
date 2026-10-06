@@ -101,7 +101,7 @@ Run the task **MediQore: run all tests (db, api, web)**. You should see the same
 | `api` | lint clean, 169 passed |
 | `web` | lint clean, 53 passed, build succeeds |
 
-After step 7, the task **mobile: analyze and test** should show "No issues found" and 149 tests passed, with four skipped (the opt-in end-to-end tests).
+After step 7, the task **mobile: analyze and test** should show "No issues found" and 156 tests passed, with four skipped (the opt-in end-to-end tests).
 
 ## 7. The app on a real phone
 
@@ -120,12 +120,12 @@ This tries Module 1 sign-in (phone approval, offline sign-in, auto-lock), Module
    3. Type the IPv4 address when asked.
    4. The first build takes several minutes.
 5. The app opens on the **سائن ان** (sign-in) screen (M1):
-   - **زبان / Language** at the top: tap **English** and the whole app switches to English, left to right. Tap **اردو** to switch back. The app remembers the choice after it is closed.
+   - **Language:** the button at the top of the sign-in screen shows the other language. Tap **English** and the whole app switches to English, left to right; tap **اردو** to switch back. After sign-in, the language is in the settings (the gear icon at the top of the home screen). The app remembers the choice after it is closed.
    - **First sign-in on this phone** (needs the internet): type `lhw.demo` and `demo-password` and tap **سائن ان کریں**.
      1. The app asks for the phone's **6-digit code** and shows the last six characters of the phone's ID.
      2. In the portal, sign in as `supervisor.demo` (or `admin.demo`), open **Phone approvals** and check that the row shows the same six characters. Click **Issue code**.
      3. Type the code in the app and tap **منظور کریں اور سائن ان کریں** (approve and sign in). The app downloads the area's records and opens the home screen.
-   - **Offline sign-in:** tap **لاک کریں** (lock), turn on **airplane mode** and sign in again with the same password. It works without the internet. A wrong password is refused.
+   - **Offline sign-in:** open the settings (gear icon) and tap **لاک کریں** (lock), turn on **airplane mode** and sign in again with the same password. It works without the internet. A wrong password is refused.
    - **Auto-lock:** leave the app untouched for 5 minutes. It locks and asks for the password again.
    - **Deactivation:** in the portal, as `admin.demo`, open **LHW accounts** and deactivate `LHW-DEMO-001`. On the phone, tap **ابھی سنک کریں** (sync now): the app locks and says the account is deactivated. Activate it again in the portal afterwards.
    - **Register a pregnant woman offline (M2):** sign in, turn on **airplane mode** and tap **حاملہ خاتون کا اندراج** (register a pregnant woman).
@@ -135,7 +135,7 @@ This tries Module 1 sign-in (phone approval, offline sign-in, auto-lock), Module
      4. Open **رجسٹرڈ خواتین** (registered women): she is listed under her village, marked "not sent yet". Search for part of her name.
      5. Turn airplane mode off and sync. In the portal, as `supervisor.demo`, open **Registered women**: she is there with her history, and the dashboard count goes up.
    - **Record a visit offline (M3):** with **airplane mode** on, open her file from **رجسٹرڈ خواتین** and tap **نیا وزٹ** (new visit).
-     1. **Voice guidance:** with the app in Urdu, tap the first field. The phone reads its name aloud and a speaker shows next to it. The speaker button at the top mutes it; the same switch is under **سیٹنگز** (settings) on the home screen. In English there is no voice. If nothing is heard, check the voice check results (step 6).
+     1. **Voice guidance:** with the app in Urdu, tap the first field. The phone reads its name aloud and a speaker shows next to it. The registration form does the same. The speaker button at the top mutes it; the same switch is in the settings (gear icon), with **آواز آزمائیں** (test the voice). In English there is no voice. If nothing is heard, tap **آواز آزمائیں**: the app says whether the phone has an Urdu voice and how to install one.
      2. Leave every field empty and tap **وزٹ محفوظ کریں** (save visit): each required field says so. Type `98.6` as the temperature: it is refused, because the app takes °C.
      3. Type a systolic BP of `255` with the other values normal and save: a dialog asks you to check it. **درست کریں** goes back; **جی ہاں، محفوظ کریں** saves it.
      4. The file shows the visit, marked "not sent yet".
@@ -143,7 +143,7 @@ This tries Module 1 sign-in (phone approval, offline sign-in, auto-lock), Module
      1. Her file marks the second visit "waiting for the supervisor": the server held it because she already had a visit that day.
      2. In the portal, as `supervisor.demo`, open **Sync conflicts**: both visits are side by side. Choose one of the three decisions.
      3. Back on the phone, tap sync: the visit is no longer held (or, with "keep the stored visit", it disappears as a duplicate).
-6. On the home screen, **فیز 0 کی جانچ** (Phase 0 checks, debug builds and the test APK only):
+6. In the settings (gear icon), under **ٹیسٹنگ** (testing), **فیز 0 کی جانچ** (Phase 0 checks, debug builds and the test APK only):
    - **ویجٹ کٹ** (widget kit): scroll through the Urdu controls and check that nothing is cut off.
    - **ڈیٹا سنک کی جانچ** (sync test):
      1. Turn on **airplane mode** and tap **ٹیسٹ گھرانہ بنائیں** (create test household). It is saved on the phone.
@@ -162,7 +162,7 @@ No USB cable, Flutter or Android Studio is needed. GitHub builds the app after e
 - starts with the staging server, `https://mediqore-staging.onrender.com` ([`staging.md`](staging.md));
 - lets you type another server address on the sign-in screen, for example your laptop's;
 - talks to a laptop server over plain HTTP;
-- shows **فیز 0 کی جانچ** (Phase 0 checks) on the home screen.
+- shows **فیز 0 کی جانچ** (Phase 0 checks) in the settings.
 
 It is signed with a test key and is for testing only. Builds for LHWs will use one HTTPS server fixed at build time (M1 FE-2).
 

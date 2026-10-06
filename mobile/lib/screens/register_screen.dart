@@ -2,6 +2,8 @@
 // woman, her pregnancy month, her home with its GPS position and her obstetric
 // history are on one scrolling page, captured at the time of registration, and
 // saved on the phone in one step. No internet is needed.
+// M3 FE-3: in Urdu, each field's label is read aloud when it gets focus, unless
+// voice guidance is muted (the speaker button in the app bar).
 import 'package:flutter/material.dart';
 
 import '../app_services.dart';
@@ -9,9 +11,12 @@ import '../data/app_database.dart';
 import '../data/patient_repository.dart';
 import '../l10n/app_localizations.dart';
 import '../location/location_service.dart';
+import '../voice/voice_guide.dart';
+import '../widgets/app_cards.dart';
 import '../widgets/form_fields.dart';
 import '../widgets/gps_capture.dart';
 import '../widgets/large_button.dart';
+import '../widgets/offline_status_bar.dart';
 import 'registration_saved_screen.dart';
 
 /// Pregnancy months offered on the form (P0-7 screen spec: dropdown 1–9).
@@ -83,38 +88,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final LocalWoman woman;
     try {
       woman = await services.patients.register(
-      RegistrationInput(
-        name: _name.text.trim(),
-        age: int.parse(_age.text),
-        husbandName: _optional(_husbandName.text),
-        contactNumber: contact == null ? null : _withoutSpaces(contact),
-        pregnancyMonth: _month!,
-        householdId: householdId,
-        village: householdId == null ? _optional(_village.text) : null,
-        address: householdId == null ? _optional(_address.text) : null,
-        latitude: householdId == null ? _fix?.latitude : null,
-        longitude: householdId == null ? _fix?.longitude : null,
-        previousPregnancies: int.parse(_previous.text),
-        previousCSections: int.parse(_cSections.text),
-        stillbirths: int.parse(_stillbirths.text),
-        knownConditions: _optional(_conditions.text),
-      ),
-      by: services.session.user!,
+        RegistrationInput(
+          name: _name.text.trim(),
+          age: int.parse(_age.text),
+          husbandName: _optional(_husbandName.text),
+          contactNumber: contact == null ? null : _withoutSpaces(contact),
+          pregnancyMonth: _month!,
+          householdId: householdId,
+          village: householdId == null ? _optional(_village.text) : null,
+          address: householdId == null ? _optional(_address.text) : null,
+          latitude: householdId == null ? _fix?.latitude : null,
+          longitude: householdId == null ? _fix?.longitude : null,
+          previousPregnancies: int.parse(_previous.text),
+          previousCSections: int.parse(_cSections.text),
+          stillbirths: int.parse(_stillbirths.text),
+          knownConditions: _optional(_conditions.text),
+        ),
+        by: services.session.user!,
       );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
     if (!mounted) return;
     await Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => RegistrationSavedScreen(services: services, woman: woman)),
+      MaterialPageRoute<void>(
+        builder: (_) => RegistrationSavedScreen(services: services, woman: woman),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-
     String? required(String? text) => (text ?? '').trim().isEmpty ? l10n.regErrorRequired : null;
     String? count(String? text) {
       final value = int.tryParse(text ?? '');
@@ -128,96 +133,113 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return previous != null && int.parse(text!) > previous ? l10n.regErrorMoreThanPregnancies : null;
     }
 
-    Widget section(String title) => Padding(
-          padding: const EdgeInsets.only(top: 24, bottom: 8),
-          child: Text(title, style: theme.textTheme.titleLarge),
-        );
     const gap = SizedBox(height: 12);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.regTitle)),
-      body: Form(
-        key: _form,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              section(l10n.regWomanSection),
-              AppTextField(label: l10n.regName, controller: _name, validator: required),
-              gap,
-              NumberField(
-                label: l10n.regAge,
-                controller: _age,
-                validator: (text) {
-                  final age = int.tryParse(text ?? '');
-                  return age == null || age < 10 || age > 60 ? l10n.regErrorAge : null;
-                },
-              ),
-              gap,
-              AppTextField(label: l10n.regHusbandName, controller: _husbandName),
-              gap,
-              AppTextField(
-                label: l10n.regContactNumber,
-                controller: _contact,
-                keyboardType: TextInputType.phone,
-                ltr: true,
-                validator: (text) {
-                  final value = _withoutSpaces(text ?? '');
-                  return value.isEmpty || _mobileNumber.hasMatch(value) ? null : l10n.regErrorContact;
-                },
-              ),
-              section(l10n.regPregnancySection),
-              DropdownField<int>(
-                label: l10n.regPregnancyMonth,
-                value: _month,
-                options: [for (final m in pregnancyMonths) DropdownOption(m, l10n.regMonthOption(m))],
-                onChanged: (m) => setState(() => _month = m),
-                validator: (m) => m == null ? l10n.regErrorChooseMonth : null,
-              ),
-              section(l10n.regHomeSection),
-              if (_registered.isNotEmpty) ...[
-                CheckboxField(
-                  label: l10n.regSameHome,
-                  value: _sameHome,
-                  onChanged: (same) => setState(() => _sameHome = same),
+      appBar: AppBar(
+        title: Text(l10n.regTitle),
+        actions: [VoiceMuteButton(settings: widget.services.settings)],
+      ),
+      body: Column(
+        children: [
+          LiveStatusBar(services: widget.services),
+          Expanded(
+            child: VoiceScope(
+              guidance: widget.services.voice,
+              child: Form(
+                key: _form,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SectionCard(
+                        title: l10n.regWomanSection,
+                        icon: Icons.person,
+                        children: [
+                          AppTextField(label: l10n.regName, controller: _name, validator: required),
+                          NumberField(
+                            label: l10n.regAge,
+                            controller: _age,
+                            validator: (text) {
+                              final age = int.tryParse(text ?? '');
+                              return age == null || age < 10 || age > 60 ? l10n.regErrorAge : null;
+                            },
+                          ),
+                          AppTextField(label: l10n.regHusbandName, controller: _husbandName),
+                          AppTextField(
+                            label: l10n.regContactNumber,
+                            controller: _contact,
+                            keyboardType: TextInputType.phone,
+                            ltr: true,
+                            validator: (text) {
+                              final value = _withoutSpaces(text ?? '');
+                              return value.isEmpty || _mobileNumber.hasMatch(value) ? null : l10n.regErrorContact;
+                            },
+                          ),
+                        ],
+                      ),
+                      gap,
+                      SectionCard(
+                        title: l10n.regPregnancySection,
+                        icon: Icons.pregnant_woman,
+                        children: [
+                          DropdownField<int>(
+                            label: l10n.regPregnancyMonth,
+                            value: _month,
+                            options: [for (final m in pregnancyMonths) DropdownOption(m, l10n.regMonthOption(m))],
+                            onChanged: (m) => setState(() => _month = m),
+                            validator: (m) => m == null ? l10n.regErrorChooseMonth : null,
+                          ),
+                        ],
+                      ),
+                      gap,
+                      SectionCard(
+                        title: l10n.regHomeSection,
+                        icon: Icons.home,
+                        children: [
+                          if (_registered.isNotEmpty)
+                            CheckboxField(label: l10n.regSameHome, value: _sameHome, onChanged: (same) => setState(() => _sameHome = same)),
+                          if (_sameHome)
+                            DropdownField<String>(
+                              label: l10n.regChooseWoman,
+                              value: _homeOf,
+                              options: [
+                                for (final p in _registered)
+                                  DropdownOption(p.woman.id, l10n.regWomanOption(p.woman.name, p.woman.patientCode)),
+                              ],
+                              onChanged: (id) => setState(() => _homeOf = id),
+                              validator: (id) => id == null ? l10n.regErrorChooseWoman : null,
+                            )
+                          else ...[
+                            AppTextField(label: l10n.regVillage, controller: _village, validator: required),
+                            AppTextField(label: l10n.regAddress, controller: _address),
+                            GpsCapture(location: widget.services.location, onCaptured: (fix) => _fix = fix),
+                          ],
+                        ],
+                      ),
+                      gap,
+                      SectionCard(
+                        title: l10n.regHistorySection,
+                        icon: Icons.history,
+                        children: [
+                          NumberField(label: l10n.regPreviousPregnancies, controller: _previous, validator: count),
+                          NumberField(label: l10n.regPreviousCSections, controller: _cSections, validator: notMoreThanPregnancies),
+                          NumberField(label: l10n.regStillbirths, controller: _stillbirths, validator: notMoreThanPregnancies),
+                          AppTextField(label: l10n.regKnownConditions, controller: _conditions),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (_hasErrors) ...[NoticeCard(text: l10n.regErrorFix, warning: true), gap],
+                      LargeButton(label: l10n.regSaveButton, icon: Icons.save, onPressed: _saving ? null : () => _save(l10n)),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
-                gap,
-              ],
-              if (_sameHome)
-                DropdownField<String>(
-                  label: l10n.regChooseWoman,
-                  value: _homeOf,
-                  options: [
-                    for (final p in _registered) DropdownOption(p.woman.id, l10n.regWomanOption(p.woman.name, p.woman.patientCode)),
-                  ],
-                  onChanged: (id) => setState(() => _homeOf = id),
-                  validator: (id) => id == null ? l10n.regErrorChooseWoman : null,
-                )
-              else ...[
-                AppTextField(label: l10n.regVillage, controller: _village, validator: required),
-                gap,
-                AppTextField(label: l10n.regAddress, controller: _address),
-                gap,
-                GpsCapture(location: widget.services.location, onCaptured: (fix) => _fix = fix),
-              ],
-              section(l10n.regHistorySection),
-              NumberField(label: l10n.regPreviousPregnancies, controller: _previous, validator: count),
-              gap,
-              NumberField(label: l10n.regPreviousCSections, controller: _cSections, validator: notMoreThanPregnancies),
-              gap,
-              NumberField(label: l10n.regStillbirths, controller: _stillbirths, validator: notMoreThanPregnancies),
-              gap,
-              AppTextField(label: l10n.regKnownConditions, controller: _conditions),
-              const SizedBox(height: 24),
-              if (_hasErrors) ...[
-                Text(l10n.regErrorFix, style: TextStyle(color: theme.colorScheme.error)),
-                gap,
-              ],
-              LargeButton(label: l10n.regSaveButton, icon: Icons.save, onPressed: _saving ? null : () => _save(l10n)),
-            ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

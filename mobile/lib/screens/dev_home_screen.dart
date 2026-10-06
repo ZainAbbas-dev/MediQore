@@ -9,8 +9,8 @@ import 'voice_check_screen.dart';
 import 'widget_kit_screen.dart';
 
 /// The Phase 0 checks (P0-2 widget kit, P0-6 sync, P0-11 Urdu voice), with
-/// the Urdu/English switch (M1 FE-4) at the top. Opened from the home screen
-/// in debug builds only.
+/// the Urdu/English choice (M1 FE-4) at the top. Opened from the settings in
+/// debug builds and test APKs only.
 class DevHomeScreen extends StatelessWidget {
   const DevHomeScreen({super.key, required this.services});
 
@@ -26,7 +26,7 @@ class DevHomeScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          LanguageSwitch(settings: services.settings),
+          Card(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: LanguageChoice(settings: services.settings))),
           const SizedBox(height: 24),
           LargeButton(label: l10n.kitTitle, icon: Icons.widgets, onPressed: () => open(const WidgetKitScreen())),
           const SizedBox(height: 12),

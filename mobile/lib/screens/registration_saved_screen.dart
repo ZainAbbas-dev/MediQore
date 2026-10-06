@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../app_services.dart';
 import '../data/app_database.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_cards.dart';
 import '../widgets/large_button.dart';
 import 'patient_file_screen.dart';
 import 'register_screen.dart';
@@ -19,28 +21,54 @@ class RegistrationSavedScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    void replaceWith(Widget screen) =>
-        Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => screen));
+    void replaceWith(Widget screen) => Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => screen));
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.savedTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Icon(Icons.check_circle, size: 64, color: theme.colorScheme.primary),
-          const SizedBox(height: 12),
-          Text(woman.name, style: theme.textTheme.titleLarge, textAlign: TextAlign.center),
-          const SizedBox(height: 12),
-          Text(l10n.patientIdLabel, style: theme.textTheme.titleMedium, textAlign: TextAlign.center),
-          Text(
-            woman.patientCode,
-            textDirection: TextDirection.ltr,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  const CircleAvatar(
+                    radius: 36,
+                    backgroundColor: AppColors.statusSyncedBackground,
+                    child: Icon(Icons.check_circle, size: 52, color: AppColors.statusSynced),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    woman.name,
+                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(l10n.patientIdLabel, style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText)),
+                  const SizedBox(height: 4),
+                  DecoratedBox(
+                    decoration: BoxDecoration(color: theme.colorScheme.primaryContainer, borderRadius: BorderRadius.circular(12)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: Text(
+                        woman.patientCode,
+                        textDirection: TextDirection.ltr,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  NoticeCard(text: l10n.savedOnPhone, icon: Icons.phone_android),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 16),
-          Text(l10n.savedOnPhone, style: theme.textTheme.bodyLarge, textAlign: TextAlign.center),
-          const SizedBox(height: 24),
           LargeButton(
             label: l10n.savedOpenFile,
             icon: Icons.folder_open,

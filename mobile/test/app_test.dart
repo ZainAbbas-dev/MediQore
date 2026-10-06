@@ -15,6 +15,7 @@ import 'package:mediqore/screens/otp_screen.dart';
 import 'package:mediqore/screens/patient_file_screen.dart';
 import 'package:mediqore/screens/patient_list_screen.dart';
 import 'package:mediqore/screens/register_screen.dart';
+import 'package:mediqore/screens/settings_screen.dart';
 import 'package:mediqore/screens/registration_saved_screen.dart';
 import 'package:mediqore/screens/sync_test_screen.dart';
 import 'package:mediqore/screens/visit_screen.dart';
@@ -87,18 +88,22 @@ void main() {
     expect(AppSettings(store: store).deviceId, first);
   });
 
-  test('theme uses Jameel Noori Nastaleeq with taller lines in Urdu', () {
+  test('theme uses Jameel Noori Nastaleeq for Urdu letters, with taller lines, in Urdu', () {
     final theme = AppTheme.light();
-    expect(theme.textTheme.bodyLarge?.fontFamily, AppTheme.urduFontFamily);
+    // Urdu letters come from the Nastaliq font; Latin letters and digits keep the standard font.
+    expect(theme.textTheme.bodyLarge?.fontFamily, AppTheme.latinFontFamily);
+    expect(theme.textTheme.bodyLarge?.fontFamilyFallback, [AppTheme.urduFontFamily]);
     expect(theme.textTheme.bodyLarge?.height, AppTheme.urduLineHeight);
+    expect(theme.appBarTheme.titleTextStyle?.fontFamilyFallback, [AppTheme.urduFontFamily]);
     // Button labels too: a button text style without the font would fall back to the system font.
-    expect(theme.filledButtonTheme.style?.textStyle?.resolve({})?.fontFamily, AppTheme.urduFontFamily);
-    expect(theme.outlinedButtonTheme.style?.textStyle?.resolve({})?.fontFamily, AppTheme.urduFontFamily);
+    expect(theme.filledButtonTheme.style?.textStyle?.resolve({})?.fontFamilyFallback, [AppTheme.urduFontFamily]);
+    expect(theme.outlinedButtonTheme.style?.textStyle?.resolve({})?.fontFamilyFallback, [AppTheme.urduFontFamily]);
   });
 
   test('theme uses the standard Latin font and line height in English', () {
     final theme = AppTheme.light(urdu: false);
     expect(theme.textTheme.bodyLarge?.fontFamily, isNot(AppTheme.urduFontFamily));
+    expect(theme.textTheme.bodyLarge?.fontFamilyFallback ?? const [], isNot(contains(AppTheme.urduFontFamily)));
     expect(theme.textTheme.bodyLarge?.height, isNot(AppTheme.urduLineHeight));
     expect(theme.filledButtonTheme.style?.minimumSize?.resolve({})?.height, AppTheme.largeControlHeight);
   });
@@ -180,6 +185,13 @@ void main() {
       testWidgets('the home screen fits ($language)', (tester) async {
         await tester.runAsync(() => signInApproved(services, server));
         await pumpScreen(tester, HomeScreen(services: services), english: english);
+        await scrollToEnd(tester);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('the settings fit ($language)', (tester) async {
+        await tester.runAsync(() => signInApproved(services, server));
+        await pumpScreen(tester, SettingsScreen(services: services), english: english);
         await scrollToEnd(tester);
         expect(tester.takeException(), isNull);
       });

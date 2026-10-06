@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import '../app_services.dart';
 import '../data/patient_repository.dart';
 import '../l10n/app_localizations.dart';
-import '../widgets/sync_status_text.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_cards.dart';
 import 'patient_file_screen.dart';
 import 'register_screen.dart';
 
@@ -63,50 +64,78 @@ class _PatientListScreenState extends State<PatientListScreen> {
       final pVillage = p.village?.trim().isEmpty ?? true ? null : p.village!.trim();
       if (index == 0 || pVillage != village) {
         village = pVillage;
-        rows.add(Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-          child: Text(village ?? l10n.patientsNoVillage, style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary)),
-        ));
+        rows.add(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+            child: Row(
+              children: [
+                Icon(Icons.place, size: 20, color: theme.colorScheme.primary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    village ?? l10n.patientsNoVillage,
+                    style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       }
-      rows.add(_PatientRow(patient: p, onTap: () => _open(PatientFileScreen(services: widget.services, womanId: p.woman.id))));
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _PatientRow(
+            patient: p,
+            onTap: () => _open(PatientFileScreen(services: widget.services, womanId: p.woman.id)),
+          ),
+        ),
+      );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.patientsTitle),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_add),
-            tooltip: l10n.homeRegisterButton,
-            onPressed: () => _open(RegisterScreen(services: widget.services)),
-          ),
-        ],
+      appBar: AppBar(title: Text(l10n.patientsTitle)),
+      floatingActionButton: FloatingActionButton.extended(
+        icon: const Icon(Icons.person_add),
+        label: Text(l10n.patientsNewButton),
+        tooltip: l10n.homeRegisterButton,
+        onPressed: () => _open(RegisterScreen(services: widget.services)),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: TextField(
-              controller: _search,
-              onChanged: (_) => _load(),
-              decoration: InputDecoration(hintText: l10n.patientsSearch, prefixIcon: const Icon(Icons.search)),
+          Material(
+            color: theme.colorScheme.primary,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: TextField(
+                controller: _search,
+                onChanged: (_) => _load(),
+                decoration: InputDecoration(
+                  hintText: l10n.patientsSearch,
+                  prefixIcon: const Icon(Icons.search),
+                  border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(28)), borderSide: BorderSide.none),
+                  enabledBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(28)), borderSide: BorderSide.none),
+                  focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(28)), borderSide: BorderSide.none),
+                ),
+              ),
             ),
           ),
           if (patients != null && _total > 0)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Text(l10n.patientsCount(patients.length), style: theme.textTheme.bodySmall),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Text(l10n.patientsCount(patients.length), style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText)),
             ),
           Expanded(
             child: patients == null
                 ? const Center(child: CircularProgressIndicator())
                 : patients.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(_total == 0 ? l10n.patientsEmpty : l10n.patientsNoMatch, style: theme.textTheme.bodyLarge),
-                      )
-                    : ListView(padding: const EdgeInsets.only(bottom: 24), children: rows),
+                ? Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: NoticeCard(text: _total == 0 ? l10n.patientsEmpty : l10n.patientsNoMatch),
+                  )
+                // Room at the end so the last woman is not hidden under the button.
+                : ListView(padding: const EdgeInsets.fromLTRB(12, 0, 12, 96), children: rows),
           ),
         ],
       ),
@@ -132,39 +161,32 @@ class _PatientRow extends StatelessWidget {
     ];
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
+              InitialAvatar(woman.name),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(woman.name, style: theme.textTheme.titleMedium),
-                    Text(woman.patientCode, textDirection: TextDirection.ltr, style: theme.textTheme.bodyMedium),
-                    if (details.isNotEmpty) Text(details.join(' · '), style: theme.textTheme.bodySmall),
-                    if (syncStatusText(l10n, patient.syncStatus) case final status?)
-                      Text(
-                        status,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: patient.syncStatus == SyncStatus.refused ? theme.colorScheme.error : null,
-                        ),
-                      ),
+                    Text(woman.name, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                    Text(
+                      woman.patientCode,
+                      textDirection: TextDirection.ltr,
+                      style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText),
+                    ),
+                    if (details.isNotEmpty) Text(details.join(' · '), style: theme.textTheme.bodyMedium),
+                    const SizedBox(height: 4),
+                    SyncStatusChip(patient.syncStatus),
                   ],
                 ),
               ),
-              Icon(
-                switch (patient.syncStatus) {
-                  SyncStatus.synced => Icons.cloud_done,
-                  SyncStatus.waiting => Icons.cloud_upload,
-                  SyncStatus.refused => Icons.error,
-                  SyncStatus.held => Icons.hourglass_top,
-                },
-                color: patient.syncStatus == SyncStatus.refused ? theme.colorScheme.error : theme.colorScheme.outline,
-              ),
+              const Icon(Icons.chevron_right, color: AppColors.mutedText),
             ],
           ),
         ),

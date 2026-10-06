@@ -13,9 +13,10 @@ import '../data/patient_repository.dart';
 import '../data/visit_repository.dart';
 import '../l10n/app_localizations.dart';
 import '../location/location_service.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_cards.dart';
 import '../widgets/gps_capture.dart';
 import '../widgets/large_button.dart';
-import '../widgets/sync_status_text.dart';
 import 'visit_screen.dart';
 
 class PatientFileScreen extends StatefulWidget {
@@ -80,7 +81,10 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
     final theme = Theme.of(context);
     final file = _file;
     if (file == null) {
-      return Scaffold(appBar: AppBar(title: Text(l10n.fileTitle)), body: const Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.fileTitle)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
 
     final woman = file.woman;
@@ -89,61 +93,98 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
     final history = file.history;
     final dateFormat = DateFormat.yMMMMd(Localizations.localeOf(context).toLanguageTag());
 
-    Widget section(String title) => Padding(
-          padding: const EdgeInsets.only(top: 24, bottom: 4),
-          child: Text(title, style: theme.textTheme.titleLarge),
-        );
+    const gap = SizedBox(height: 12);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.fileTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(woman.name, style: theme.textTheme.headlineSmall),
-          _Field(l10n.patientIdLabel, woman.patientCode, ltr: true),
-          if (syncStatusText(l10n, file.syncStatus) case final status?)
-            Text(
-              status,
-              style: TextStyle(color: file.syncStatus == SyncStatus.refused ? theme.colorScheme.error : null),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  InitialAvatar(woman.name, radius: 28),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(woman.name, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+                        Text(l10n.patientIdLabel, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.mutedText)),
+                        Text(woman.patientCode, textDirection: TextDirection.ltr, style: theme.textTheme.titleMedium),
+                        const SizedBox(height: 6),
+                        SyncStatusChip(file.syncStatus),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
+          ),
           if (pregnancy != null && pregnancy.status == 'active') ...[
-            const SizedBox(height: 16),
+            gap,
             LargeButton(label: l10n.fileNewVisitButton, icon: Icons.add, onPressed: () => _newVisit(file, l10n)),
           ],
-          section(l10n.regWomanSection),
-          _Field(l10n.regAge, woman.age?.toString(), ltr: true),
-          _Field(l10n.regHusbandName, woman.husbandName),
-          _Field(l10n.regContactNumber, woman.contactNumber, ltr: true),
-          section(l10n.regHomeSection),
-          _Field(l10n.regVillage, household?.village),
-          _Field(l10n.regAddress, household?.address),
-          if (household?.latitude != null && household?.longitude != null)
-            _Field(
-              l10n.gpsLabel,
-              '${household!.latitude!.toStringAsFixed(6)}, ${household.longitude!.toStringAsFixed(6)}',
-              ltr: true,
-            )
-          else if (household != null) ...[
-            const SizedBox(height: 8),
-            GpsCapture(location: widget.services.location, onCaptured: (fix) => _saveLocation(fix, l10n)),
-          ],
+          gap,
+          SectionCard(
+            title: l10n.regWomanSection,
+            icon: Icons.person,
+            children: [
+              InfoRow(l10n.regAge, woman.age?.toString(), ltr: true),
+              InfoRow(l10n.regHusbandName, woman.husbandName),
+              InfoRow(l10n.regContactNumber, woman.contactNumber, ltr: true),
+            ],
+          ),
+          gap,
+          SectionCard(
+            title: l10n.regHomeSection,
+            icon: Icons.home,
+            children: [
+              InfoRow(l10n.regVillage, household?.village),
+              InfoRow(l10n.regAddress, household?.address),
+              if (household?.latitude != null && household?.longitude != null)
+                InfoRow(l10n.gpsLabel, '${household!.latitude!.toStringAsFixed(6)}, ${household.longitude!.toStringAsFixed(6)}', ltr: true)
+              else if (household != null)
+                GpsCapture(location: widget.services.location, onCaptured: (fix) => _saveLocation(fix, l10n)),
+            ],
+          ),
           if (pregnancy != null) ...[
-            section(l10n.regPregnancySection),
-            _Field(l10n.fileRegisteredOn, _formatDate(dateFormat, pregnancy.registeredOn)),
-            _Field(l10n.fileMonthAtRegistration, '${pregnancy.pregnancyMonthAtRegistration}', ltr: true),
-            _Field(l10n.fileStatus, pregnancy.status == 'active' ? l10n.fileStatusActive : l10n.fileStatusClosed),
-            section(l10n.fileVisitsSection),
-            if (_visits.isEmpty)
-              Text(l10n.fileNoVisits, style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.outline))
-            else
-              for (final visit in _visits) _VisitCard(visit),
+            gap,
+            SectionCard(
+              title: l10n.regPregnancySection,
+              icon: Icons.pregnant_woman,
+              children: [
+                InfoRow(l10n.fileRegisteredOn, _formatDate(dateFormat, pregnancy.registeredOn)),
+                InfoRow(l10n.fileMonthAtRegistration, '${pregnancy.pregnancyMonthAtRegistration}', ltr: true),
+                InfoRow(l10n.fileStatus, pregnancy.status == 'active' ? l10n.fileStatusActive : l10n.fileStatusClosed),
+              ],
+            ),
+            gap,
+            SectionCard(
+              title: l10n.fileVisitsSection,
+              icon: Icons.event_note,
+              children: [
+                if (_visits.isEmpty)
+                  Text(l10n.fileNoVisits, style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.outline))
+                else
+                  for (final visit in _visits) _VisitCard(visit),
+              ],
+            ),
           ],
           if (history != null) ...[
-            section(l10n.regHistorySection),
-            _Field(l10n.regPreviousPregnancies, '${history.previousPregnancies}', ltr: true),
-            _Field(l10n.regPreviousCSections, '${history.previousCSections}', ltr: true),
-            _Field(l10n.regStillbirths, '${history.stillbirths}', ltr: true),
-            _Field(l10n.regKnownConditions, history.knownConditions),
+            gap,
+            SectionCard(
+              title: l10n.regHistorySection,
+              icon: Icons.history,
+              children: [
+                InfoRow(l10n.regPreviousPregnancies, '${history.previousPregnancies}', ltr: true),
+                InfoRow(l10n.regPreviousCSections, '${history.previousCSections}', ltr: true),
+                InfoRow(l10n.regStillbirths, '${history.stillbirths}', ltr: true),
+                InfoRow(l10n.regKnownConditions, history.knownConditions),
+              ],
+            ),
           ],
         ],
       ),
@@ -168,7 +209,6 @@ class _VisitCard extends StatelessWidget {
     final theme = Theme.of(context);
     final v = summary.visit;
     final locale = Localizations.localeOf(context).toLanguageTag();
-    final status = syncStatusText(l10n, summary.syncStatus);
 
     String number(double value) => value == value.roundToDouble() ? '${value.toInt()}' : '$value';
     final readings = [
@@ -190,34 +230,30 @@ class _VisitCard extends StatelessWidget {
       if (v.bleeding) l10n.fieldBleeding,
       if (v.fever) l10n.fieldFever,
       if (v.urineSymptoms) l10n.fieldUrineSymptoms,
-      if (v.anaemiaSigns != 'none')
-        '${l10n.fieldAnaemia}: ${v.anaemiaSigns == 'severe' ? l10n.anaemiaSevere : l10n.anaemiaPresent}',
+      if (v.anaemiaSigns != 'none') '${l10n.fieldAnaemia}: ${v.anaemiaSigns == 'severe' ? l10n.anaemiaSevere : l10n.anaemiaPresent}',
     ];
 
-    return Card(
-      margin: const EdgeInsets.only(top: 8),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // The phone's clock, shown as it is; never used to order visits (LI-7).
-            Text(DateFormat.yMMMMd(locale).add_jm().format(v.visitedAt.toLocal()), style: theme.textTheme.titleMedium),
-            if (status != null)
-              Text(
-                status,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: summary.syncStatus == SyncStatus.refused ? theme.colorScheme.error : null,
-                ),
-              ),
+            Text(
+              DateFormat.yMMMMd(locale).add_jm().format(v.visitedAt.toLocal()),
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            Align(alignment: AlignmentDirectional.centerStart, child: SyncStatusChip(summary.syncStatus)),
+            const SizedBox(height: 8),
             for (final (label, value) in readings)
-              Wrap(
-                spacing: 8,
-                children: [
-                  Text(label, style: theme.textTheme.bodySmall),
-                  Text(value, textDirection: TextDirection.ltr, style: theme.textTheme.bodyLarge),
-                ],
-              ),
+              Padding(padding: const EdgeInsets.only(bottom: 4), child: InfoRow(label, value, ltr: true)),
             const SizedBox(height: 4),
             Text(
               '${l10n.visitSigns}: ${signs.isEmpty ? l10n.visitNoSigns : signs.join(l10n.listSeparator)}',
@@ -225,39 +261,6 @@ class _VisitCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// A label with its value below it; an empty value says "not recorded".
-class _Field extends StatelessWidget {
-  const _Field(this.label, this.value, {this.ltr = false});
-
-  final String label;
-  final String? value;
-
-  /// IDs, numbers and coordinates read left to right in both languages.
-  final bool ltr;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final empty = value == null || value!.trim().isEmpty;
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      // Start-aligned, so a left-to-right value sits under its label in Urdu too.
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: theme.textTheme.bodySmall),
-          Text(
-            empty ? l10n.fileNotRecorded : value!,
-            textDirection: !empty && ltr ? TextDirection.ltr : null,
-            style: theme.textTheme.bodyLarge?.copyWith(color: empty ? theme.colorScheme.outline : null),
-          ),
-        ],
       ),
     );
   }

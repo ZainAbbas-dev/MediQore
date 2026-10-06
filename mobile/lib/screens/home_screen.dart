@@ -1,22 +1,22 @@
 // M1 FE-2, FE-4: the first screen after sign-in (P0-7 screen 2). It shows who
-// is signed in and the sync status, opens registration and the patient list
-// (M2), and holds the settings, lock and sign-out.
+// is signed in and the sync status, and opens registration and the patient
+// list (M2). The gear icon opens the settings: language, voice guidance, lock
+// and sign-out.
 // M3 FE-2: records also sync on their own while online (AutoSync); the status
-// bar follows. M3 FE-3: the voice guidance mute toggle is in the settings.
-import 'package:flutter/foundation.dart';
+// bar follows.
 import 'package:flutter/material.dart';
 
 import '../app_services.dart';
-import '../build_flags.dart';
+import '../auth/local_account.dart';
 import '../l10n/app_localizations.dart';
 import '../sync/auto_sync.dart';
-import '../widgets/language_switch.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_cards.dart';
 import '../widgets/large_button.dart';
 import '../widgets/offline_status_bar.dart';
-import '../widgets/voice_setting.dart';
-import 'dev_home_screen.dart';
 import 'patient_list_screen.dart';
 import 'register_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.services});
@@ -106,12 +106,23 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     final session = _services.session;
     final user = session.user;
     if (user == null) return const SizedBox.shrink(); // locked; the app shows the login screen
+    const gap = SizedBox(height: 12);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.appTitle)),
+      appBar: AppBar(
+        title: Text(l10n.appTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: l10n.homeSettingsSection,
+            onPressed: () => _open(SettingsScreen(services: _services)),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           OfflineStatusBar(isOnline: _online, pendingCount: _pending),
@@ -119,79 +130,153 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                Text(user.fullName, style: Theme.of(context).textTheme.titleLarge),
-                if (user.lhwCode != null) Text(l10n.homeLhwCode(user.lhwCode!)),
-                if (user.areaName != null) Text(l10n.homeArea(user.areaName!)),
-                if (session.lostUnsyncedRecords) ...[
-                  const SizedBox(height: 8),
-                  Text(l10n.homeLostUnsynced, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                ],
-                if (!session.isOnlineSession && _message == null) ...[
-                  const SizedBox(height: 8),
-                  Text(l10n.homeOfflineSignIn),
-                ],
-                const SizedBox(height: 16),
-                if (user.lhwCode != null) ...[
-                  // M2: registration and the patient list work without the internet.
-                  LargeButton(
-                    label: l10n.homeRegisterButton,
-                    icon: Icons.person_add,
-                    onPressed: () => _open(RegisterScreen(services: _services)),
-                  ),
-                  const SizedBox(height: 12),
-                  LargeButton(
-                    label: l10n.homePatientsButton,
-                    icon: Icons.people,
-                    secondary: true,
-                    onPressed: () => _open(PatientListScreen(services: _services)),
-                  ),
-                  const SizedBox(height: 4),
-                  // M3 FE-1: a visit starts from the woman's file.
-                  Text(l10n.homeVisitHint, style: Theme.of(context).textTheme.bodyMedium),
-                  const SizedBox(height: 12),
-                ],
-                LargeButton(label: l10n.syncNowButton, icon: Icons.sync, onPressed: _busy ? null : () => _sync(l10n)),
-                if (_message != null) ...[
-                  const SizedBox(height: 12),
-                  Text(_message!, style: Theme.of(context).textTheme.bodyLarge),
-                ],
-                if (_needsSignIn) ...[
-                  const SizedBox(height: 12),
-                  LargeButton(
-                    label: l10n.homeSignInAgainButton,
-                    icon: Icons.login,
-                    secondary: true,
-                    onPressed: () => session.lock(null),
-                  ),
-                ],
-                const SizedBox(height: 24),
-                Text(l10n.homeSettingsSection, style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                LanguageSwitch(settings: _services.settings),
+                _ProfileCard(user: user),
+                if (session.lostUnsyncedRecords) ...[gap, NoticeCard(text: l10n.homeLostUnsynced, warning: true)],
+                if (!session.isOnlineSession && _message == null) ...[gap, NoticeCard(text: l10n.homeOfflineSignIn)],
                 if (user.lhwCode != null) ...[
                   const SizedBox(height: 16),
-                  VoiceSetting(guidance: _services.voice),
-                ],
-                const SizedBox(height: 24),
-                LargeButton(label: l10n.homeLockButton, icon: Icons.lock, secondary: true, onPressed: () => session.lock(null)),
-                const SizedBox(height: 12),
-                LargeButton(label: l10n.homeSignOutButton, icon: Icons.logout, secondary: true, onPressed: session.signOut),
-                // The Phase 0 checks: in development and in test builds only.
-                if (kDebugMode || testBuild) ...[
-                  const SizedBox(height: 24),
-                  LargeButton(
-                    label: l10n.devHomeTitle,
-                    icon: Icons.build,
-                    secondary: true,
-                    onPressed: () => Navigator.of(
-                      context,
-                    ).push(MaterialPageRoute<void>(builder: (_) => DevHomeScreen(services: _services))),
+                  // M2: registration and the patient list work without the internet.
+                  _ActionCard(
+                    icon: Icons.person_add,
+                    title: l10n.homeRegisterButton,
+                    subtitle: l10n.homeRegisterHint,
+                    primary: true,
+                    onTap: () => _open(RegisterScreen(services: _services)),
+                  ),
+                  gap,
+                  // M3 FE-1: a visit starts from the woman's file.
+                  _ActionCard(
+                    icon: Icons.groups,
+                    title: l10n.homePatientsButton,
+                    subtitle: l10n.homeVisitHint,
+                    onTap: () => _open(PatientListScreen(services: _services)),
                   ),
                 ],
+                const SizedBox(height: 16),
+                SectionCard(
+                  title: l10n.homeSyncSection,
+                  icon: Icons.sync,
+                  children: [
+                    Text(l10n.homeSyncHint, style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText)),
+                    if (_busy)
+                      Row(
+                        children: [
+                          const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 3)),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text(l10n.syncInProgress)),
+                        ],
+                      ),
+                    if (_message != null) NoticeCard(text: _message!, icon: Icons.sync),
+                    LargeButton(label: l10n.syncNowButton, icon: Icons.sync, secondary: true, onPressed: _busy ? null : () => _sync(l10n)),
+                    if (_needsSignIn)
+                      LargeButton(label: l10n.homeSignInAgainButton, icon: Icons.login, onPressed: () => session.lock(null)),
+                  ],
+                ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Who is signed in: name, LHW ID and area.
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({required this.user});
+
+  final SessionUser user;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final muted = theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            InitialAvatar(user.fullName, radius: 28),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(user.fullName, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+                  if (user.lhwCode != null) Text(l10n.homeLhwCode(user.lhwCode!), style: muted),
+                  if (user.areaName != null) Text(l10n.homeArea(user.areaName!), style: muted),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A main task on the home screen: an icon, its name, a short explanation.
+class _ActionCard extends StatelessWidget {
+  const _ActionCard({required this.icon, required this.title, required this.subtitle, required this.onTap, this.primary = false});
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  /// The most used task, in the app's colour.
+  final bool primary;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final foreground = primary ? scheme.onPrimary : null;
+    return Card(
+      color: primary ? scheme.primary : null,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 88),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: primary ? Colors.white.withValues(alpha: 0.18) : scheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Icon(icon, size: 30, color: primary ? scheme.onPrimary : scheme.onPrimaryContainer),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.titleMedium?.copyWith(color: foreground, fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        subtitle,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: primary ? scheme.onPrimary.withValues(alpha: 0.85) : AppColors.mutedText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: foreground ?? AppColors.mutedText),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
