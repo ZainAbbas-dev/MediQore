@@ -159,8 +159,9 @@ This tries Module 1 sign-in (phone approval, offline sign-in, auto-lock), Module
 
 No USB cable, Flutter or Android Studio is needed. GitHub builds the app after every push to `dev` that changes `mobile/` (workflow **Test APK**). The test APK:
 
-- lets you type the server address on the sign-in screen;
-- talks to the server over plain HTTP, so it can reach the API on your laptop;
+- starts with the staging server, `https://mediqore-staging.onrender.com` ([`staging.md`](staging.md));
+- lets you type another server address on the sign-in screen, for example your laptop's;
+- talks to a laptop server over plain HTTP;
 - shows **فیز 0 کی جانچ** (Phase 0 checks) on the home screen.
 
 It is signed with a test key and is for testing only. Builds for LHWs will use one HTTPS server fixed at build time (M1 FE-2).
@@ -170,14 +171,19 @@ It is signed with a test key and is for testing only. Builds for LHWs will use o
 3. **Install it:** open the APK on the phone.
    - Android asks whether to allow installs from that app (Files, Drive or Chrome): allow it, go back and tap **Install**.
    - If Google Play Protect warns about an unknown app, tap **More details** → **Install anyway**.
-   - If Android says **App not installed** or that the package conflicts, uninstall the old MediQore first. This happens when the old app came from VS Code, or when no test APK was built for a week (the test key then changes). Uninstalling deletes records on the phone that were not synced.
-4. **Start the server on the laptop:** run **MediQore: start API + portal** (step 5) and find the laptop's IPv4 address with `ipconfig` (step 7.3). The phone must be on the same Wi-Fi, and the firewall must allow Node.js on Private networks.
-5. **Point the app at the laptop:** on the sign-in screen, scroll down to **سرور (ٹیسٹ ورژن)** (server, test build) and tap **سرور تبدیل کریں** (change server).
-   1. Type `http://` + the IPv4 address + `:3000`, for example `http://192.168.1.10:3000`. The app adds `/api/v1`.
-   2. Tap **محفوظ کریں** (save). The app remembers the address.
-6. Sign in as `lhw.demo` and continue from step 7.5: the phone approval, offline sign-in, registration, visits and the conflict queue all work the same way.
+   - If Android says **App not installed** or that the package conflicts, uninstall the old MediQore first. This happens when the old app came from VS Code or from a test APK built before 6 October 2026, or when no test APK was built for a week (the test key then changes). Uninstalling deletes records on the phone that were not synced.
+4. **Wake the staging server:** open `https://mediqore-staging.onrender.com` in a browser and wait until the portal loads. The free server sleeps after 15 minutes without use and takes about a minute to wake.
+5. **Sign in on the phone** as a synthetic LHW, for example `syn.lhw.001`, with the staging password. Approve the phone in the portal as `syn.admin` (**Phone approvals** → **Issue code**), then continue from step 7.5: offline sign-in, registration, visits and the conflict queue all work the same way. Staging has no `lhw.demo` account.
 
-To build a test APK that starts with another address, for example the staging server ([`staging.md`](staging.md)), open **Actions** → **Test APK** → **Run workflow** and type the address.
+**With the server on your laptop instead:**
+
+1. Run **MediQore: start API + portal** (step 5) and find the laptop's IPv4 address with `ipconfig` (step 7.3). The phone must be on the same Wi-Fi, and the firewall must allow Node.js on Private networks.
+2. On the sign-in screen, scroll down to **سرور (ٹیسٹ ورژن)** (server, test build) and tap **سرور تبدیل کریں** (change server).
+   1. Type `http://` + the IPv4 address + `:3000`, for example `http://192.168.1.10:3000`. The app adds `/api/v1`.
+   2. Tap **محفوظ کریں** (save). The app remembers the address. To go back to staging, type `https://mediqore-staging.onrender.com`.
+3. Sign in as `lhw.demo` and approve the phone as `supervisor.demo` on `http://localhost:5173`.
+
+To build a test APK that starts with another address, open **Actions** → **Test APK** → **Run workflow** and type the address.
 
 ## 8. ML notebook (optional)
 
