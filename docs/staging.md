@@ -59,7 +59,7 @@ npm run seed:synthetic -- --allow-remote
 
 ### 4. The test APK for staging
 
-The staging address is `https://mediqore-staging.onrender.com`. Test APKs start with it (`.github/workflows/apk.yml`), so the server does not need changing on the phone. The **Change server** button still works for a laptop server.
+The staging address is `https://mediqore-staging.onrender.com`. Test APKs start with it (`.github/workflows/apk.yml`), so the server does not need changing on the phone. To use a laptop server instead, press and hold the logo on the sign-in screen.
 
 If the address ever changes, set it for the APK builds on GitHub: **Settings** → **Secrets and variables** → **Actions** → **Variables** → **New repository variable**, name `MEDIQORE_API_BASE_URL`, value `https://<new address>/api/v1`. Then run **Actions** → **Test APK** → **Run workflow**.
 

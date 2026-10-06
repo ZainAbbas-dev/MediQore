@@ -910,9 +910,14 @@
   "@loginServerLabel": {
     "description": "Test builds only: heading of the server address on the sign-in screen."
   },
-  "loginServerChange": "Change server",
-  "@loginServerChange": {
-    "description": "Test builds only: button that opens the server address dialog."
+  "loginServerSaved": "Server address saved: {address}",
+  "@loginServerSaved": {
+    "description": "Test builds only: after changing the server address.",
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
   },
   "loginServerTitle": "Server address",
   "@loginServerTitle": {

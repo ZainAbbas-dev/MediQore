@@ -47,7 +47,7 @@ From the roadmap:
 - Read clinical thresholds (danger signs, EPI, MUAC, IMCI) from versioned JSON config, never hard-code them. The visit form's ranges are in `assets/clinical/visit_ranges.json`; its `allowed` ranges must equal the server's bounds in `api/src/sync/tables.js` (`api/tests/visit-ranges.test.js` checks this).
 - Records sync on their own while the app is unlocked after an online sign-in (`AutoSync`); nothing syncs while it is locked, because the database is closed.
 - The server address is fixed at build time (`API_BASE_URL`), and release builds are HTTPS-only (M1 FE-2). The one exception is the test APK (`testBuild` in `lib/build_flags.dart`, set with `--dart-define=MEDIQORE_TEST_BUILD=true` by `.github/workflows/apk.yml`):
-  - its sign-in screen shows the server address with **Change server** (`LoginScreen.showServerSetting`, saved as `AppSettings.serverAddress`);
+  - pressing and holding the logo on its sign-in screen changes the server address (`LoginScreen.showServerSetting`, saved as `AppSettings.serverAddress`); nothing about the server shows on the sign-in screen, and the settings show the address in use;
   - it allows plain HTTP, because the workflow sets `MEDIQORE_ALLOW_HTTP=true` for `android/app/build.gradle.kts`;
   - it shows the Phase 0 checks in the settings.
   Never ship a test build to LHWs.
@@ -141,7 +141,7 @@ From the roadmap:
   - `test/support/fake_sync_server.dart` imitates the API's `/auth` (with phone approval and refresh tokens) and `/sync` endpoints.
   - `test/screens/login_flow_test.dart` runs the whole app from sign-in to home and back; `test/screens/registration_flow_test.dart` registers women offline through the screens.
   - `test/support/fake_location_service.dart` replaces the GPS and `test/support/fake_voice.dart` the text-to-speech (it records what would be spoken); `testServices` uses both by default. `FakeSyncServer.holdIds` makes the server hold records as same-day conflicts, and `resolveHeld` plays the supervisor's decision.
-  - `test/screens/server_setting_test.dart` changes the test build's server address on a small phone in both languages.
+  - `test/screens/server_setting_test.dart` changes the test build's server address (long press on the logo) on a small phone in both languages.
   - `test/screens/visit_flow_test.dart` records visits through the screens: required and impossible values, the range dialog, voice guidance on focus (also on the registration form), mute and English, the voice settings and **Test the voice**, and a held visit.
   - Lock, Sign out, the language list, voice guidance and the Phase 0 checks are in the settings: tests open them with `find.byTooltip(l10n.homeSettingsSection)`.
   - Drift, the password key isolate and the fake HTTP client run outside the widget test clock: wrap those actions in `tester.runAsync`. To test the auto-lock timer, sign in before `pumpWidget`, so the timer starts on the test clock.

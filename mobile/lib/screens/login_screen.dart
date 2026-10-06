@@ -1,7 +1,7 @@
 // M1 FE-2: login screen (P0-7 screen 1), with the language button (M1 FE-4)
 // at the top.
 // The first sign-in on a phone is online; later ones also work offline.
-// A test build also shows the server address, which testers can change.
+// In a test build, pressing and holding the logo changes the server address.
 import 'package:flutter/material.dart';
 
 import '../app_services.dart';
@@ -48,8 +48,9 @@ class LoginScreen extends StatefulWidget {
 
   final AppServices services;
 
-  /// Shows the server address and lets the tester change it. On in a test
-  /// build only (see `testBuild`).
+  /// Lets a tester change the server address by pressing and holding the
+  /// logo. Nothing shows on the screen. On in a test build only (see
+  /// `testBuild`); the settings show the address in use.
   final bool showServerSetting;
 
   @override
@@ -93,13 +94,15 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _changeServer() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     final address = await showDialog<String>(
       context: context,
       builder: (_) => _ServerDialog(current: widget.services.serverAddress),
     );
     if (address == null) return;
     await widget.services.setServerAddress(address);
-    if (mounted) setState(() {});
+    messenger.showSnackBar(SnackBar(content: Text(l10n.loginServerSaved(address))));
   }
 
   @override
@@ -122,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _Header(services: widget.services),
+              _Header(services: widget.services, onLongPressLogo: widget.showServerSetting && !_busy ? _changeServer : null),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Card(
@@ -157,22 +160,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              if (widget.showServerSetting)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  child: Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.dns),
-                      title: Text(l10n.loginServerLabel, style: theme.textTheme.bodyMedium),
-                      // The address reads left to right in both languages.
-                      subtitle: Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: Text(widget.services.serverAddress, textDirection: TextDirection.ltr),
-                      ),
-                      trailing: TextButton(onPressed: _busy ? null : _changeServer, child: Text(l10n.loginServerChange)),
-                    ),
-                  ),
-                ),
             ],
           ),
         ),
@@ -183,9 +170,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
 /// The teal header: the app's name, what it is for, and the language button.
 class _Header extends StatelessWidget {
-  const _Header({required this.services});
+  const _Header({required this.services, this.onLongPressLogo});
 
   final AppServices services;
+
+  /// Test builds only: pressing and holding the logo changes the server.
+  final VoidCallback? onLongPressLogo;
 
   @override
   Widget build(BuildContext context) {
@@ -204,10 +194,13 @@ class _Header extends StatelessWidget {
                 child: LanguageToggle(settings: services.settings),
               ),
               const SizedBox(height: 8),
-              const CircleAvatar(
-                radius: 36,
-                backgroundColor: Colors.white,
-                child: Icon(Icons.health_and_safety, size: 44, color: AppColors.primary),
+              GestureDetector(
+                onLongPress: onLongPressLogo,
+                child: const CircleAvatar(
+                  radius: 36,
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.health_and_safety, size: 44, color: AppColors.primary),
+                ),
               ),
               const SizedBox(height: 12),
               Text(

@@ -160,7 +160,7 @@ This tries Module 1 sign-in (phone approval, offline sign-in, auto-lock), Module
 No USB cable, Flutter or Android Studio is needed. GitHub builds the app after every push to `dev` that changes `mobile/` (workflow **Test APK**). The test APK:
 
 - starts with the staging server, `https://mediqore-staging.onrender.com` ([`staging.md`](staging.md));
-- lets you type another server address on the sign-in screen, for example your laptop's;
+- can use another server, for example your laptop's: press and hold the logo on the sign-in screen (nothing about the server shows on the screen);
 - talks to a laptop server over plain HTTP;
 - shows **فیز 0 کی جانچ** (Phase 0 checks) in the settings.
 
@@ -178,7 +178,7 @@ It is signed with a test key and is for testing only. Builds for LHWs will use o
 **With the server on your laptop instead:**
 
 1. Run **MediQore: start API + portal** (step 5) and find the laptop's IPv4 address with `ipconfig` (step 7.3). The phone must be on the same Wi-Fi, and the firewall must allow Node.js on Private networks.
-2. On the sign-in screen, scroll down to **سرور (ٹیسٹ ورژن)** (server, test build) and tap **سرور تبدیل کریں** (change server).
+2. On the sign-in screen, **press and hold the MediQore logo** for a second. The **سرور کا پتہ** (server address) box opens.
    1. Type `http://` + the IPv4 address + `:3000`, for example `http://192.168.1.10:3000`. The app adds `/api/v1`.
    2. Tap **محفوظ کریں** (save). The app remembers the address. To go back to staging, type `https://mediqore-staging.onrender.com`.
 3. Sign in as `lhw.demo` and approve the phone as `supervisor.demo` on `http://localhost:5173`.

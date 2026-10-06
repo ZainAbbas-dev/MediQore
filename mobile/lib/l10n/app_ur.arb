@@ -200,7 +200,7 @@
   "homeSettingsSection": "سیٹنگز",
   "homeVisitHint": "وزٹ درج کرنے کے لیے خاتون کی فائل کھولیں",
   "loginServerLabel": "سرور (ٹیسٹ ورژن)",
-  "loginServerChange": "سرور تبدیل کریں",
+  "loginServerSaved": "سرور کا پتہ محفوظ ہو گیا: {address}",
   "loginServerTitle": "سرور کا پتہ",
   "loginServerHint": "اس کمپیوٹر کا پتہ پورٹ سمیت لکھیں جس پر MediQore سرور چل رہا ہے۔",
   "loginServerInvalid": "ایسا پتہ لکھیں جو http:// یا https:// سے شروع ہو",

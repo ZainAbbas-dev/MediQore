@@ -2,9 +2,9 @@ name: Test APK
 
 # A test build of the LHW app that installs on any Android phone (M1 FE-2).
 # See "Test APK: install the app on any phone" in docs/local-setup.md.
-# Testers can type the server address on its sign-in screen and it allows plain
-# HTTP, so the app can reach the API on a laptop on the same Wi-Fi. It also
-# shows the Phase 0 checks.
+# Testers can change the server address (press and hold the logo on the
+# sign-in screen) and it allows plain HTTP, so the app can also reach the API on
+# a laptop on the same Wi-Fi. Its settings show the Phase 0 checks.
 # It is signed with a debug key, never a build for LHWs: their builds use one
 # HTTPS address fixed at build time (M1 FE-2).
 #
