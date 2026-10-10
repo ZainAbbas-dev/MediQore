@@ -1,170 +1,83 @@
-# Phase 1 screens: specification and wireframes (P0-7)
+# Phase 1 screens: final design (P0-7)
 
-Roadmap task P0-7 asks for Figma screens for Phase 1: login, LHW home, registration, visit form, dashboard home and admin lists (scope Mockups 1, 2, 6). This document is the brief for that Figma work, and [`wireframes/`](wireframes) has a low-fidelity starting point for each screen.
+Roadmap task P0-7 asks for the Phase 1 screens: activation and PIN unlock, LHW home, registration, the visit form with the danger-sign checklist, Settings with the language switch, the dashboard home and the admin lists (scope Mockups 1, 2 and 6). The team chose the final design in October 2026: the **Option B layout in Clinical Teal, with the Option A settings gear**. This document is the brief for building the screens; the pictures in [`screens/`](screens/) are exported from the design canvas.
 
-Everything here comes from the scope and roadmap. Where they leave a choice open, it is marked **Decide**.
+- **Design canvas:** "MediQore app design options" on claude.ai, page **Final design (Clinical Teal)**. It is private to the owner, who can share it from its Share menu. The page "Options A–D" keeps the four options the team compared.
+- Everything here follows the updated scope and the roadmap of 10 Oct 2026. Names and numbers in the pictures are made up (LI-10).
 
-## Using the wireframes in Figma
+## Design system
 
-1. Install the Jameel Noori Nastaleeq font on your computer (`mobile/assets/fonts/JameelNooriNastaleeq.ttf`) so the Urdu text renders correctly.
-2. In Figma, drag the `.svg` files from `docs/design/wireframes/` onto the canvas, or use **File → Import**. Each one becomes a frame with editable shapes and text layers.
-3. Build the real designs on top, using the components below. Export the final mockups for Appendix A of the final report (roadmap, Phase 4).
+| Token | Value | Use |
+|---|---|---|
+| Clinical Teal | `#00695C` | Headers, primary buttons, selected states |
+| Dark teal | `#004D40` | Text on light teal, pressed states |
+| Light teal | `#C8EDE6` | Avatars, icon buttons, selected chips |
+| Soft teal | `#E3F2EF` | Information panels |
+| Background | `#F1F7F6` | Screen background |
+| Text / muted text | `#17312D` / `#4F5E5B` | Body text / labels and hints |
+| Field border / divider | `#B9C9C5` / `#E4ECEA` | Inputs / lines inside cards |
+| Waiting / synced | `#8A4B08` on `#FFF1DC` / `#1E6B3A` on `#E3F4E8` | Sync state chips |
+| Danger | `#B3261E` | Emergency call, a "yes" danger sign |
 
-## Design rules for every screen
-
-From `CLAUDE.md` and the roadmap:
-
-- **Mobile app (LHW): Urdu by default, English selectable** (M1 FE-4, scope amendment A1).
-  - Urdu text in Jameel Noori Nastaleeq, laid out right to left.
-  - English text in the standard Latin font, laid out left to right.
-  - Numbers and units read left to right in both, for example `120 mmHg`.
-  - Design each screen in Urdu first, then check the English version for length and layout.
-  - The language switch shows **اردو** and **English**, each in its own script.
-- **Large controls.** Buttons are at least 64 dp tall and full width. Field labels sit above the field, not inside it. Use checkboxes and dropdowns instead of typing wherever possible (M3 FE-1).
-- **Offline is normal.** The offline status bar is always visible on field screens and shows how many records are waiting to sync. Saving never needs the internet.
-- **Small phones.** Design at 360 × 780 and check every screen at 320 × 640 in both languages, because Nastaliq text is tall and overflows easily.
-- **Risk colours** (Phase 2 screens): Green / Yellow / Red, always with an icon and a text label, never colour alone.
-- **Portal (supervisor/admin): English**, desktop first (1440 × 900), with a sidebar layout as built in P0-5.
-- **No real patient data** in any mockup (LI-10). Use made-up names.
-
-**Components that already exist** (P0-2, in `mobile/lib/widgets/`). Reuse them in the designs so the screens can be built directly:
-
-- `LargeButton` (primary / secondary)
-- `AppTextField`
-- `VitalField` (number + unit, left to right)
-- `CheckboxField`
-- `DropdownField`
-- `RiskChip`
-- `OfflineStatusBar`
-
-**Built after the first phone test (layout update, owner's request):** a teal app bar, white cards on a soft grey background, and the standard Latin font for Latin text and digits inside Urdu screens (Urdu letters stay in Nastaliq). Shared pieces in `mobile/lib/widgets/app_cards.dart`: `SectionCard` (a card with a heading and icon), `InfoRow` (label and value), `SyncStatusChip`, `NoticeCard`, `InitialAvatar` and `VoiceMuteButton`. `LiveStatusBar` is the status strip of the data entry screens.
+- **Shapes:** pill buttons 60 dp tall (radius 30); cards radius 20–24 with a soft teal shadow; fields radius 16–18; the teal header has rounded bottom corners (32–36).
+- **Type:** Urdu in Jameel Noori Nastaleeq (the mock-ups on the canvas use Noto Nastaliq Urdu, the closest web font) with tall line height; Latin text and digits in the standard Latin font (Figtree on the canvas, the phone's font in the app). Numbers, IDs and units always read left to right.
+- **Languages:** every screen is drawn in Urdu (right to left); the English version mirrors it left to right (M3 FE-3). The language switch lives in **Settings → Language**; the activation screen also has a language button so the first sign-in can happen in either language. Check each screen in both languages on a 320 × 640 phone.
+- **No audio guidance** (LI-6): the app relies on written labels, large icons, pictures and colours.
+- **In the app:** `AppTheme` and `AppColors` (`mobile/lib/theme/`) carry these tokens; `CurvedHeader`, `SectionCard`, `LargeButton`, `RiskChip`, `OfflineStatusBar` and the form fields (`mobile/lib/widgets/`) are the pieces to build with (P0-2). The portal uses the same teal (`web/src/styles.css`).
 
 ## Screens
 
-| # | Screen | Platform | Scope | Scope mockup | Wireframe |
-|---|---|---|---|---|---|
-| 1 | Login | Mobile | M1 FE-2, FE-4 | – | [`01-login.svg`](wireframes/01-login.svg) |
-| 2 | LHW home | Mobile | M2 FE-3, M3 FE-2, FE-3 | – | [`02-lhw-home.svg`](wireframes/02-lhw-home.svg) |
-| 3 | Registration | Mobile | M2 FE-1, FE-2, FE-3 | Mockup 1 | [`03-registration.svg`](wireframes/03-registration.svg) |
-| 4 | Visit form | Mobile | M3 FE-1, FE-3 | Mockup 2 | [`04-visit-form.svg`](wireframes/04-visit-form.svg) |
-| 5 | Dashboard home | Web | M10 FE-1 (Phase 1 base) | Mockup 6 | [`05-dashboard-home.svg`](wireframes/05-dashboard-home.svg) |
-| 6 | Admin lists | Web | M10 FE-3, M1 FE-1, FE-3 | – | [`06-admin-lists.svg`](wireframes/06-admin-lists.svg) |
+| # | Screen | Picture | Scope |
+|---|---|---|---|
+| 1 | Activate this phone (first sign-in) | [01](screens/01-activate-this-phone-first-sign-in.png) | M1 FE-2 |
+| 2 | Create a PIN | [02](screens/02-create-a-pin.png) | M1 FE-2 |
+| 3 | Unlock with PIN (offline) | [03](screens/03-unlock-with-pin-offline.png) | M1 FE-2 |
+| 4 | Wrong PIN: wait | [04](screens/04-wrong-pin-wait.png) | M1 FE-2 |
+| 5 | Forgot PIN: supervisor reply code | [05](screens/05-forgot-pin-supervisor-reply-code.png) | M1 FE-2 |
+| 6 | Home | [06](screens/06-home.png) | M2, M3 FE-2 |
+| 7 | Settings (language) | [07](screens/07-settings-language.png) | M3 FE-3, M1 FE-2 |
+| 8–11 | Registration, steps 1–4 | [08](screens/08-registration-step-1-woman.png), [09](screens/09-registration-step-2-home.png), [10](screens/10-registration-step-3-pregnancy.png), [11](screens/11-registration-step-4-history.png) | M2 FE-1–3, Mockup 1 |
+| 12 | Registration saved | [12](screens/12-registration-saved.png) | M2 FE-1 |
+| 13 | Registered women | [13](screens/13-registered-women.png) | M2 FE-3 |
+| 14 | Pregnancy file | [14](screens/14-pregnancy-file.png) | M2 FE-1, FE-2 |
+| 15 | Visit, step 1: measurements | [15](screens/15-visit-step-1-measurements.png) | M3 FE-1, Mockup 2 |
+| 16 | 30-second pulse counter | [16](screens/16-30-second-pulse-counter.png) | M3 FE-1 |
+| 17 | Visit, step 2: signs | [17](screens/17-visit-step-2-signs.png) | M3 FE-1 |
+| 18 | Visit, step 3: danger-sign checklist | [18](screens/18-visit-step-3-danger-sign-checklist.png) | M3 FE-1, M4 FE-4, Mockup 2 |
+| 19 | Unusual value check | [19](screens/19-unusual-value-check.png) | M3 FE-1 |
+| 20 | Portal: dashboard home | [20](screens/20-portal-dashboard-home.png) | M10 FE-1, Mockup 6 |
+| 21 | Portal: LHW accounts and activation code | [21](screens/21-portal-lhw-accounts-and-activation-code.png) | M10 FE-3, M1 FE-1–3 |
 
-### 1. Login (mobile)
+### Activation, PIN unlock and PIN reset (screens 1–5)
 
-The LHW signs in with the ID and password the admin issued (M1 FE-1, FE-2).
+- **Activation (1)** happens once per phone, online: LHW ID, password and the one-time activation code the admin generated (about eight characters, valid 48 hours, single use). The note says the internet is needed only this once.
+- **Create a PIN (2):** six digits, typed twice, on a large left-to-right keypad. The note says the PIN can be reset offline with a supervisor reply code.
+- **Unlock (3)** is fully offline: the LHW's name, six dots, the keypad, **Forgot PIN?** and, always at the bottom, **Emergency: call supervisor**, so a lock never blocks an escalation.
+- **Wrong PIN (4):** progressive delays of 30 seconds, 1 minute, 5 minutes and 15 minutes with a countdown; the keypad is disabled, but the emergency call and **Forgot PIN?** stay usable. There is never a lockout that needs internet.
+- **PIN reset (5):** step 1 shows a short code to read to the supervisor; step 2 takes the reply code the supervisor reads back from the portal. The phone checks it with the secret it received at activation, without internet; the local data is kept.
 
-- **Fields:** username (LHW ID), password. **Button:** sign in.
-- **Language switch** (M1 FE-4) at the top: اردو / English. It works before sign-in and is remembered on the phone.
-- **First login** needs internet:
-  - the server checks the password;
-  - OTP verification follows on first login and on a new device (M1 FE-2);
-  - the app then downloads only that LHW's area data (roadmap, Module 1).
-- **Later logins work offline:** the password unlocks the encrypted local database (M1 FE-2, LI-8).
-- **States to design:**
-  - wrong password;
-  - first login while offline ("internet needed the first time");
-  - account deactivated (refused at next sync, M1 FE-3);
-  - loading.
-- **OTP step:** a separate screen with a code field and resend.
-  - **Built (Module 1, proposed decision 0002):** the code is issued by an admin or supervisor on the portal's **Phone approvals** page, so the screen has no resend button. It shows the last six characters of the phone's ID (the portal shows the same six), the 6-digit code field, **approve and sign in** and **back to sign-in**, with messages for a wrong code, too many wrong codes, no code issued yet and no internet.
-- **Session:** auto-lock after inactivity returns here (M1 FE-2).
-- **Built (layout update):** a teal header with the app's name and, at the top, a language button that shows the other language (**English** or **اردو**); the fields and the sign-in button are in a card below it.
+### Home, settings and registration (screens 6–14)
 
-### 2. LHW home (mobile)
+- **Home (6):** teal header with the greeting, the LHW's name and ID and the settings gear; a sync card over the header's edge with the connection state, the number of records waiting to sync and **Sync now**; task cards for a new registration and the registered women; recent visits with their sync state.
+- **Settings (7):** the account, **Language** (اردو / English, each in its own script, saved on the phone), and the account actions: **Change PIN**, lock and sign out.
+- **Registration (8–11):** a four-step wizard with a progress bar: the woman (name, age, husband's name, contact), the home (village, address, GPS), the pregnancy (month) and the obstetric history (previous pregnancies, C-sections, stillbirths, known conditions). **Saved (12)** shows the offline patient ID (LHW code plus the phone's counter).
+- **Registered women (13)** are grouped by village with search; **the pregnancy file (14)** shows age, month, visits, the visit history with sync state and **New visit**.
 
-The starting point after login.
+### Home visit (screens 15–19)
 
-- **Top:** offline status bar with pending count, then the LHW's name and area.
-- **Main actions** (large buttons):
-  - Register a pregnant woman (screen 3).
-  - Patient list / search, by area and sorted by village (M2 FE-3). Opening a patient leads to a new visit (screen 4).
-  - Sync now. Sync also runs in the background when online (M3 FE-2).
-- **Settings:**
-  - language switch (M1 FE-4);
-  - voice guidance mute toggle (M3 FE-3). It is shown only in Urdu; in English, show a note instead: voice guidance works only in Urdu.
-- **Not in Phase 1:** risk alerts, ANC reminders, polio and child modules. Leave room for them, but do not design them now.
-- **Built (Module 3):** a **Settings** heading holds the language switch and the voice guidance switch (or, in English, the note). A visit starts from the woman's file; a short line under **Registered women** says so. The status bar follows the automatic sync.
-- **Built (layout update, replaces the Settings heading):** the status strip, a card with the LHW's name, ID and area, two task cards (**Register a pregnant woman**, **Registered women**) and a **Sync** card. A gear icon in the app bar opens **Settings**: the language (اردو / English), voice (the switch, **Test the voice**, and how to install an Urdu voice when the phone has none), the account with **Lock** and **Sign out**, and, in test builds only, the server address and the Phase 0 checks.
+- **Step 1, measurements (15):** BP (upper and lower), weight, temperature and pulse, each with its unit. Pulse is required: it is read from the BP device, or **Count for 30 seconds** opens the counter. Blood sugar is optional and, when entered, takes its unit (mmol/L or mg/dL; stored in mmol/L), its source (glucometer or lab report) and its date.
+- **Pulse counter (16):** the LHW taps the large button once per beat for 30 seconds; the app doubles the count and offers **Use this pulse**.
+- **Step 2, signs (17):** fetal movement (normal, markedly reduced, absent), anaemia signs (none, some, severe), and yes/no for swelling, bleeding, fever and urine symptoms.
+- **Step 3, danger-sign checklist (18):** a yes/no answer with a picture for each of convulsions or fits, severe headache, blurred vision, severe or upper abdominal pain, fast or difficult breathing, and fever with weakness. A "yes" turns the card red. The screen ends with the decision-support note (LI-5) and **Save visit**. The rules that act on the answers come from the Clinical Rules Table (Phase 2, M4 FE-4).
+- **Unusual value check (19):** a value outside the plausible range from the Clinical Rules Table (for example systolic BP outside 60–250) asks "correct it" or "yes, it is right, save".
+- The offline chip is in the header of every visit step; saving never needs the internet.
 
-### 3. Registration (mobile, scope Mockup 1)
+### Portal (screens 20–21)
 
-M2 FE-1, FE-2, FE-3.
+- **Dashboard home (20):** filters (district, Union Council, LHW, period) and **Reload**, refresh every 5 minutes; cards for registered women, visits this week, LHWs synced today and sync conflicts to review; the household map (Leaflet); the LHW activity table with last sync, women, visits this week and last sign-in, an LHW who has not synced for days highlighted.
+- **LHW accounts (21):** the list with status (active, waiting to activate, deactivated) and actions; **New activation code** shows the code once, with its expiry, and says only its hash is kept. Every change is written to the audit log.
+- The sidebar also links the Phase 1 pages **Registered women**, **Sync conflicts**, **PIN reset codes**, **Geography**, **Hospitals** and **Audit log**.
 
-- **Woman** (M2 FE-1):
-  - name;
-  - age;
-  - husband's name;
-  - contact number (left to right);
-  - address;
-  - village;
-  - pregnancy month (dropdown 1–9).
-- **Obstetric history** (M2 FE-2; baseline risk profile):
-  - previous pregnancies;
-  - previous C-sections;
-  - stillbirths;
-  - known medical conditions.
-- **Household location** (M2 FE-3): "capture GPS" button, with status (capturing / captured / not available).
-- **After saving:**
-  - show the generated Patient ID: LHW code + local counter, unique offline (M2 FE-1);
-  - confirm that the record is saved on the phone and will sync later.
-- **States to design:** validation errors under each field, GPS unavailable, saved offline.
-- **Decide:** whether obstetric history is a second step or the same scrolling page. The scope says it is captured "at the time of registration".
-  - **Built (Module 2):** one scrolling page with four sections (woman, pregnancy, home, obstetric history) and one Save button, so nothing is half-saved. The home section also offers "same home as a registered woman", for a second woman in one household. After saving, a screen shows the patient ID and that the record is on the phone.
-  - **Built (layout update):** each section is a card; the status strip is at the top. Voice guidance reads each field's label in Urdu here too (M3 FE-3, scope: "built into the data entry screens"), with the mute button in the app bar.
+## Built in the app so far
 
-### 4. Visit form (mobile, scope Mockup 2)
-
-M3 FE-1, FE-3.
-
-- **Vitals:** use `VitalField`, number + unit, left to right.
-  - BP systolic and diastolic (mmHg)
-  - weight (kg)
-  - temperature (°C)
-  - pulse (beats/min)
-  - blood sugar (mmol/L, optional)
-
-  Pulse and blood sugar were added for the Phase 2 model (roadmap, Risks).
-- **Symptoms:** checkboxes and a dropdown.
-  - fetal movement (normal / reduced / absent)
-  - swelling
-  - bleeding
-  - fever
-  - anaemia signs
-  - urine symptoms
-- **Voice guidance** (M3 FE-3): when a field gets focus, its Urdu label is read aloud. Show a speaker indicator on the focused field, and a mute toggle. In English there is no voice guidance (M1 FE-4), so no speaker indicator.
-- **Range check:** a value outside the plausible range asks for confirmation instead of blocking. Example from the roadmap: systolic BP outside 60–250. Design this dialog.
-- **Offline status bar** at the top, "saved on the phone" confirmation after saving.
-- **Not in Phase 1:** the risk result screen (M4, Phase 2) follows this form later. Keep the Save button's position stable so that flow can be added.
-- **Built (Module 3):** the form opens from the woman's file (**New visit**, active pregnancy only) and is one scrolling page with two sections, measurements and signs. Every vital except blood sugar is required. A value the server cannot accept (for example `98.6` as °C) is refused under its field with the allowed range; values outside the usual range are listed together in one dialog with their usual range, with "correct them" and "yes, save". The ranges are in `mobile/assets/clinical/visit_ranges.json`. The mute toggle is in the app bar, in Urdu only. After saving, the file lists the visit with its sync state, including "waiting for the supervisor" when the server held it as a same-day duplicate.
-
-### 5. Dashboard home (web, scope Mockup 6, Phase 1 base)
-
-M10 FE-1. This is the base version; Phase 2 adds the risk distribution chart, referral rate and the alerts panel.
-
-- **Cards** (roadmap, Module 10 base):
-  - registered patients;
-  - visits this week;
-  - LHW visit counts;
-  - last login.
-- **Map:**
-  - Leaflet map of registered households from Module 2 GPS;
-  - filters: district, Union Council, LHW, time period;
-  - auto-refresh every 5 minutes, plus a manual reload button.
-- **Layout:** sidebar and header as in the P0-5 portal; the signed-in supervisor and their areas.
-- **States to design:** no data yet, loading, API unreachable.
-- **Built (Module 10 base):** cards for registered women, visits this week, sync conflicts to review and households. The LHW visit counts and last login are a table under the map, one row per LHW: visits this week and in total, women registered, last visit, last sync and last sign-in. The filters (district, Union Council, LHW, period) sit above the map; district and Union Council also narrow the LHW table. "Updated … ; refreshes every 5 minutes" and a Reload button are at the top right. If one part fails to load, the others still show, with the error above.
-
-### 6. Admin lists (web)
-
-M10 FE-3, M1 FE-1, FE-3. One screen with tabs; each tab is a filterable table with Add and Edit.
-
-- **Areas:** district → tehsil → Union Council → area hierarchy.
-- **Accounts:**
-  - LHW and supervisor accounts: name, role, area, active / inactive, last login;
-  - actions: create (issues LHW ID and credentials), reassign area, activate / deactivate;
-  - reset password, with a **"sync before reset"** warning: unsynced data on the phone becomes unreadable (LI-8).
-- **Hospitals and referral centres:** name, type, district, phone, location.
-- **Audit log:** filters by user, action and date (roadmap, Module 10 base).
-- **Related supervisor screen, not in the P0-7 list:** the sync conflict review queue (M3 FE-2). Plan where it sits in the navigation.
-- **Built (Module 10 base):** separate pages instead of tabs, under an **Administration** heading in the sidebar that only admins see: LHW accounts, Supervisors and admins, Areas (four columns: district, tehsil, Union Council, area), Hospitals (hospitals and referral centres as two tabs), Roles (what each fixed role may do) and Audit log. The sync conflict queue is in the main navigation, after Registered women.
+The Phase 1 screens in `mobile/` were built before the final design and the updated scope. The Phase 1 revision rebuilds them to this document: activation code and PIN screens instead of the phone-approval code, the three-step visit form with the pulse counter, blood sugar details and the danger-sign checklist, the curved headers and pill buttons, and no voice guidance.
