@@ -1,30 +1,27 @@
 # MediQore Full-Stack Implementation Roadmap
 
-> Markdown copy of [`roadmap.pdf`](roadmap.pdf), made so the roadmap can be searched and read inside the repo. If this copy and the PDF ever differ, the PDF wins, except for the approved amendments listed below, which the PDF has not caught up with yet.
+> Markdown copy of [`roadmap.pdf`](roadmap.pdf) (Oct 10, 2026), made so the roadmap can be searched and read inside the repo. The text and tables are copied unchanged; the architecture diagram is redrawn as a Mermaid chart. If this copy and the PDF ever differ, the PDF wins.
+>
+> This version replaces the earlier roadmap (Oct 2, 2026) and its amendment A1, which the updated scope now includes.
 
-Oct 2, 2026 · @Mehdi
-
-## Amendments after approval
-
-These changes follow scope amendments the supervisor approved (see [`scope.md`](scope.md), "Amendments after approval"). Amended text below is marked *(A1)*.
-
-| No. | Date | Change | Record |
-|---|---|---|---|
-| A1 | 2026-10-04 | Urdu/English language switch in the LHW app (M1 FE-4); voice guidance only in Urdu. Adds a Phase 1 task and updates the Urdu conventions, the Phase 1 exit gate, the testing table and the definition of done. The base switch was built at the end of Phase 0. | [Decision 0005](decisions/0005-language-switch.md) |
+Oct 10, 2026 · @Mehdi
 
 ## Overview
 
-MediQore is built in five phases over about 28 weeks: a 2-week foundation, your three module phases, and a 4-week hardening phase before final submission. Module 10 grows in every phase, so the supervisor portal always shows what the mobile app can already collect.
+MediQore follows the schedule in the final scope (Table 5 and the Gantt chart): Design and foundation from 2 Nov to 27 Dec 2026, three development phases totalling 16 weeks from 4 Jan to 25 Apr 2027, testing until 20 Jun, and final submission by 18 Jul 2027. Analysis (7 Sep – 1 Nov 2026) is complete. Module 10 grows in every phase, so the supervisor portal always shows what the mobile app can already collect.
 
-Every feature below is tagged with its scope ID (for example M5 FE-2 = Module 5, FE-2), so each task traces back to the final scope document. Week numbers are relative; map them onto your department's FYP-I and FYP-II evaluation dates.
+Every task is tagged with its ID in the updated final scope (for example M5 FE-2 = Module 5, FE-2). Any clinical rule a task uses comes from the versioned Clinical Rules Table, which the Clinical Advisor must sign before real patients are involved (M4 FE-4, LI-12).
 
-| Phase | Modules | Weeks | Lead (support) | Exit gate |
+| Phase | Modules | Dates (weeks) | Lead (support) | Exit gate |
 |---|---|---|---|---|
-| 0. Foundation | Shared setup, schema, auth and sync skeleton | 1–2 | Shared | App, API, DB and dashboard run end to end on one test record |
-| 1. Core field workflow | M1, M2, M3, M10 base | 3–9 | Zain Abbas (Zain Ali: backend, sync, web) | LHW registers a woman and records a visit offline; it syncs and appears on the dashboard |
-| 2. Intelligence and emergency | M4, M5, M6, M10 update | 10–17 | Zain Abbas: M4, M10. Zain Ali: M5, M6 | Visit produces a risk result with Urdu explanation; emergency alert reaches supervisor by internet, SMS and call |
-| 3. Child health and campaigns | M7, M8, M9, M10 final | 18–24 | Zain Ali: M7, M8, M9. Zain Abbas: M10 | All ten modules work; dashboard and reports cover every module |
-| 4. Hardening and delivery | Testing, performance, documentation | 25–28 | Shared | Full test pass on a low-spec Android device; final documentation and demo ready |
+| 0. Design and foundation | Figma, schema, API and auth skeleton, sync skeleton, Clinical Rules Table v0 | 2 Nov – 27 Dec 2026 (8) | Shared | One record created offline on the phone appears on the portal |
+| 1. Core field workflow | M1, M2, M3, M10 base | 4 Jan – 7 Feb 2027 (5) | Zain Abbas (Zain Ali: M10 support, API, sync) | LHW activates once, unlocks offline with her PIN, registers a woman and records a visit with the danger-sign checklist; it syncs and shows on the dashboard with her last-sync time |
+| 2. Intelligence and emergency | M4, M5, M6, M10 update | 8 Feb – 21 Mar 2027 (6) | Zain Abbas: M4, M10. Zain Ali: M5, M6 | A visit gets a risk result from the five- or six-feature model plus the danger-sign rules; an emergency reaches the supervisor by web push, SMS and call |
+| 3. Child health and campaigns | M7, M8 (incl. child register), M9, M10 final | 22 Mar – 25 Apr 2027 (5) | Zain Ali: M7, M8, M9. Zain Abbas: M10 | All ten modules work; dashboard and reports cover every module |
+| 4. Testing | Integration, final testing, documentation | 26 Apr – 20 Jun (8) | Shared | Full test pass on a low-spec Android phone; documentation complete |
+| 5. Completion | Final submission and presentation | 21 Jun – 18 Jul 2027 (4) | Shared | FYP submitted and presented |
+
+Phase 0 can start before 2 Nov; the dates are the latest it should finish.
 
 Owners follow Table 4 of the scope document. Shared work (REST API, PostgreSQL schema, offline sync, integration testing, Figma, deployment) is split inside each phase as listed in the phase sections.
 
@@ -36,21 +33,21 @@ The Flutter app owns the whole field workflow and never needs the server to do i
 
 ```mermaid
 flowchart LR
-    app["<b>LHW Android app</b><br/>Flutter<br/>Modules 1–9, Urdu, offline<br/>Encrypted SQLite (SQLCipher)<br/>ONNX model + danger rules<br/>Emergency: Internet, SMS, Call"]
+    app["<b>LHW Android app</b><br/>Flutter<br/>Modules 1–9, Urdu/English, offline<br/>Encrypted DB (wrapped key)<br/>ONNX models + clinical rules<br/>Emergency: Internet, SMS, Call"]
     api["<b>REST API</b><br/>Node.js + Express<br/>Auth, sync, alerts<br/>Reports, audit log"]
-    portal["<b>Supervisor portal</b><br/>React + Leaflet<br/>Dashboard, map, alerts<br/>Reports, admin panel"]
-    phone["<b>Supervisor phone</b><br/>Push alerts (FCM)<br/>SMS and calls"]
-    ml["<b>ML training pipeline</b><br/>scikit-learn, SMOTE, SHAP<br/>Exports ONNX + Urdu lookup"]
+    portal["<b>Supervisor portal</b><br/>React web app + Leaflet<br/>Dashboard, map, alerts<br/>Reports, admin panel"]
+    phone["<b>Supervisor phone</b><br/>Web push alerts (portal)<br/>SMS and calls"]
+    ml["<b>ML training pipeline</b><br/>scikit-learn, SMOTE, SHAP<br/>Exports 2 ONNX models + lookup"]
     db["<b>PostgreSQL 15</b><br/>Central data, audit log"]
-    worker["<b>Analytics worker</b><br/>Python: numpy + scipy<br/>Module 6 trends"]
+    reports["<b>Report service</b><br/>Node.js: pdfkit + ExcelJS<br/>PDF and Excel reports"]
 
     app ==>|"SMS and call over cellular, no internet needed"| phone
     app <-->|sync| api
     api <-->|HTTPS| portal
-    api -->|"push (FCM)"| phone
+    api -->|web push| phone
     ml -.->|bundled at build time| app
     api <--> db
-    api -->|trend jobs| worker
+    api -->|report jobs| reports
 ```
 
 *MediQore architecture · 7 components*
@@ -59,127 +56,136 @@ The highlighted path is the key design choice: an emergency SMS or call goes str
 
 | Component | Technology (from scope) | Responsibility |
 |---|---|---|
-| LHW mobile app | Flutter 3.x, Drift + sqflite_sqlcipher, flutter_tts, onnxruntime, google_mlkit_text_recognition, fl_chart, shared_preferences *(A1)* | Modules 1–9 in Urdu (English selectable, A1), fully offline, on-device AI and danger-sign rules, emergency alerts |
-| REST API | Node.js 20 + Express, jsonwebtoken, Joi, pdfkit + ExcelJS | Auth, sync endpoints, conflict detection, alerts, reports, audit log |
+| LHW mobile app | Flutter 3.x, Drift + SQLite3MultipleCiphers, flutter_secure_storage (Android Keystore), onnxruntime, google_mlkit_text_recognition, fl_chart | Modules 1–9 in Urdu and English (switch in Settings), fully offline; on-device AI models, danger-sign rules and vital trends; emergency alerts |
+| REST API | Node.js 24 LTS + Express 5, jsonwebtoken, Joi, pdfkit + ExcelJS | Auth and activation codes, sync and conflict detection, alerts and server-side escalation, PDF and Excel reports, audit log |
 | Database | PostgreSQL 15 | Central store for all modules, audit log, sync sequence numbers |
-| Supervisor and admin portal | React 18, Leaflet.js | Module 10: dashboard, map, alerts, reports, admin panel |
-| ML and analytics | Python 3.11, scikit-learn, imbalanced-learn, SHAP, sklearn2onnx, numpy + scipy | Offline model training and export; backend trend analysis for Module 6 |
-| Push notifications | Firebase Cloud Messaging | Layer 1 emergency alerts (M5 FE-2) |
+| Supervisor and admin portal | React 18 (installable web app), Leaflet.js, Web Push | Module 10: dashboard, map, alerts with web push and acknowledgement, reports, admin panel, PIN-reset reply codes |
+| ML training | Python 3.11, scikit-learn, imbalanced-learn, SHAP, skl2onnx | Offline training, validation and ONNX export of the five- and six-feature models |
+| Clinical Rules Table | Versioned JSON configuration | Danger signs, BP and Hb levels, obstetric history flags, MUAC, IMCI and EPI timings, read by the app and the server |
 
 Use one GitHub monorepo so the API contract, migrations and app change together:
 
 ```
 mediqore/
-  mobile/   Flutter app (LHW role + supervisor alert role)
-  api/      Node.js + Express REST API
-  web/      React supervisor and admin portal
-  ml/       Python training, SHAP lookup, ONNX export, analytics worker
-  db/       PostgreSQL migrations and synthetic seed scripts
-  docs/     OpenAPI contract, ERD, test reports
+    mobile/           Flutter app (LHW)
+    api/              Node.js + Express REST API
+    web/              React supervisor and admin portal (installable web app)
+    ml/               Python training, SHAP lookup, ONNX export
+    clinical-rules/   Versioned Clinical Rules Table (JSON), shared by app and API
+    db/               PostgreSQL migrations and synthetic seed scripts
+    docs/             OpenAPI contract, ERD, test reports
 ```
 
 | Area | Rule |
 |---|---|
 | Record IDs | Every record made on the device gets a UUID v4; the server adds a sequence number when it accepts it. Never order records by device clock (LI-7). |
-| Deletes and audit | Soft deletes only. Every create, edit, delete, referral and login writes an audit row with user and timestamp (M10 FE-3). |
-| API | REST under /api/v1, JSON, Joi validation on every request body, JWT access token plus refresh token, HTTPS only (M1 FE-2). |
-| Units | Store one unit per vital: BP in mmHg, temperature in °C, blood sugar in mmol/L, weight in kg, MUAC in mm. Convert only at the model input or display layer. |
-| Clinical rules | Danger-sign thresholds, EPI schedule, MUAC cut-offs and IMCI rules live in versioned JSON config files, never hard-coded, so clinical advisors can review them (M4 FE-4). |
-| Urdu text | All labels in Flutter ARB localisation files, with an Urdu and an English entry. Urdu, the default, is rendered in Jameel Noori Nastaleeq inside RTL Directionality. *(A1)* English, when the LHW selects it (M1 FE-4), is rendered left to right in the standard Latin font. Numeric vitals stay left to right in both. |
+| Deletes and audit | Soft deletes only. Every create, edit, delete, referral, alert and login writes an audit row with user and timestamp (M10 FE-3). |
+| API and login | REST under /api/v1, JSON, Joi validation on every request body, JWT access and refresh tokens over HTTPS only. Offline unlock is local (PIN), never a JWT check (M1 FE-2). |
+| Encryption keys | The local database key is a random 256-bit key, stored wrapped by a non-exportable Android Keystore key and unwrapped in memory only when the database opens; never derived from the password or PIN (M3 FE-2, LI-8). |
+| Units | One unit per value: BP in mmHg, pulse in bpm, temperature in °C, blood sugar in mmol/L, Hb in g/dL, weight in kg, MUAC in mm. Convert only at the model input or display layer. |
+| Clinical rules | Every clinical rule lives in the versioned Clinical Rules Table, never in code; defaults are marked "pending clinical review" until the Clinical Advisor signs the table (M4 FE-4, LI-12). Store the rules version on every result. |
+| Languages | All labels in Flutter ARB files with Urdu and English entries; Settings → Language switches the whole app at runtime and the choice is saved (M3 FE-3). Urdu renders right to left in Jameel Noori Nastaleeq, English left to right; numbers always stay left to right. |
 | Git workflow | main is always demo-ready; feature branches per FE (for example feature/m3-fe1-visit-form); every merge reviewed by the other member; GitHub Actions runs lint and tests. |
-| Environments | Local PostgreSQL for development; one HTTPS staging server for supervisor reviews and demos. |
+| Environments | Local PostgreSQL for development; one HTTPS staging server for supervisor reviews and demos (needed for web push). |
 
-## Phase 0: Foundation (weeks 1–2)
+## Phase 0: Design and foundation (2 Nov – 27 Dec 2026)
 
-Phase 0 builds the skeleton every module plugs into, so Phase 1 is spent on features rather than setup. Design the database for all ten modules now, even though most tables stay empty until later phases.
+Phase 0 is the scope's Design phase: Figma screens (4 weeks) and database schema plus API setup (4 weeks), with the project skeleton every module plugs into. Design the database for all ten modules now, even though most tables stay empty until later phases.
 
 | ID | Task | Scope link | Owner |
 |---|---|---|---|
 | P0-1 | Create the monorepo, branch protection on main, and a GitHub Actions workflow that runs lint and unit tests | Tools: Git + GitHub | Shared |
-| P0-2 | Flutter project: Urdu ARB localisation, bundled Jameel Noori Nastaleeq font, RTL theme, and a small widget kit (large buttons, form fields, Green/Yellow/Red risk chips, offline status bar) | M3 FE-1 | Zain Abbas |
-| P0-3 | Express API skeleton: routes, controllers, services, Joi validation middleware, central error handler, request logging, OpenAPI file | M1 FE-2 | Zain Ali |
-| P0-4 | PostgreSQL schema v1 with migrations for all core entities (see Data model) and a migration tool such as Knex or node-pg-migrate | Shared: DB schema | Zain Ali |
-| P0-5 | React portal skeleton: routing, login page, auth guard, layout with sidebar, empty Leaflet map component | M10 | Zain Ali |
+| P0-2 | Flutter project: Urdu and English ARB localisation with a runtime language switch, bundled Jameel Noori Nastaleeq font, RTL theme for Urdu and LTR for English, and a small widget kit (large buttons, form fields, Green/Yellow/Red risk chips, offline status bar with unsynced count) | M3 FE-1, FE-3 | Zain Abbas |
+| P0-3 | Express 5 API skeleton on Node.js 24 LTS: routes, controllers, services, Joi validation middleware, central error handler, request logging, OpenAPI file | M1 FE-2, Tools | Zain Ali |
+| P0-4 | PostgreSQL schema v1 with migrations for all core entities (see Data model), including activation codes, Clinical Rules Table versions, pregnancy outcomes and the child register | Shared: DB schema | Zain Ali |
+| P0-5 | React portal skeleton set up as an installable web app: routing, login page, auth guard, layout with sidebar, empty Leaflet map component, service worker ready for web push | M10, M5 FE-2 | Zain Ali |
 | P0-6 | Offline sync skeleton: device outbox table, POST /sync/push and GET /sync/pull?since=, one record proven end to end | M3 FE-2 | Shared |
-| P0-7 | Figma screens for Phase 1: login, LHW home, registration, visit form, dashboard home, admin lists | Mockups 1, 2, 6 | Shared |
+| P0-7 | Figma screens for Phase 1: activation and PIN unlock, LHW home, registration, visit form with danger-sign checklist, Settings with the language switch, dashboard home, admin lists | Mockups 1, 2, 6 | Shared |
 | P0-8 | Synthetic data generator: districts, Union Councils, LHWs, households with GPS, pregnant women, visits | LI-10 | Zain Ali |
 | P0-9 | Draft and submit the IEC application (due in Semester 7) | LI-10 | Shared |
-| P0-10 | Start the ML track: download the UCI dataset, exploratory notebook, check duplicates and class balance | M4 FE-1 | Zain Abbas |
-| P0-11 | Decide the open items in Risks and decisions (OTP channel, Urdu PDF method, Urdu voice source, model inputs) | All | Shared |
+| P0-10 | Start the ML track: download the UCI dataset, exploratory notebook, check duplicates and class balance, note that the data is from rural Bangladesh | M4 FE-1, LI-2 | Zain Abbas |
+| P0-11 | Clinical Rules Table v0 with WHO-referenced defaults marked "pending clinical review", and approach a Clinical Advisor | M4 FE-4, LI-12, Stakeholders | Shared |
+| P0-12 | Remaining technical check: Urdu text in a pdfkit PDF (fall back to HTML-to-PDF if it breaks) | M6 FE-3 | Shared |
 
-**Exit gate for Phase 0**
+### Exit gate for Phase 0
 
-- [ ] One test record created on the phone offline, synced, stored in PostgreSQL and visible on the React portal
-- [ ] CI runs on every pull request
-- [ ] Schema v1 and OpenAPI v1 reviewed by both members
-- [ ] IEC application submitted
+- One test record created on the phone offline, synced, stored in PostgreSQL and visible on the React portal
+- CI runs on every pull request
+- Schema v1 and OpenAPI v1 reviewed by both members
+- IEC application submitted
 
-## Phase 1: Core field workflow — M1, M2, M3, M10 base (weeks 3–9)
+## Phase 1: Core field workflow — M1, M2, M3, M10 base (4 Jan – 7 Feb 2027)
 
-By the end of Phase 1 an LHW can log in, register a pregnant woman and record a visit with no internet, and the supervisor sees it on the portal after sync. Zain Abbas builds the mobile modules; Zain Ali builds the API, sync engine and most Phase 1 web screens, because his own modules start in Phase 2.
+By the end of Phase 1 an LHW can activate her phone once, unlock it offline with her PIN, register a pregnant woman and record a visit with no internet, and the supervisor sees it on the portal after sync. Zain Abbas builds the mobile modules and leads Module 10; Zain Ali supports Module 10 and builds the API and sync engine, because his own modules start in Phase 2.
 
 ### Module 1: LHW onboarding and access control
 
 | Task | Layer | Scope link | Owner |
 |---|---|---|---|
 | Admin creates an LHW with district, Union Council and area; system issues a unique LHW ID and credentials | API + Web | FE-1 | Zain Ali |
-| On first login the app downloads only that LHW's area data (her patient list) | Mobile + API | FE-1 | Shared |
-| JWT login with access and refresh tokens, login rate limiting, HTTPS only, server-side validation | API | FE-2 | Zain Ali |
-| OTP verification on first login and on a new device (channel decided in P0-11) | API + Mobile | FE-2 | Zain Ali |
-| Offline login: derive the SQLCipher key from the password with a slow key-derivation function (PBKDF2 or Argon2) and a stored salt; a correct password unlocks the local database | Mobile | FE-2, LI-8 | Zain Abbas |
-| Auto-lock after inactivity and session expiry; deactivated accounts are refused at next sync | Mobile + API | FE-2, FE-3 | Shared |
-| Admin area reassignment, activation and deactivation, password reset with a "sync before reset" warning | Web + API | FE-3, LI-8 | Zain Ali |
-| *(A1)* Language switch on the login screen and in settings: Urdu (default) or English, kept on the phone, the whole app follows it (Urdu right to left, English left to right); voice guidance only in Urdu. The base switch exists from Phase 0. | Mobile | FE-4, M3 FE-3 | Zain Abbas |
+| Her assigned-area patient list syncs at first login (it may be empty) | Mobile + API | FE-1 | Shared |
+| Admin generates a one-time activation code: random, about 8 characters, valid 48 hours, usable once, stored hashed | API + Web | FE-2 | Zain Ali |
+| First login on a device (online): username, password and activation code; JWT access and refresh tokens over HTTPS; login rate limiting | Mobile + API | FE-2 | Shared |
+| Random 256-bit database key generated on the phone and stored wrapped by a separate, non-exportable Android Keystore key (flutter_secure_storage); unwrapped in memory when the database opens and passed to SQLite3MultipleCiphers; never derived from password or PIN | Mobile | FE-2, LI-8 | Zain Abbas |
+| Offline unlock with a 6-digit PIN checked against a slow hash; progressive delays of 30 s, 1 min, 5 min and 15 min, never a lockout that needs internet | Mobile | FE-2 | Zain Abbas |
+| Offline PIN reset: the phone shows a short code, the supervisor enters it in the portal and reads back a reply code, which the phone checks with the secret received at activation | Mobile + Web + API | FE-2 | Shared |
+| Lock screen "Emergency call supervisor" button | Mobile | FE-2 | Zain Abbas |
+| Local auto-lock after inactivity, separate from server token expiry; tokens refresh at each sync; deactivation takes effect at the next connection | Mobile + API | FE-2, FE-3, LI-8 | Shared |
+| Admin area reassignment, activation and deactivation, password reset (no local data loss, because the key is not password-based) | Web + API | FE-3, LI-8 | Zain Ali |
 
-### Module 2: Expecting woman registration
+### Module 2: Pregnant woman registration
 
 | Task | Layer | Scope link | Owner |
 |---|---|---|---|
 | Registration form (name, age, husband's name, contact, address, pregnancy month, village) in Urdu with validation | Mobile | FE-1 | Zain Abbas |
 | Patient ID that is unique offline: LHW code plus a local counter, alongside the record UUID | Mobile | FE-1 | Zain Abbas |
 | Create the pregnancy file (one woman can have several pregnancies over time) | Mobile + DB | FE-1 | Zain Abbas |
-| Obstetric history: previous pregnancies, C-sections, stillbirths, known conditions; stored as the baseline risk profile | Mobile | FE-2 | Zain Abbas |
-| Household entity with GPS capture (geolocator package), linked to the woman; reused later by polio and child modules | Mobile + DB | FE-3 | Zain Abbas |
-| Area-based patient search and list sorting by village | Mobile | FE-3 | Zain Abbas |
+| Obstetric history: previous pregnancies, C-sections, stillbirths, known conditions | Mobile | FE-2 | Zain Abbas |
+| Obstetric risk-factor flags (for example "Previous C-section") shown on the profile and result screen; they never change the risk colour unless the signed Clinical Rules Table says so | Mobile | FE-2 | Zain Abbas |
+| Household entity with GPS capture (geolocator package), linked to the woman; reused later by the child register, polio and nutrition modules | Mobile + DB | FE-3 | Zain Abbas |
+| Area-based search, and patients sorted by estimated distance from her current location (no maps needed) | Mobile | FE-3 | Zain Abbas |
 
 ### Module 3: Field visit and vitals collection
 
 | Task | Layer | Scope link | Owner |
 |---|---|---|---|
-| Visit form: BP, weight, temperature, fetal movement, swelling, bleeding, fever, anaemia signs, urine symptoms, using checkboxes, dropdowns and large controls | Mobile | FE-1 | Zain Abbas |
-| Add pulse (heart rate) and optional blood sugar fields now, because the Phase 2 model needs them (see Risks) | Mobile | FE-1, M4 FE-1 | Zain Abbas |
+| Visit form: BP, pulse, weight, temperature, fetal movement, swelling, bleeding, fever, anaemia signs, urine symptoms, using checkboxes, dropdowns and large controls | Mobile | FE-1 | Zain Abbas |
+| Pulse required: read from the BP device, or counted with a 30-second on-screen counter (tap per beat, app doubles the count) | Mobile | FE-1 | Zain Abbas |
+| Optional blood sugar stored with value, unit, date and source (glucometer or verified lab report) | Mobile | FE-1, M4 FE-1 | Zain Abbas |
+| Yes/no danger-sign checklist with pictures: convulsions or fits, severe headache, blurred vision, severe or upper abdominal pain, fast or difficult breathing, fever with weakness | Mobile | FE-1, M4 FE-4 | Zain Abbas |
 | Range checks to catch typing errors (for example systolic BP outside 60–250 asks for confirmation) | Mobile | FE-1 | Zain Abbas |
-| AES-256 encrypted local storage with Drift + sqflite_sqlcipher | Mobile | FE-2 | Zain Abbas |
+| Encrypted local database: Drift native database with SQLite3MultipleCiphers, SQLCipher-compatible AES-256 cipher, using the database key unwrapped in memory from its Keystore-wrapped copy (Module 1) | Mobile | FE-2 | Zain Abbas |
 | Sync engine: outbox with retry, idempotent push by UUID, server sequence IDs, pull by cursor, background sync when online | Mobile + API | FE-2 | Shared |
 | Conflict detection for duplicate offline submissions; conflicted records flagged for supervisor review and kept in the audit log | API | FE-2, LI-7 | Zain Ali |
-| Voice guidance: on field focus, flutter_tts reads the Urdu label; mute toggle in settings; *(A1)* off while the app is in English | Mobile | FE-3, LI-6, M1 FE-4 | Zain Abbas |
+| Language switch: Settings → Language toggles the whole app between Urdu (right to left) and English (left to right) at runtime; the choice is saved on the device and Urdu is the default | Mobile | FE-3, LI-6 | Zain Abbas |
 
 ### Module 10 base: supervisor portal
 
 | Task | Layer | Scope link | Owner |
 |---|---|---|---|
-| Admin panel: district, tehsil, Union Council and area hierarchy; LHW and supervisor accounts; hospitals and referral centres; role permissions | Web + API | FE-3 | Zain Ali |
+| Admin panel: district, tehsil, Union Council and area hierarchy; LHW and supervisor accounts; activation codes; hospitals and referral centres with phone numbers; role permissions | Web + API | FE-3 | Zain Ali |
 | Audit log viewer with filters by user, action and date | Web + API | FE-3 | Zain Ali |
-| Dashboard cards: registered patients, visits this week, LHW visit counts, last login | Web + API | FE-1 | Zain Ali |
+| Near-real-time dashboard cards of synchronised data: each LHW's last-sync time, registered patients, visits this week, last login | Web + API | FE-1 | Zain Abbas |
 | Leaflet map of registered households from Module 2 GPS, filter by district, Union Council, LHW and time period, auto-refresh every 5 minutes | Web | FE-1 | Zain Abbas |
+| PIN-reset reply-code page for supervisors | Web + API | M1 FE-2 | Zain Ali |
 | Sync conflict review queue for supervisors | Web + API | M3 FE-2 | Zain Ali |
 
 ### ML track (runs alongside Phase 1)
 
-Zain Abbas trains the model now so Module 4 starts in Phase 2 with a ready ONNX file. Details are in Phase 2 under Module 4.
+Zain Abbas trains both models in January (scope Gantt row 3.4), so Module 4 starts Phase 2 with two ready ONNX files. Details are in Phase 2 under Module 4.
 
-**Exit gate for Phase 1**
+### Exit gate for Phase 1
 
-- [ ] LHW logs in online once, then works fully offline: login, registration, visit with voice guidance
-- [ ] *(A1)* The LHW can switch the app between Urdu and English; voice guidance works in Urdu and is off in English
-- [ ] Records sync automatically when online; a duplicate submission is flagged, not overwritten
-- [ ] Admin manages areas, accounts and hospitals; every action appears in the audit log
-- [ ] Supervisor sees patients, visits, LHW activity and the household map
-- [ ] Unit tests for form validation, sync and auth pass in CI
+- LHW activates once online, then works fully offline: PIN unlock, registration, visit with danger-sign checklist, in both Urdu and English
+- Forgotten PIN is reset offline with a supervisor reply code; a password reset loses no local data
+- Records sync automatically when online; a duplicate submission is flagged, not overwritten
+- Admin manages areas, accounts, activation codes and hospitals; every action appears in the audit log
+- Supervisor sees patients, visits, each LHW's last-sync time and the household map
+- Unit tests for form validation, sync and auth pass in CI
 
-## Phase 2: Intelligence and emergency — M4, M5, M6, M10 update (weeks 10–17)
+## Phase 2: Intelligence and emergency — M4, M5, M6, M10 update (8 Feb – 21 Mar 2027)
 
-By the end of Phase 2 every visit produces a risk result with an Urdu explanation, a critical case can reach the supervisor by internet, SMS or call, and each pregnancy has a full health record with trends. Zain Abbas owns Module 4 and the Module 10 update; Zain Ali owns Modules 5 and 6.
+By the end of Phase 2 every visit produces a risk result with an Urdu explanation, a critical case can reach the supervisor by web push, SMS or call, and each pregnancy has a full record with on-device trends and a recorded outcome. Zain Abbas owns Module 4 and the Module 10 update; Zain Ali owns Modules 5 and 6.
 
 ### Module 4: AI-based maternal risk assessment
 
@@ -187,44 +193,49 @@ By the end of Phase 2 every visit produces a risk result with an Urdu explanatio
 |---|---|---|---|
 | Clean the UCI data: remove duplicate rows, keep a stratified 20% hold-out test set untouched until the end | ML | FE-1 | Zain Abbas |
 | imbalanced-learn Pipeline with SMOTE applied inside each training fold only, so synthetic rows never leak into validation | ML | FE-1, BO-2 | Zain Abbas |
-| Compare Logistic Regression, Random Forest and Gradient Boosting with 5-fold stratified CV; report F1-macro, per-class F1, per-class recall and ROC-AUC | ML | FE-1, BO-2 | Zain Abbas |
-| Select the model: high-risk recall of at least 90% first, then best F1-macro | ML | BO-2 | Zain Abbas |
-| Write the PDHS 2017–18 feature-alignment note for the report | ML | FE-1, LI-2 | Zain Abbas |
-| Run SHAP on the chosen model, derive feature-threshold rules per class, map each to a reviewed Urdu phrase, export the JSON lookup | ML | FE-2 | Zain Abbas |
-| Export to ONNX with sklearn2onnx (plain probability output, no ZipMap); parity test that Python and ONNX agree on every test row | ML | FE-1 | Zain Abbas |
-| Run inference with onnxruntime after each visit; convert units to the dataset's (UCI body temperature is in °F); handle a missing blood sugar value as decided in P0-11 | Mobile | FE-1 | Zain Abbas |
+| Train two input sets: a default five-feature model (no blood sugar) and a six-feature model; compare Logistic Regression, Random Forest and Gradient Boosting with 5-fold stratified CV; report F1-macro, per-class F1, per-class recall and ROC-AUC for each set separately | ML | FE-1, BO-2 | Zain Abbas |
+| Select each model with a target of at least 90% high-risk recall, then best F1-macro; if neither reaches it, report the shortfall | ML | BO-2 | Zain Abbas |
+| Write the dataset note: rural Bangladesh data, not equivalent to Pakistan, performance on Pakistani patients unknown until field validation | ML | LI-2 | Zain Abbas |
+| Run SHAP on each chosen model, derive feature-threshold rules per class, map each to reviewed Urdu and English phrases, export the JSON lookup | ML | FE-2 | Zain Abbas |
+| Export both models with skl2onnx (plain probability output, no ZipMap); parity test that Python and ONNX agree on every test row | ML | FE-1 | Zain Abbas |
+| Run inference with onnxruntime after each visit: the six-feature model only when same-visit blood sugar exists (configurable window), otherwise the five-feature model; convert units (UCI body temperature is in °F) | Mobile | FE-1 | Zain Abbas |
 | Benchmark inference time on the lowest-spec test phone (target under 1 second) | Mobile | FE-1 | Zain Abbas |
-| Result screen: colour-coded risk, Urdu explanation from the lookup, decision-support disclaimer | Mobile | FE-2, LI-5 | Zain Abbas |
-| Risk trend across visits: store each result, alert the LHW when the level or BP trend worsens across the last visits | Mobile | FE-3 | Zain Abbas |
-| Danger-sign rules engine read from JSON config; final level = higher of model and rules; Emergency hands off to Module 5; one unit test per rule | Mobile | FE-4, LI-12 | Zain Abbas |
+| Result screen: colour-coded risk, Urdu explanation, obstetric and anaemia flags shown separately, decision-support disclaimer | Mobile | FE-2, LI-5 | Zain Abbas |
+| Risk trend across visits: store each result, alert the LHW when the level worsens across visits | Mobile | FE-3 | Zain Abbas |
+| Danger-sign rules read from the Clinical Rules Table: severe hypertension (≥160/110), raised BP (≥140/90) with severe headache, blurred vision or upper abdominal pain, every checklist sign, vaginal bleeding, absent or markedly reduced fetal movement, severe anaemia signs, and high fever with another danger sign make an Emergency; raised BP alone gives at least Yellow; swelling is a flag only; final level = higher of model and rules; one unit test per rule | Mobile | FE-4, LI-12 | Zain Abbas |
+| Store model version, input set and rules version on every risk result | Mobile + DB | FE-4 | Zain Abbas |
 
 ### Module 5: Emergency referral coordination
 
 | Task | Layer | Scope link | Owner |
 |---|---|---|---|
-| One-tap referral pre-filled with patient details, risk factors and the nearest hospital, found by GPS distance to the cached hospital list | Mobile | FE-1 | Zain Ali |
-| Emergency screen with three equal buttons (Internet, SMS, Call) and Send all; each button shows if it is usable now (connectivity_plus plus the phone's service state) | Mobile | FE-2 | Zain Ali |
-| Layer 1: alert to the API, Firebase Cloud Messaging push to the supervisor's phone, and a live alerts panel on the dashboard | Mobile + API + Web | FE-2 | Zain Ali |
-| Layer 2: pre-filled SMS sent from the LHW's phone (another_telephony, SEND_SMS permission) with sent and delivered callbacks | Mobile | FE-2, LI-4 | Zain Ali |
-| Layer 3: one-tap call to the supervisor and the secondary contact (flutter_phone_direct_caller, CALL_PHONE permission) | Mobile | FE-2 | Zain Ali |
-| Persistent emergency screen, Urdu voice announcement, protocol checklist, per-option status (Sent, Failed, Not available) with retry | Mobile | FE-4 | Zain Ali |
+| One-tap referral pre-filled with patient details, risk factors and the nearest registered referral facility with its saved phone number, found by GPS distance to the cached facility list | Mobile | FE-1 | Zain Ali |
+| Emergency screen opens immediately with three equal buttons (Internet, SMS, Call) and Send all, all live at once; each button shows whether it is usable now | Mobile | FE-2, FE-4 | Zain Ali |
+| Check bar for typed values ("BP 190/120 — is this correct? Correct / Edit"); editing re-runs the rules and, if the case no longer qualifies, closes the screen with the logged reason "value corrected"; the buttons never wait for it | Mobile | FE-4 | Zain Ali |
+| Screen can be minimised to a banner that stays visible; it closes only with a logged reason (referral done, supervisor reached, false alarm with corrected values) shown to the supervisor; nothing is sent until she taps a button | Mobile | FE-4 | Zain Ali |
+| Layer 1: alert to the API and web push from the supervisor portal (installable web app), plus a live alerts page | Mobile + API + Web | FE-2 | Zain Ali |
+| Layer 2: pre-filled SMS sent from the LHW's phone (another_telephony, SEND_SMS) with sent and delivered callbacks; if permission is denied, url_launcher opens the SMS app pre-filled | Mobile | FE-2, LI-4 | Zain Ali |
+| Layer 3: one-tap call to the supervisor and the secondary contact (flutter_phone_direct_caller) | Mobile | FE-2 | Zain Ali |
+| Alarm tone with vibration, protocol checklist, per-option status (Sent, Failed, Not available) with retry | Mobile | FE-4 | Zain Ali |
 | Save the alert record locally and sync it in the background when internet returns (workmanager); record time-to-escalation | Mobile + API | FE-4 | Zain Ali |
-| Acknowledgement: supervisor acknowledges in the app or dashboard; LHW can mark "supervisor reached" after a call or SMS reply | Mobile + Web + API | FE-5 | Zain Ali |
-| 15-minute escalation on two sides: a server job for alerts the server knows about, and a device timer that prompts the LHW to contact the secondary contact for SMS-only or call-only alerts | Mobile + API | FE-5 | Zain Ali |
+| Acknowledgement from the web portal on desktop or phone; LHW can mark "supervisor reached" after a call or SMS reply | Mobile + Web + API | FE-5 | Zain Ali |
+| Escalation ownership: the server owns an alert once the phone has its receipt (server re-sends and escalates to the secondary contact after 15 minutes); before that the phone owns it and prompts one-tap "SMS / Call secondary contact", never sending automatically; a synced phone-owned alert is not escalated again | Mobile + API | FE-5 | Zain Ali |
 | Referral outcome: attended or not, and outcome, visible to the supervisor | Mobile + Web | FE-3 | Zain Ali |
 
 ### Module 6: Pregnancy journey, health records and ANC monitoring
 
 | Task | Layer | Scope link | Owner |
 |---|---|---|---|
-| ANC schedule generated from gestational age at registration; local reminders (flutter_local_notifications); missed visits flagged | Mobile | FE-1 | Zain Ali |
+| ANC schedule generated from gestational age at registration (WHO 2016); local reminders (flutter_local_notifications); missed visits flagged | Mobile | FE-1 | Zain Ali |
 | TT dose schedule plus iron and folic acid tracking, with a supplement compliance score on the patient profile | Mobile | FE-1 | Zain Ali |
-| Report scan: camera or gallery, grayscale and contrast preprocessing, ML Kit text recognition fully offline | Mobile | FE-2, LI-9 | Zain Ali |
+| Report scan: camera or gallery, grayscale and contrast preprocessing, ML Kit text recognition fully offline (Latin-script reports; Urdu and handwritten reports use manual entry) | Mobile | FE-2, LI-9 | Zain Ali |
 | Dart regex engine extracting BP, haemoglobin, blood glucose, temperature, weight and urine protein; high-confidence values pre-filled, others confirmed; manual entry fallback | Mobile | FE-2, LI-9 | Zain Ali |
+| Anaemia flag from verified Hb values with value, unit, date and source; colour mapping only from the signed Clinical Rules Table | Mobile | FE-2 | Zain Ali |
 | Store the original report image (compressed, encrypted on device, uploaded on sync) | Mobile + API | FE-2 | Zain Ali |
-| Vital trend graphs on the device with fl_chart, built from local data so they work offline | Mobile | FE-3 | Zain Ali |
-| Python analytics worker (numpy + scipy) called by the API: linear-regression slope per vital, Z-score anomalies, weighted compliance score; results returned on next sync | ML + API | FE-3 | Zain Ali |
-| Bilingual PDF progress report: trend graphs, visit history, ANC compliance, doctor notes, Urdu summary | API | FE-3 | Zain Ali |
+| On-device trends in Dart: linear slope per vital, flag a vital rising across the last three visits that has reached or is near its approved threshold (no Z-scores) | Mobile | FE-3 | Zain Ali |
+| Offline progress summary on the phone with fl_chart trend graphs, visit history and ANC compliance | Mobile | FE-3 | Zain Ali |
+| Bilingual PDF progress report generated on the server after sync (needs connectivity); the LHW exports it to share with the patient or referral facility | API | FE-3 | Zain Ali |
+| Pregnancy outcome recording: date, place, live birth (one child record per baby, sex and birth weight; twins give two), stillbirth or miscarriage (no child record), maternal death (flag for review), moved out or lost to follow-up | Mobile + DB | FE-4 | Zain Ali |
 
 ### Module 10 update
 
@@ -232,100 +243,108 @@ By the end of Phase 2 every visit produces a risk result with an Urdu explanatio
 |---|---|---|---|
 | Risk distribution chart (Green, Yellow, Red) and high-risk cluster layer on the map | Web + API | FE-1 | Zain Abbas |
 | Referral completion rate, overdue follow-ups and missed ANC visits per LHW | Web + API | FE-1 | Zain Abbas |
-| Emergency alerts panel: channel used, time-to-escalation, acknowledge button, unacknowledged alerts highlighted | Web + API | M5 FE-5 | Zain Abbas |
-| Admin: emergency escalation contacts per area (supervisor and secondary numbers) | Web + API | FE-3 | Zain Abbas |
-| Weekly and monthly PDF and Excel reports: maternal summary, high-risk list, referral completion, LHW activity, emergency alerts | API + Web | FE-2 | Zain Abbas |
-| Inactivity anomaly flag: weekly visits more than 2 standard deviations below the LHW's own mean, only after 4 weeks of history | API + Web | FE-4 | Zain Abbas |
+| Web push for emergency alerts (service worker, FCM for web) and a phone-friendly alerts page: channel used, time-to-escalation, acknowledge button, unacknowledged alerts highlighted | Web + API | FE-1, M5 FE-2, FE-5 | Zain Abbas |
+| Admin: emergency escalation contacts per area (supervisor and secondary contact) | Web + API | FE-3 | Zain Abbas |
+| Weekly and monthly PDF and Excel reports: maternal summary, high-risk list, referral completion, LHW activity, emergency alerts; downloaded by authorised supervisors for manual submission | API + Web | FE-2 | Zain Abbas |
+| Inactivity detection by visit date: a week is judged only after the LHW synced past it; flag when more than 2 SD below her mean and at least 3 visits lower, after 6 weeks of history (both configurable); leave and campaign weeks excluded; statuses Active, Unusual inactivity, Not enough synced data | API + Web | FE-4 | Zain Abbas |
 
-**Exit gate for Phase 2**
+### Exit gate for Phase 2
 
-- [ ] Chosen model meets at least 90% high-risk recall on the hold-out set, and ONNX parity test passes
-- [ ] Every danger-sign rule forces an Emergency result in tests, even when the model says low risk
-- [ ] Emergency alert sent by each of the three options in airplane mode (SMS and call) and online (internet)
-- [ ] Unacknowledged alert escalates to the secondary contact after the set time
-- [ ] OCR pre-fills values from a printed report; a handwritten report falls back to manual entry
-- [ ] Dashboard shows risk, referrals, alerts and reports for maternal data
+- Both models are validated and reported separately; ONNX parity tests pass; any shortfall against the 90% recall target is documented
+- Every danger-sign rule forces an Emergency result in tests, even when the model says low risk
+- Emergency alert sent by each of the three options: SMS and call in airplane mode with a SIM, web push online
+- A typed-value typo is corrected from the check bar without delaying the alert buttons
+- Escalation follows the ownership rule in both cases (server receipt received or not)
+- OCR pre-fills values from a printed report; a handwritten or Urdu report falls back to manual entry
+- A live birth outcome creates a child record; a stillbirth does not
+- Dashboard shows risk, referrals, alerts and reports for maternal data
 
-## Phase 3: Child health and campaigns — M7, M8, M9, M10 final (weeks 18–24)
+## Phase 3: Child health and campaigns — M7, M8, M9, M10 final (22 Mar – 25 Apr 2027)
 
-By the end of Phase 3 all ten modules work and the portal reports on every one of them. Start with a shared child registry in week 18, because Modules 7, 8 and 9 all depend on it and the scope does not assign it to a single module.
+By the end of Phase 3 all ten modules work and the portal reports on every one of them. Start with the child register in Module 8 FE-1 in the first week, because Modules 7, 8 and 9 all depend on it.
 
-### Shared child registry (week 18)
+### Child register — Module 8 FE-1 (first week)
 
 | Task | Layer | Scope link | Owner |
 |---|---|---|---|
-| Household roster for every household in the LHW's area, not only those with a pregnant woman, reusing the Phase 1 household entity and GPS | Mobile + DB | M7 FE-1 | Shared |
-| Child record: name, date of birth, sex, household, optional link to the mother's pregnancy file | Mobile + DB | M7 FE-3, M8 FE-1 | Shared |
-| Child list per household with age shown in months, used by all three modules | Mobile | M7–M9 | Shared |
+| Child record for every child under 5 in the area: name, date of birth, sex, caregiver, household (reusing household GPS from Module 2) | Mobile + DB | M8 FE-1 | Zain Ali |
+| Household roster for every household in the area, not only those with a pregnant woman | Mobile + DB | M8 FE-1, M7 FE-1 | Zain Ali |
+| Newborn records created from Module 6 live-birth outcomes appear in the register automatically | Mobile | M6 FE-4, M8 FE-1 | Zain Ali |
+| Deceased status stops a child's schedules and alerts | Mobile + API | M6 FE-4 | Zain Ali |
+| Child list per household with age in months, used by Modules 7, 8 and 9 | Mobile | M7–M9 | Zain Ali |
 
 ### Module 7: Polio campaign field operations
 
 | Task | Layer | Scope link | Owner |
 |---|---|---|---|
 | Campaign rounds (name, dates, area) created on the portal and pulled to devices | Web + API + Mobile | FE-1 | Zain Ali |
-| House-to-house record: children under 5, children vaccinated, vaccine type (OPV), date; saved offline | Mobile | FE-1 | Zain Ali |
-| Refusal record with reason dropdown (religious concern, misinformation, past reaction, absent family) and an automatic revisit in the same round | Mobile | FE-2 | Zain Ali |
+| House-to-house screen lists the household's registered children under 5; she ticks each child vaccinated this round (OPV, campaign date); household totals calculated automatically; saved offline | Mobile | FE-1 | Zain Ali |
+| "New child found" button adds visiting children and unregistered newborns | Mobile | FE-1 | Zain Ali |
+| Household status: all vaccinated, refusal (religious concern, misinformation, past reaction) or a separate "Not available" status; both schedule a revisit in the same round | Mobile | FE-2 | Zain Ali |
 | Revisit list for the LHW, sorted by distance from her current location | Mobile | FE-2 | Zain Ali |
-| Zero-dose check: any child under 5 with no OPV dose in any round goes on a priority list, on the device for her area and on the server for the whole district | Mobile + API | FE-3 | Zain Ali |
+| "No OPV dose recorded" check across campaign records and routine OPV from Module 8; priority list on the device for her area and on the server for the district | Mobile + API | FE-3 | Zain Ali |
 
 ### Module 8: Child immunisation and EPI management
 
 | Task | Layer | Scope link | Owner |
 |---|---|---|---|
-| EPI schedule config (BCG, OPV-0, Penta 1–3, PCV 1–3, Rota 1–2, IPV, MR) with due ages taken from the official Pakistan EPI schedule | Config | FE-1 | Zain Ali |
-| Personal vaccination timeline per child under 2 from date of birth; dose recording; birth-dose OPV-0 kept separate from campaign doses | Mobile | FE-1 | Zain Ali |
+| EPI schedule config verified against the Federal Directorate of Immunization schedule: BCG, Hep B-0, OPV-0 to OPV-3, Penta 1–3, PCV 1–3, Rota 1–2, IPV-I and IPV-II, MR 1–2 and TCV (National Immunization Policy 2022), with doses whose rollout varies by area (such as the Hep B birth dose) switched on per area; for each dose the dose number, minimum age, recommended age, minimum interval, maximum age where applicable, schedule version and effective date | Config | FE-1 | Zain Ali |
+| Personal vaccination timeline per child under 2; dose recording; routine OPV kept separate from campaign doses; each record stores its schedule version | Mobile | FE-1 | Zain Ali |
+| Catch-up due dates: next dose due from the previous dose date plus the minimum interval, not only from date of birth | Mobile | FE-1 | Zain Ali |
 | Defaulter alert on the LHW home screen when a dose passes its due date; supervisor notified after sync | Mobile + API | FE-2 | Zain Ali |
+| WHO zero-dose indicator: no recorded Penta-1 after its due age | Mobile + API | FE-2 | Zain Ali |
 | Coverage per antigen and per sub-area, with low-coverage sub-areas highlighted | API + Web | FE-3 | Zain Ali |
 
 ### Module 9: Child nutrition and growth screening
 
 | Task | Layer | Scope link | Owner |
 |---|---|---|---|
-| MUAC entry with WHO classification: below 115 mm SAM, 115–125 mm MAM, above 125 mm Normal; colour-coded Urdu result; age check for 6–59 months | Mobile | FE-1 | Zain Ali |
-| Weight-for-age and height-for-age Z-scores from bundled WHO Child Growth Standards tables; stunting, wasting and underweight flags | Mobile | FE-1 | Zain Ali |
+| MUAC entry for ages 6–59 months with WHO classification: below 115 mm SAM, 115 to under 125 mm MAM, 125 mm or above Normal; colour-coded Urdu result | Mobile | FE-1 | Zain Ali |
+| Bilateral pitting oedema check: SAM regardless of MUAC | Mobile | FE-1 | Zain Ali |
+| Weight-for-age (underweight) and height-for-age (stunting, only when height is measured) Z-scores from bundled WHO Child Growth Standards tables; no wasting classification | Mobile | FE-1 | Zain Ali |
 | Unit tests that check Z-score output against WHO reference values | Mobile | FE-1 | Zain Ali |
 | SAM referral to the nearest Nutrition Rehabilitation Centre, attendance tracking and weight recovery across follow-ups | Mobile + Web | FE-2 | Zain Ali |
-| IMCI checklist: respiratory rate with an on-screen 60-second counter, chest indrawing, stool frequency, dehydration signs; severity and Urdu action from IMCI rules config | Mobile | FE-3 | Zain Ali |
+| IMCI checklist (WHO 2014): respiratory rate with a 60-second counter, chest indrawing, stool frequency, dehydration signs; severity and Urdu action from the Clinical Rules Table | Mobile | FE-3 | Zain Ali |
 | Test the IMCI rules against the worked cases in the WHO IMCI chart booklet | Mobile | FE-3 | Zain Ali |
 
 ### Module 10 final
 
 | Task | Layer | Scope link | Owner |
 |---|---|---|---|
-| Polio campaign progress, refusals and zero-dose counts per area | Web + API | FE-1 | Zain Abbas |
-| Map layers for malnutrition hotspots and immunisation coverage gaps, beside the high-risk pregnancy layer | Web | FE-1 | Zain Abbas |
-| Full report set: adds polio progress, immunisation coverage and nutrition screening to the weekly and monthly PDF and Excel reports | API + Web | FE-2 | Zain Abbas |
+| Polio campaign progress, refusals, not-available households and "No OPV dose recorded" counts per area | Web + API | FE-1 | Zain Abbas |
+| Map layers for malnutrition hotspots and immunisation coverage gaps, using household GPS shared by the child register | Web | FE-1 | Zain Abbas |
+| Full report set: adds polio progress, immunisation coverage (including WHO zero-dose) and nutrition screening to the weekly and monthly PDF and Excel reports | API + Web | FE-2 | Zain Abbas |
 | Admin: campaign rounds and Nutrition Rehabilitation Centre records | Web + API | FE-3 | Zain Abbas |
 | Performance: database indexes, paginated tables, clustered map markers for large areas | Web + API + DB | FE-1 | Zain Abbas |
 
-**Exit gate for Phase 3**
+### Exit gate for Phase 3
 
-- [ ] A polio round runs end to end offline, including a refusal, its revisit and a zero-dose child
-- [ ] A child's EPI timeline produces a defaulter alert that reaches the supervisor
-- [ ] MUAC, Z-score and IMCI results match WHO reference cases
-- [ ] Dashboard, map layers and reports cover all ten modules
+- A polio round runs end to end offline, including a refusal, a not-available household, a revisit and a child with no OPV dose recorded
+- A late-starting child's EPI timeline gives correct catch-up due dates and a defaulter alert that reaches the supervisor
+- MUAC, oedema, Z-score and IMCI results match WHO reference cases
+- Dashboard, map layers and reports cover all ten modules
 
-## Phase 4: Hardening and final delivery (weeks 25–28)
+## Phase 4: Testing and completion (26 Apr – 18 Jul 2027)
 
-Phase 4 adds no new features; it proves the system works under field conditions and packages it for evaluation. Freeze features at the start of week 25 and only fix bugs after that.
+Phase 4 adds no new features; it proves the system works under field conditions and packages it for evaluation. It covers the scope's Testing phase (8 weeks) and Completion phase (4 weeks); features freeze on 26 Apr and only bugs are fixed after that.
 
-| Week | Task | Owner |
+| Dates | Task | Owner |
 |---|---|---|
-| 25 | End-to-end scenarios across all modules: registration → visit → Emergency → alert → referral outcome → report; polio round; EPI defaulter; SAM referral | Shared |
-| 25 | Field simulation on 3 or more phones in airplane mode for several days of synthetic work, then a mass sync with deliberate conflicts | Shared |
-| 26 | Low-spec device test (a 2 GB RAM Android phone): app start time, form speed, inference time, sync of 1,000 records, battery use | Zain Abbas |
-| 26 | Security review: expired and tampered tokens, SQL injection attempts, HTTPS enforcement, lost-device test (local database unreadable without the password) | Zain Ali |
-| 26 | Usability check of the Urdu interface and voice guidance; with LHWs only if IEC approval has arrived, otherwise with peers on dummy data | Shared |
-| 27 | Bug fixing and regression run of the full test suite | Shared |
-| 27 | Documentation: model report (metrics, confusion matrix, SHAP), API reference, test report, deployment guide, user guides for LHW (Urdu), supervisor and admin | Shared |
-| 28 | Final mockups for Appendix A, signed release APK, staging deployment, demo script with synthetic data, presentation | Shared |
+| 26 Apr – 23 May | System integration: end-to-end scenarios across all modules (registration → visit → Emergency → alert → escalation → referral outcome → report; pregnancy outcome → child register; polio round; EPI defaulter; SAM referral) | Shared |
+| 26 Apr – 23 May | Field simulation on 3 or more phones in airplane mode for several days of synthetic work, then a mass sync with deliberate conflicts | Shared |
+| 26 Apr – 23 May | Low-spec device test (a 2 GB RAM Android phone): app start time, form speed, inference time for both models, sync of 1,000 records, battery use | Zain Abbas |
+| 26 Apr – 23 May | Security tests: activation code reuse and expiry, PIN delays and offline reset, expired and tampered tokens, SQL injection attempts, HTTPS enforcement, database file unreadable when copied off the phone | Zain Ali |
+| 24 May – 20 Jun | Emergency tests: SMS and call in airplane mode with a SIM, SMS fallback with permission denied, web push on a supervisor's phone, escalation ownership in both cases | Shared |
+| 24 May – 20 Jun | Usability check of the Urdu and English interfaces and the language switch; with LHWs only if IEC approval has arrived, otherwise with peers on synthetic data | Shared |
+| 24 May – 20 Jun | Bug fixing, regression run of the full test suite, documentation: model report (both input sets, metrics, SHAP), Clinical Rules Table with review status, API reference, test report, deployment guide, user guides | Shared |
+| 21 Jun – 18 Jul | Final mockups for Appendix A, signed release APK, staging deployment, demo script with synthetic data, final submission and presentation | Shared |
 
-**Exit gate for Phase 4**
+### Exit gate for Phase 4
 
-- [ ] All Phase 1–3 exit gates still pass on the release build
-- [ ] No open critical or high-severity bugs
-- [ ] Documentation and Appendix A mockups complete
-- [ ] Demo rehearsed twice on the release APK and staging server
+- All Phase 1–3 exit gates still pass on the release build
+- No open critical or high-severity bugs
+- Documentation and Appendix A mockups complete
+- Demo rehearsed twice on the release APK and staging server
 
 ## Cross-cutting tracks
 
@@ -341,26 +360,28 @@ Emergency alert records always go first in the push order (M5 FE-4). Report imag
 
 | Rule | Scope link |
 |---|---|
-| Passwords hashed on the server with bcrypt; short-lived access token, longer refresh token, both revocable on deactivation | M1 FE-2, FE-3 |
+| Passwords hashed on the server with bcrypt; one-time activation codes are random, expire in 48 hours, work once and are stored hashed | M1 FE-2 |
+| Short-lived access token and longer refresh token, used only for server calls and refreshed at each sync; revoked on deactivation, which takes effect at the next connection | M1 FE-2, FE-3, LI-8 |
+| Offline PIN checked against a slow hash with progressive delays; offline reset by supervisor reply code; lock-screen emergency call button | M1 FE-2 |
 | Role check middleware on every route: LHW, supervisor, admin | M1 FE-2 |
 | Area scoping in every query: an LHW sees only her area, a supervisor only the areas assigned to them | M1 FE-1 |
 | Parameterised SQL only, Joi validation before any database call | Tools: Joi |
-| Local database encrypted with AES-256; report images stored encrypted; nothing patient-related in plain shared storage | M3 FE-2, LI-8 |
+| Local database encrypted with AES-256 (SQLite3MultipleCiphers) using a random key wrapped by a non-exportable Android Keystore key; report images stored encrypted | M3 FE-2, LI-8 |
 | Audit row for every create, edit, delete, referral, alert and login | M10 FE-3 |
 
-### Urdu and voice
+### Urdu and English
 
-Write no visible string in Dart code; every label goes into the ARB files from the start, with an Urdu and an English entry. *(A1)* The app runs in Urdu by default and in English when the LHW chooses it (M1 FE-4), so both entries are shown to users. Test every screen in both languages on a small phone, because Nastaliq text is taller than Latin text and overflows easily. Voice guidance speaks Urdu only, so it is switched off while the app is in English. For voice guidance, check whether the test phones have an Urdu text-to-speech voice in Phase 0; if not, record short audio clips for the fixed field labels (see Risks).
+Write no visible string in Dart code; every label goes into the ARB files from the start, with an Urdu and an English entry. Test every screen on a small phone, because Nastaliq text is taller than Latin text and overflows easily. The Settings language switch changes the locale at runtime and saves the choice; test every screen in both languages, because the layout direction flips between them (M3 FE-3).
 
 ### Testing
 
 | Level | Tool | What it covers |
 |---|---|---|
-| Unit | flutter_test, Jest, pytest | Form validation, danger-sign rules, EPI dates, MUAC and Z-score maths, IMCI rules, regex extraction, model metrics |
-| Widget | flutter_test | Urdu and English *(A1)* screens render without overflow, RTL and LTR layout, emergency screen states |
-| API | Jest + Supertest | Auth, role checks, area scoping, sync push and pull, conflict detection |
-| Integration | Manual scripts on real phones | Offline-to-online flows, three alert options, multi-device sync |
-| Model | pytest + saved metrics | Hold-out recall threshold, ONNX parity |
+| Unit | flutter_test, Jest, pytest | Form validation, every rule in the Clinical Rules Table, EPI and catch-up dates, MUAC and Z-score maths, IMCI rules, regex extraction, trend slopes, model metrics |
+| Widget | flutter_test | Urdu and English screens render without overflow, RTL and LTR layouts, language switch, emergency screen states and check bar |
+| API | Jest + Supertest | Auth and activation codes, role checks, area scoping, sync push and pull, conflict detection, escalation ownership |
+| Integration | Manual scripts on real phones | Offline-to-online flows, three alert options, web push, multi-device sync |
+| Model | pytest + saved metrics | Hold-out recall for both input sets, ONNX parity |
 
 Each FE is done only when its tests pass in CI and it works on a real phone in airplane mode.
 
@@ -371,38 +392,41 @@ The same tables exist in PostgreSQL and, for field data, in the device's Drift d
 | Table group | Key tables | Built in | Used by |
 |---|---|---|---|
 | Geography | districts, tehsils, union_councils, areas | Phase 0 | M1, M10 |
-| Users and access | users (with role), lhw_profiles, supervisor_areas, devices, refresh_tokens, otp_codes | Phase 0–1 | M1 |
-| System | audit_log, sync_conflicts, report_jobs | Phase 0–1 | M3, M10 |
-| Households and women | households (with GPS), women, pregnancies, obstetric_history | Phase 1 | M2, M7 |
-| Visits | visits (all vitals and symptoms) | Phase 1 | M3, M4, M6 |
-| Facilities | hospitals, referral_centres, escalation_contacts | Phase 1–2 (Nutrition Rehabilitation Centres in Phase 3) | M5, M9, M10 |
-| Risk | risk_assessments (model result, rule result, final level, explanation key, model version) | Phase 2 | M4, M10 |
-| Emergency | referrals, emergency_alerts, alert_attempts (channel, status, time), alert_acknowledgements | Phase 2 | M5, M10 |
-| ANC and records | anc_schedule, tt_doses, supplement_logs, health_documents (image, extracted values, confidence), trend_results | Phase 2 | M6 |
-| Children | children | Phase 3 | M7, M8, M9 |
-| Polio | campaigns, campaign_household_records, refusals, revisits | Phase 3 | M7 |
-| Immunisation | epi_schedule (config), immunisations | Phase 3 | M8 |
-| Nutrition | nutrition_screenings (MUAC, Z-scores), sam_followups, imci_assessments | Phase 3 | M9 |
+| Users and access | users (with role), lhw_profiles, supervisor_areas, devices (with activation secret reference), activation_codes, refresh_tokens | Phase 0–1 | M1 |
+| System | audit_log, sync_conflicts, report_jobs, clinical_rules_versions | Phase 0–1 | M3, M4, M10 |
+| Households and women | households (with GPS), women, pregnancies, obstetric_history | Phase 1 | M2, M8 |
+| Visits | visits (all vitals including pulse, optional blood sugar with unit, date and source, danger-sign checklist) | Phase 1 | M3, M4, M6 |
+| Facilities | hospitals, referral_centres (with phone numbers), escalation_contacts | Phase 1–2 (Nutrition Rehabilitation Centres in Phase 3) | M5, M9, M10 |
+| Risk | risk_assessments (input set, model result, rule result, final level, explanation key, model version, rules version), risk_flags (obstetric, anaemia, swelling) | Phase 2 | M4, M10 |
+| Emergency | referrals, emergency_alerts (owner: phone or server), alert_attempts (channel, status, time), alert_acknowledgements | Phase 2 | M5, M10 |
+| ANC and records | anc_schedule, tt_doses, supplement_logs, health_documents (image, extracted values, confidence, verified Hb) | Phase 2 | M6 |
+| Pregnancy outcomes | pregnancy_outcomes (date, place, type), newborn links to children | Phase 2 | M6, M8 |
+| Children | children (status including deceased, source: outcome or manual) | Phase 2 (from outcomes), Phase 3 (full register) | M7, M8, M9 |
+| Polio | campaigns, campaign_household_status (all vaccinated, refusal, not available), campaign_child_doses, refusals, revisits | Phase 3 | M7 |
+| Immunisation | epi_schedule (versioned config), immunisations (with schedule version) | Phase 3 | M8 |
+| Nutrition | nutrition_screenings (MUAC, oedema, weight-for-age, height-for-age), sam_followups, imci_assessments | Phase 3 | M9 |
+| Supervision | leave_and_campaign_weeks | Phase 2 | M10 |
 
-Store the model version on every risk assessment, so results stay traceable when the model is retrained on field data later (LI-2).
+Store the model version, input set and rules version on every risk result, so results stay traceable when the model or the Clinical Rules Table changes later (LI-2, LI-12).
 
-## Risks and decisions to settle early
+## Risks and decisions
 
-The first row is the most urgent: the model planned for Module 4 needs two inputs that the Module 3 form does not collect. Settle all of these in Phase 0 (task P0-11) so later phases do not stall.
+Five of the earlier open decisions are now fixed in the final scope. The open items below must be settled by the date shown; the most urgent is finding a Clinical Advisor, because no clinical rule can be used with real patients until the table is signed.
 
-| Risk or decision | Why it matters | Recommended action | Settle by |
+| Risk or decision | Status | Action | Settle by |
 |---|---|---|---|
-| Model inputs missing from the visit form | The UCI dataset uses blood sugar and heart rate; Module 3 FE-1 collects neither | Add pulse (any LHW can count it) and optional blood sugar to the form; train one model with all six features and one without blood sugar, and use the second when no reading exists | Phase 0 |
-| OTP channel | SMS OTP needs a paid gateway, which LI-4 says the prototype avoids | Use email OTP or an admin-issued one-time code for the prototype; keep the OTP service swappable | Phase 0 |
-| Urdu text in PDF reports | pdfkit may not join Nastaliq letters or order right-to-left text correctly | Test a one-page Urdu PDF in Phase 0; if it breaks, render the report as HTML with the Urdu font and print it to PDF with headless Chrome (Puppeteer) | Phase 0 |
-| Urdu voice on the phone | Many Android phones have no Urdu text-to-speech voice installed | Check the test phones; if missing, record short Urdu clips for the fixed field labels and play those instead | Phase 0 |
-| Where Layer 1 push lands | Firebase Cloud Messaging needs the supervisor's device | Add a small supervisor role in the Flutter app (alerts inbox and acknowledge) plus browser alerts on the dashboard | Phase 1 |
-| Urdu SMS length | Urdu SMS fits about 70 characters per part, so alerts split into several parts | Keep the alert template short, with patient ID and key facts first | Phase 2 |
-| SMS and call permissions | Google Play restricts apps that send SMS or place calls | Distribute the FYP build as a signed APK, not through Play Store | Phase 2 |
-| OCR language | ML Kit reads Latin script, not Urdu | Fine for English lab reports; Urdu or handwritten reports use manual entry (LI-9) | Phase 2 |
-| Phase 2 workload | Zain Ali carries both Module 5 and Module 6 | Zain Abbas takes the Module 6 analytics worker (FE-3), since it is Python and he runs the ML track | Phase 1 |
-| Small training dataset | About 1,000 rows with many duplicates; scores can look better than they are | Remove duplicates, report hold-out results honestly, and present field-data retraining as future work (LI-2) | Phase 2 |
-| IEC approval delay | No real patient data before approval (LI-10) | All testing and demos on the synthetic data generator from P0-8 | Ongoing |
+| Clinical Advisor | Open | Approach an obstetrician or community-health doctor to review and sign the Clinical Rules Table (LI-12) | 27 Dec 2026 |
+| Model inputs missing from the visit form | Decided in scope | Pulse required, blood sugar optional, five- and six-feature models (M3 FE-1, M4 FE-1) | Done |
+| OTP channel | Decided in scope | One-time admin activation code; SMS OTP only in production (M1 FE-2) | Done |
+| Urdu text in PDF reports | Open | Test pdfkit with Nastaliq; if letters do not join or run right to left, use HTML-to-PDF (P0-12) | 27 Dec 2026 |
+| Urdu voice on the phone | Removed from scope | No longer needed: voice guidance was removed from the scope; Urdu and English are handled by the language switch (M3 FE-3) | Done |
+| Where Layer 1 push lands | Decided in scope | Web push from the installable supervisor portal; no separate supervisor app (M5 FE-2) | Done |
+| Urdu SMS length | Open | Urdu SMS fits about 70 characters per part; keep the template short, patient ID and key facts first | 21 Mar 2027 |
+| SMS sending permission | Decided in scope | Signed APK for the FYP; Google Play allows SEND_SMS for emergency-alert apps; SMS-app fallback if denied (LI-4) | Done |
+| OCR language | Decided in scope | Latin-script reports only; Urdu and handwritten reports use manual entry (LI-9) | Done |
+| Phase 2 workload | Open | Zain Ali carries Modules 5 and 6 in six weeks; Zain Abbas builds the Module 6 server PDF report with the Module 10 report service | 7 Feb 2027 |
+| Dataset size and transferability | Accepted limitation | Rural Bangladesh data with many duplicates; remove duplicates, report hold-out results honestly; field validation is future work (LI-2) | Ongoing |
+| IEC approval delay | Accepted limitation | All testing and demos on synthetic data (LI-10) | Ongoing |
 
 ## Definition of done
 
@@ -410,7 +434,8 @@ A module counts as finished only when every item below is true. Copy this list i
 
 - [ ] Every FE in the scope document for that module works on a real Android phone
 - [ ] Works fully offline where the scope says so, and syncs correctly afterwards
-- [ ] All screens in Urdu and English *(A1)* with no text overflow; numeric values display left to right
+- [ ] All screens work in both Urdu and English with no text overflow; numbers display left to right
+- [ ] Every clinical rule it uses is read from the Clinical Rules Table and has a unit test
 - [ ] API routes validated with Joi, role-checked and area-scoped
 - [ ] Every create, edit and delete writes an audit row
 - [ ] Unit and API tests written and passing in CI
