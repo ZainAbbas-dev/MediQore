@@ -44,14 +44,14 @@ From the roadmap:
 - The database is encrypted and opens only after sign-in (M3 FE-2): use `services.db`, `services.patients` and so on only while the app is unlocked; they throw while it is locked.
 - Every write goes to its local table and to the outbox in the same transaction.
 - Generate record IDs as UUID v4 on the device; order by `server_seq`, never by device clock.
-- Read clinical thresholds (danger signs, EPI, MUAC, IMCI) from versioned JSON config, never hard-code them. The visit form's ranges are in `assets/clinical/visit_ranges.json`; its `allowed` ranges must equal the server's bounds in `api/src/sync/tables.js` (`api/tests/visit-ranges.test.js` checks this).
+- Read every clinical rule (ranges, danger signs, flags, EPI, MUAC, IMCI) from the Clinical Rules Table, never hard-code it. The app bundles an exact copy of `clinical-rules/clinical-rules.json` as `assets/clinical/clinical-rules.json` (`test/clinical_rules_test.dart` checks the copy); store the table's `version` with each result. The server reads the same file, so its vital bounds match the app's `allowed` ranges.
 - Records sync on their own while the app is unlocked after an online sign-in (`AutoSync`); nothing syncs while it is locked, because the database is closed.
 - The server address is fixed at build time (`API_BASE_URL`), and release builds are HTTPS-only (M1 FE-2). The one exception is the test APK (`testBuild` in `lib/build_flags.dart`, set with `--dart-define=MEDIQORE_TEST_BUILD=true` by `.github/workflows/apk.yml`):
   - pressing and holding the logo on its sign-in screen changes the server address (`LoginScreen.showServerSetting`, saved as `AppSettings.serverAddress`); nothing about the server shows on the sign-in screen, and the settings show the address in use;
   - it allows plain HTTP, because the workflow sets `MEDIQORE_ALLOW_HTTP=true` for `android/app/build.gradle.kts`;
   - it shows the Phase 0 checks in the settings.
   Never ship a test build to LHWs.
-- Layout: build screens from the shared pieces (`lib/widgets/app_cards.dart`, the theme) so every screen looks the same: a teal app bar, white `SectionCard`s on the grey background, `InfoRow` for label and value, `SyncStatusChip` for a record's sync state, `NoticeCard` for messages. Data entry screens have `LiveStatusBar` at the top, a `VoiceScope` around the form and `VoiceMuteButton` in the app bar.
+- Layout: build screens from the shared pieces (`lib/widgets/app_cards.dart`, `curved_header.dart`, the theme) so every screen looks like the final design (`docs/design/phase1-screens.md`): a teal header, white `SectionCard`s on the light teal background, `InfoRow` for label and value, `SyncStatusChip` for a record's sync state, `NoticeCard` for messages. Data entry screens have `LiveStatusBar` at the top, a `VoiceScope` around the form and `VoiceMuteButton` in the app bar.
 
 ## Layout
 
@@ -78,20 +78,21 @@ From the roadmap:
   - `AppLocalizations` is generated from them by `flutter pub get` into `lib/l10n/app_localizations*.dart`, which is git-ignored.
   - Use it as `AppLocalizations.of(context).key`.
 - `lib/theme/`:
-  - `AppTheme.light(urdu: …)`: 64 dp buttons in both languages, a teal app bar, white cards with a thin border, white fields. In Urdu the font is the phone's Latin font (`sans-serif`) with Nastaleeq as the fallback, so Urdu letters are Nastaliq and Latin text and digits keep the standard font; the line height is taller. English uses the standard Latin font.
-  - `AppColors`: the brand teal, background, border and muted text colours, the status colours (offline, waiting, synced, problem) and the Green/Yellow/Red risk colours.
+  - `AppTheme.light(urdu: …)`, in the final design (P0-7, Clinical Teal): 60 dp pill buttons in both languages, a teal app bar with rounded bottom corners, white cards (radius 20) with a soft shadow on the light teal background, white fields (radius 18), rounded bottom sheets and dialogs. In Urdu the font is the phone's Latin font (`sans-serif`) with Nastaleeq as the fallback, so Urdu letters are Nastaliq and Latin text and digits keep the standard font; the line height is taller. English uses the standard Latin font.
+  - `AppColors`: Clinical Teal (`primary` #00695C, `primaryDark`, `primaryLight`, `primarySoft`), the background, text, border, field border, muted text and shadow colours, the status colours (offline, waiting, synced, problem) and the Green/Yellow/Red risk colours.
 - `lib/widgets/`: the shared kit.
   - `LargeButton`
   - `AppTextField`, `VitalField` (numbers and unit always left to right; digits and up to `decimals` decimals; a keystroke that does not fit is ignored), `CheckboxField`, `DropdownField`. Inside a `VoiceScope` each reads its label aloud on focus (a checkbox or dropdown on tap) and shows a speaker while focused (M3 FE-3).
   - `NumberField` (whole numbers without a unit, digits only, left to right)
   - `RiskChip` with `RiskLevel`
+  - `CurvedHeader` and `HeaderIconButton` (`curved_header.dart`): the final design's teal header with rounded bottom corners, back button, title, subtitle, actions (the settings gear) and room for a card that overlaps it
   - `OfflineStatusBar`, and `LiveStatusBar`, which follows `AutoSync` and counts the waiting records itself
   - `app_cards.dart`: `SectionCard`, `InfoRow`, `SyncStatusChip`, `StatusPill`, `NoticeCard`, `InitialAvatar`, `VoiceMuteButton`
   - `GpsCapture` (M2 FE-3): records a position with its status and the reason it failed
   - `VoiceSetting` (M3 FE-3): the voice guidance switch and **Test the voice** in the settings (with install steps when the phone has no Urdu voice), or the Urdu-only note in English
   - `syncStatusText()`: the words for waiting, refused and held records
 - `lib/app_services.dart`: the settings, database, API client, repositories, sync service, session, automatic sync, voice guidance and visit ranges, created once in `main()`. Tests build them with an in-memory database, Urdu settings kept in memory, a fast password key, a fake voice and no automatic sync (`testServices()` in `test/helpers.dart`).
-- `lib/clinical/visit_ranges.dart` (M3 FE-1): `VisitRanges` from `assets/clinical/visit_ranges.json`. Per vital: `allowed` (outside it the value is impossible and cannot be saved), `plausible` (outside it the LHW confirms the value) and `decimals`. The file is versioned and marked as a draft for clinical advisor review.
+- `lib/clinical/visit_ranges.dart` (M3 FE-1, P0-11): `VisitRanges` from the `visit_entry_checks` section of the bundled Clinical Rules Table, with the table's `version`. Per vital: `allowed` (outside it the value is impossible and cannot be saved), `plausible` (outside it the LHW confirms the value) and `decimals`. The table is marked "pending clinical review" until the Clinical Advisor signs it (`clinical-rules/README.md`).
 - `lib/voice/voice_guide.dart` (M3 FE-3): `Voice` (`TtsVoice` with flutter_tts: it asks for `ur-PK`, then any Urdu; when the default engine has none it tries the phone's other engines, such as Google's; a failure is retried at the next label; it stays silent when no engine has Urdu), `VoiceGuidance` (speaks only in Urdu and unmuted; muting stops it; `test()` speaks a sample for the settings) and `VoiceScope`.
 - `lib/data/`:
   - `app_database.dart`: the Drift database (schema version 3) with `households`, `women`, `pregnancies`, `obstetric_history` (M2), `visits` (M3), `outbox` and `sync_state`.

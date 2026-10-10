@@ -50,6 +50,10 @@
   "@kitRiskSection": {
     "description": "Preview screen section heading."
   },
+  "kitHeaderSection": "Screen header",
+  "@kitHeaderSection": {
+    "description": "Preview screen section heading for the teal header with rounded corners."
+  },
   "kitSaveButton": "Save",
   "@kitSaveButton": {
     "description": "Example primary button label."

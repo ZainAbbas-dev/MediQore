@@ -1,22 +1,40 @@
 import 'package:flutter/material.dart';
 
-/// Colours shared across the app. Risk colours follow the scope's
-/// Green / Yellow / Red classification (M4).
+/// Colours shared across the app, from the final design (Clinical Teal, P0-7).
+/// Risk colours follow the scope's Green / Yellow / Red classification (M4).
 abstract final class AppColors {
-  /// The MediQore teal: app bars, primary buttons and highlights.
+  /// Clinical Teal: headers, primary buttons and highlights.
   static const Color primary = Color(0xFF00695C);
 
+  /// Dark teal: text and icons on the light teal, pressed states.
+  static const Color primaryDark = Color(0xFF004D40);
+
+  /// Light teal: avatars, icon buttons on white, selected chips.
+  static const Color primaryLight = Color(0xFFC8EDE6);
+
+  /// Very light teal: information panels inside a form.
+  static const Color primarySoft = Color(0xFFE3F2EF);
+
   /// Screen background behind the white cards.
-  static const Color background = Color(0xFFF3F6F5);
+  static const Color background = Color(0xFFF1F7F6);
 
   /// Card and field surfaces.
   static const Color surface = Colors.white;
 
-  /// Thin borders around cards and fields.
-  static const Color border = Color(0xFFDCE3E1);
+  /// Main text.
+  static const Color text = Color(0xFF17312D);
+
+  /// Dividers inside cards.
+  static const Color border = Color(0xFFE4ECEA);
+
+  /// Outline of an input field that does not have focus.
+  static const Color fieldBorder = Color(0xFFB9C9C5);
 
   /// Secondary text: labels, hints, IDs under a name.
-  static const Color mutedText = Color(0xFF5F6B69);
+  static const Color mutedText = Color(0xFF4F5E5B);
+
+  /// The soft shadow under cards and floating buttons.
+  static const Color shadow = Color(0x1F004D40);
 
   static const Color riskGreen = Color(0xFF2E7D32);
   static const Color riskYellow = Color(0xFFF9A825);
@@ -31,10 +49,10 @@ abstract final class AppColors {
   /// strong text colour, so the state is clear without alarming the LHW.
   static const Color statusOffline = Color(0xFF455A64);
   static const Color statusOfflineBackground = Color(0xFFE9EEF0);
-  static const Color statusPending = Color(0xFFB45309);
-  static const Color statusPendingBackground = Color(0xFFFFF4E0);
-  static const Color statusSynced = Color(0xFF2E7D32);
-  static const Color statusSyncedBackground = Color(0xFFE6F4EA);
+  static const Color statusPending = Color(0xFF8A4B08);
+  static const Color statusPendingBackground = Color(0xFFFFF1DC);
+  static const Color statusSynced = Color(0xFF1E6B3A);
+  static const Color statusSyncedBackground = Color(0xFFE3F4E8);
   static const Color statusProblem = Color(0xFFB3261E);
   static const Color statusProblemBackground = Color(0xFFFCE8E6);
 }

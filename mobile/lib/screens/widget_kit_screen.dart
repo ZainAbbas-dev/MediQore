@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/curved_header.dart';
 import '../widgets/form_fields.dart';
 import '../widgets/large_button.dart';
 import '../widgets/offline_status_bar.dart';
 import '../widgets/risk_chip.dart';
 
-/// Preview of the shared widget kit (P0-2), so the Urdu rendering, RTL layout
-/// and control sizes can be checked on a real phone. The login screen replaces
-/// it as the home screen in Phase 1.
+/// Preview of the shared widget kit (P0-2) in the final design, so the Urdu
+/// rendering, RTL layout and control sizes can be checked on a real phone.
+/// It is one of the Phase 0 checks in the settings of test builds.
 class WidgetKitScreen extends StatefulWidget {
   const WidgetKitScreen({super.key});
 
@@ -80,6 +81,10 @@ class _WidgetKitScreenState extends State<WidgetKitScreen> {
                 const OfflineStatusBar(isOnline: true, pendingCount: 3),
                 const SizedBox(height: 8),
                 const OfflineStatusBar(isOnline: true),
+                const SizedBox(height: 24),
+                Text(l10n.kitHeaderSection, style: headingStyle),
+                const SizedBox(height: 8),
+                CurvedHeader(title: l10n.kitTitle, subtitle: l10n.kitHeaderSection, showBack: false),
               ],
             ),
           ),
