@@ -108,6 +108,23 @@ describe('synthetic data (in memory)', () => {
     assert.ok(data.visits.some((v) => v.blood_sugar_mmol_l === null), 'blood sugar is optional');
   });
 
+  test('a blood sugar reading carries its unit, date and source; the danger-sign checklist is answered (M3 FE-1)', () => {
+    const checklist = ['convulsions', 'severe_headache', 'blurred_vision', 'severe_abdominal_pain', 'fast_breathing', 'fever_with_weakness'];
+    for (const v of data.visits) {
+      if (v.blood_sugar_mmol_l === null) {
+        assert.equal(v.blood_sugar_entered_unit, null);
+        assert.equal(v.blood_sugar_measured_on, null);
+        assert.equal(v.blood_sugar_source, null);
+      } else {
+        assert.equal(v.blood_sugar_entered_unit, 'mmol_l');
+        assert.equal(v.blood_sugar_measured_on, v.visited_at.toISOString().slice(0, 10));
+        assert.ok(['glucometer', 'lab_report'].includes(v.blood_sugar_source));
+      }
+      for (const sign of checklist) assert.equal(typeof v[sign], 'boolean', `${sign} is a yes/no answer`);
+      assert.ok(v.fever || !v.fever_with_weakness, 'fever with weakness needs fever');
+    }
+  });
+
   test('a few visits wait in the conflict queue, each on the same Pakistan day as a stored visit (M3 FE-2)', () => {
     const big = tablesOf(buildSynthetic({ ...SMALL, seed: 3, householdsPerLhw: 60 }, 'hash'));
     assert.ok(big.sync_conflicts.length > 0);

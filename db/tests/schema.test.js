@@ -13,20 +13,24 @@ const SYNCED_TABLES = [
   'households', 'women', 'pregnancies', 'obstetric_history',
   'visits',
   'hospitals', 'referral_centres', 'escalation_contacts',
-  'risk_assessments',
+  'risk_assessments', 'risk_flags',
   'referrals', 'emergency_alerts', 'alert_attempts', 'alert_acknowledgements',
-  'anc_schedule', 'tt_doses', 'supplement_logs', 'health_documents', 'trend_results',
+  'anc_schedule', 'tt_doses', 'supplement_logs', 'health_documents',
+  'pregnancy_outcomes',
   'children',
-  'campaigns', 'campaign_household_records', 'refusals', 'revisits',
+  'campaigns', 'campaign_household_status', 'campaign_child_doses', 'refusals', 'revisits',
   'immunisations',
   'nutrition_screenings', 'sam_followups', 'imci_assessments',
 ];
 
 const SERVER_ONLY_TABLES = [
   'districts', 'tehsils', 'union_councils', 'areas',
-  'users', 'lhw_profiles', 'supervisor_areas', 'devices', 'refresh_tokens', 'otp_codes',
-  'audit_log', 'sync_conflicts', 'report_jobs',
+  'users', 'lhw_profiles', 'supervisor_areas', 'devices', 'activation_codes', 'refresh_tokens',
+  // otp_codes: the earlier phone-approval code, kept until the Phase 1 sign-in moves to activation codes.
+  'otp_codes',
+  'audit_log', 'sync_conflicts', 'report_jobs', 'clinical_rules_versions',
   'epi_schedule',
+  'leave_and_campaign_weeks',
 ];
 
 const BASE_COLUMNS = {
@@ -220,6 +224,157 @@ describe('schema v1', () => {
       );
       await insertPregnancy();
       await assert.rejects(insertPregnancy(), /pregnancies_one_active_per_woman/);
+    });
+  });
+
+  // Inserts a household, a woman and her active pregnancy; returns their ids.
+  async function insertWomanWithPregnancy(ids) {
+    const household = await insertHousehold(ids);
+    const { rows: [woman] } = await client.query(
+      `INSERT INTO women (area_id, created_by, household_id, patient_code, name)
+       VALUES ($1, $2, $3, 'LHW001-0002', 'Test Woman') RETURNING id`,
+      [ids.areaId, ids.userId, household.id],
+    );
+    const { rows: [pregnancy] } = await client.query(
+      `INSERT INTO pregnancies (area_id, created_by, woman_id, registered_on, pregnancy_month_at_registration)
+       VALUES ($1, $2, $3, current_date, 4) RETURNING id`,
+      [ids.areaId, ids.userId, woman.id],
+    );
+    return { householdId: household.id, pregnancyId: pregnancy.id };
+  }
+
+  // Runs a statement that must fail, inside a savepoint so the test can go on.
+  async function rejects(sql, params, pattern) {
+    await client.query('SAVEPOINT expect_failure');
+    await assert.rejects(client.query(sql, params), pattern);
+    await client.query('ROLLBACK TO SAVEPOINT expect_failure');
+  }
+
+  test('blood sugar details need a value; the danger-sign checklist is stored (M3 FE-1)', async () => {
+    await inRollback(async () => {
+      const ids = await insertArea();
+      const { pregnancyId } = await insertWomanWithPregnancy(ids);
+      const insertVisit = (sugar, source) => client.query(
+        `INSERT INTO visits (area_id, created_by, pregnancy_id, visited_at, pulse_bpm, blood_sugar_mmol_l,
+           blood_sugar_entered_unit, blood_sugar_measured_on, blood_sugar_source, convulsions, fever_with_weakness)
+         VALUES ($1, $2, $3, now(), 80, $4, 'mg_dl', current_date, $5, false, true) RETURNING convulsions, fever_with_weakness`,
+        [ids.areaId, ids.userId, pregnancyId, sugar, source],
+      );
+      const { rows: [visit] } = await insertVisit(5.4, 'glucometer');
+      assert.equal(visit.convulsions, false);
+      assert.equal(visit.fever_with_weakness, true);
+      await rejects(
+        `INSERT INTO visits (area_id, created_by, pregnancy_id, visited_at, blood_sugar_source)
+         VALUES ($1, $2, $3, now(), 'glucometer')`,
+        [ids.areaId, ids.userId, pregnancyId],
+        /visits_blood_sugar_details_need_value/,
+      );
+      await rejects(
+        `INSERT INTO visits (area_id, created_by, pregnancy_id, visited_at, blood_sugar_mmol_l, blood_sugar_source)
+         VALUES ($1, $2, $3, now(), 5.4, 'guess')`,
+        [ids.areaId, ids.userId, pregnancyId],
+        /blood_sugar_source_check/,
+      );
+    });
+  });
+
+  test('a child from a pregnancy outcome links to it; a deceased child has a date (M6 FE-4, M8 FE-1)', async () => {
+    await inRollback(async () => {
+      const ids = await insertArea();
+      const { householdId, pregnancyId } = await insertWomanWithPregnancy(ids);
+      const { rows: [outcome] } = await client.query(
+        `INSERT INTO pregnancy_outcomes (area_id, created_by, pregnancy_id, outcome_type, outcome_on, place, rules_version)
+         VALUES ($1, $2, $3, 'live_birth', current_date, 'health_facility', '0.1.0') RETURNING id`,
+        [ids.areaId, ids.userId, pregnancyId],
+      );
+      const { rows: [child] } = await client.query(
+        `INSERT INTO children (area_id, created_by, household_id, pregnancy_id, name, date_of_birth, sex,
+           caregiver_name, birth_weight_kg, source, pregnancy_outcome_id)
+         VALUES ($1, $2, $3, $4, 'Test Baby', current_date, 'female', 'Test Woman', 2.9, 'outcome', $5)
+         RETURNING status`,
+        [ids.areaId, ids.userId, householdId, pregnancyId, outcome.id],
+      );
+      assert.equal(child.status, 'active');
+      await rejects(
+        `INSERT INTO children (area_id, created_by, household_id, name, date_of_birth, sex, source)
+         VALUES ($1, $2, $3, 'Test Child', current_date, 'male', 'outcome')`,
+        [ids.areaId, ids.userId, householdId],
+        /children_outcome_source/,
+      );
+      await rejects(
+        `INSERT INTO children (area_id, created_by, household_id, name, date_of_birth, sex, status)
+         VALUES ($1, $2, $3, 'Test Child', current_date, 'male', 'deceased')`,
+        [ids.areaId, ids.userId, householdId],
+        /children_deceased_date/,
+      );
+      await rejects(
+        `INSERT INTO pregnancy_outcomes (area_id, created_by, pregnancy_id, outcome_type, outcome_on)
+         VALUES ($1, $2, $3, 'stillbirth', current_date)`,
+        [ids.areaId, ids.userId, pregnancyId],
+        /pregnancy_outcomes_one_per_pregnancy/,
+      );
+    });
+  });
+
+  test('a maternal death is always flagged for review (M6 FE-4)', async () => {
+    await inRollback(async () => {
+      const ids = await insertArea();
+      const { pregnancyId } = await insertWomanWithPregnancy(ids);
+      await rejects(
+        `INSERT INTO pregnancy_outcomes (area_id, created_by, pregnancy_id, outcome_type, outcome_on)
+         VALUES ($1, $2, $3, 'maternal_death', current_date)`,
+        [ids.areaId, ids.userId, pregnancyId],
+        /pregnancy_outcomes_check/,
+      );
+    });
+  });
+
+  test('activation codes record the phone they activated; leave weeks start on Monday (M1 FE-2, M10 FE-4)', async () => {
+    await inRollback(async () => {
+      const ids = await insertArea();
+      const { rows: [admin] } = await client.query(
+        `INSERT INTO users (role, username, full_name, password_hash) VALUES ('admin', 'admin-test', 'Test Admin', 'x') RETURNING id`,
+      );
+      await client.query(
+        `INSERT INTO activation_codes (user_id, code_hash, issued_by, expires_at)
+         VALUES ($1, 'hash', $2, now() + interval '48 hours')`,
+        [ids.userId, admin.id],
+      );
+      await rejects(
+        `INSERT INTO activation_codes (user_id, code_hash, issued_by, expires_at, consumed_at)
+         VALUES ($1, 'hash', $2, now() + interval '48 hours', now())`,
+        [ids.userId, admin.id],
+        /activation_codes_check/,
+      );
+      await client.query(
+        `INSERT INTO leave_and_campaign_weeks (lhw_user_id, week_start, kind, marked_by)
+         VALUES ($1, date '2027-01-04', 'leave', $2)`,
+        [ids.userId, admin.id],
+      );
+      await rejects(
+        `INSERT INTO leave_and_campaign_weeks (lhw_user_id, week_start, kind, marked_by)
+         VALUES ($1, date '2027-01-05', 'campaign', $2)`,
+        [ids.userId, admin.id],
+        /leave_and_campaign_weeks_week_start_check/,
+      );
+    });
+  });
+
+  test('a signed Clinical Rules Table version names who signed it (LI-12)', async () => {
+    await inRollback(async () => {
+      const insert = (status, signer) => client.query(
+        `INSERT INTO clinical_rules_versions (version, review_status, content, content_sha256, effective_from, signed_by, signed_on)
+         VALUES ($1, $2, '{}', repeat('a', 64), current_date, $3, CASE WHEN $3::text IS NULL THEN NULL ELSE current_date END)`,
+        [`test-${status}`, status, signer],
+      );
+      await insert('pending_clinical_review', null);
+      await insert('signed', 'Test Advisor');
+      await rejects(
+        `INSERT INTO clinical_rules_versions (version, review_status, content, content_sha256, effective_from)
+         VALUES ('test-unsigned', 'signed', '{}', repeat('a', 64), current_date)`,
+        [],
+        /clinical_rules_versions_check/,
+      );
     });
   });
 });
