@@ -1,7 +1,8 @@
-// M1 FE-2, LI-8: offline login. A slow key derivation (PBKDF2-HMAC-SHA256)
-// turns the LHW's password into a key, so the password can be checked on the
-// phone without the server, and the same key can later unlock the encrypted
-// local database (M3 FE-2, SQLCipher).
+// PBKDF2-HMAC-SHA256, the slow hash behind the PIN check (pin.dart), and the
+// password key of app versions before the Phase 1 revision. Those versions
+// encrypted the database with a key derived from the password; activation
+// uses it once to move an old database to the new random key (LegacyAccount,
+// Session.completeActivation), so records not yet synced are kept.
 import 'dart:convert';
 import 'dart:isolate';
 import 'dart:math';
@@ -30,9 +31,8 @@ Uint8List pbkdf2Sha256(List<int> password, List<int> salt, int iterations, int l
   return Uint8List.sublistView(out.toBytes(), 0, length);
 }
 
-/// How the password key is made and checked. Only the salt, the iteration
-/// count and a verifier (SHA-256 of the key) are stored; the key itself stays
-/// in memory while the app is unlocked.
+/// The earlier versions' password key: the salt, the iteration count and a
+/// verifier (SHA-256 of the key) were saved; the key itself never was.
 class PasswordKey {
   const PasswordKey({required this.salt, required this.iterations, required this.verifier});
 

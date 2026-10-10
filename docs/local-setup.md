@@ -5,7 +5,7 @@ Use this guide to set up a Windows laptop and test everything built so far, quic
 | Part | Time | Needed for |
 |---|---|---|
 | Steps 1–6: database, API, portal, tests | about 30 minutes | Everyone |
-| Step 7: the app on a real phone | about 1 hour more, mostly downloads | The Phase 0 exit gate, Module 1 sign-in and the Urdu voice check |
+| Step 7: the app on a real phone | about 1 hour more, mostly downloads | The Phase 0 exit gate and Module 1 activation, PIN and PIN reset |
 | Step 8: ML notebook | 0 minutes to read it on GitHub | Optional |
 
 ## 1. Install once
@@ -77,12 +77,12 @@ Run the task **MediQore: start API + portal**. Two terminals open, one for the A
 | `syn.sup.01` | Dashboard with **100** households: map with four clusters near Rawalpindi, and the table |
 | `syn.sup.03` | A **different** 100 households near Attock: each supervisor sees only their own areas |
 | `syn.admin` | Households from every area. The Phase 0 list stops at 200. |
-| `admin.demo` or `syn.admin` | Also **LHW accounts** (add an LHW, edit, deactivate, reset the password) and **Phone approvals** (M1) |
+| `admin.demo` or `syn.admin` | Also **LHW accounts** (add an LHW, **New activation code**, edit, deactivate, reset the password) and **PIN reset codes** (M1) |
 | `syn.sup.01` → **Registered women** | The synthetic pregnant women in that supervisor's areas, with their obstetric history and visit count (M2, M3) |
 | `syn.sup.01` → **Dashboard** | Below the map, **LHW activity**: each LHW of the supervisor's areas with visits this week and in total, women registered, last visit, last sync and last sign-in. Choose a district, Union Council, LHW or period: the map and the households table follow. The page reloads itself every 5 minutes (M10) |
 | `syn.admin` → **Administration** | **Supervisors and admins** (add a supervisor, tick their areas, the password is shown once), **Areas** (add, rename and delete districts, tehsils, Union Councils and areas; a district still in use cannot be deleted), **Hospitals** (a DHQ per district and a THQ per tehsil from the synthetic data; add one), **Roles** (what each role may do) and **Audit log** (everything you just did, with your username) (M10) |
 | `syn.sup.01` → **Sync conflicts** | Visits held because the same pregnancy already had a visit that day, each next to the stored visit with the differences highlighted. Decide one: it moves to **Decided** and the dashboard count drops (M3) |
-| `supervisor.demo` | No households yet, until the phone syncs one in step 7. **Phone approvals** lists phones of LHWs in the supervisor's areas. |
+| `supervisor.demo` | No households yet, until the phone syncs one in step 7. **PIN reset codes** gives the reply code for an LHW in the supervisor's areas. |
 | `lhw.demo` | Refused: the portal is for supervisors and admins |
 | any account, wrong password | An error message |
 
@@ -105,7 +105,7 @@ After step 7, the task **mobile: analyze and test** should show "No issues found
 
 ## 7. The app on a real phone
 
-This tries Module 1 sign-in (phone approval, offline sign-in, auto-lock), Module 2 registration and Module 3 visits, closes the Phase 0 exit gate ("one test record created on the phone offline, synced, stored in PostgreSQL and visible on the React portal") and runs the Urdu voice check (decision 0004).
+This tries Module 1 (activation code, PIN, offline unlock, wrong-PIN wait, PIN reset, emergency call, auto-lock), Module 2 registration and Module 3 visits, and closes the Phase 0 exit gate ("one test record created on the phone offline, synced, stored in PostgreSQL and visible on the React portal").
 
 1. **Get the app's packages:** run the task **mobile: get packages** (or `flutter pub get` in `mobile/`).
    - Until this has run, VS Code underlines almost every line in `mobile/` in red: the packages and the generated Urdu/English text class (`app_localizations.dart`) are missing.
@@ -119,26 +119,29 @@ This tries Module 1 sign-in (phone approval, offline sign-in, auto-lock), Module
    2. Choose **MediQore app: real phone (same Wi-Fi as this laptop)** and press **F5**.
    3. Type the IPv4 address when asked.
    4. The first build takes several minutes.
-5. The app opens on the **سائن ان** (sign-in) screen (M1):
-   - **Language:** the button at the top of the sign-in screen shows the other language. Tap **English** and the whole app switches to English, left to right; tap **اردو** to switch back. After sign-in, the language is in the settings (the gear icon at the top of the home screen). The app remembers the choice after it is closed.
-   - **First sign-in on this phone** (needs the internet): type `lhw.demo` and `demo-password` and tap **سائن ان کریں**.
-     1. The app asks for the phone's **6-digit code** and shows the last six characters of the phone's ID.
-     2. In the portal, sign in as `supervisor.demo` (or `admin.demo`), open **Phone approvals** and check that the row shows the same six characters. Click **Issue code**.
-     3. Type the code in the app and tap **منظور کریں اور سائن ان کریں** (approve and sign in). The app downloads the area's records and opens the home screen.
-   - **Offline sign-in:** open the settings (gear icon) and tap **لاک کریں** (lock), turn on **airplane mode** and sign in again with the same password. It works without the internet. A wrong password is refused.
-   - **Auto-lock:** leave the app untouched for 5 minutes. It locks and asks for the password again.
-   - **Deactivation:** in the portal, as `admin.demo`, open **LHW accounts** and deactivate `LHW-DEMO-001`. On the phone, tap **ابھی سنک کریں** (sync now): the app locks and says the account is deactivated. Activate it again in the portal afterwards.
-   - **Register a pregnant woman offline (M2):** sign in, turn on **airplane mode** and tap **حاملہ خاتون کا اندراج** (register a pregnant woman).
+5. The app opens on the **اس فون کو پہلی بار فعال کریں** (activate this phone) screen (M1):
+   - **Language:** the button at the top of the activation screen shows the other language. Tap **English** and the whole app switches to English, left to right; tap **اردو** to switch back. Later the language is in the settings (the gear icon at the top of the home screen). The app remembers the choice after it is closed.
+   - **Activate this phone** (once, needs the internet):
+     1. In the portal, sign in as `admin.demo`, open **LHW accounts** and click **New activation code** for `LHW-DEMO-001`. The code (for example `K7QM-4R2X`) is shown once and works for 48 hours.
+     2. In the app, type `lhw.demo`, `demo-password` and the code, and tap **فون فعال کریں** (activate phone).
+     3. Create a six-digit PIN and type it again. The app downloads the area's records and opens the home screen.
+   - **Offline unlock:** open the settings (gear icon) and tap **ایپ لاک کریں** (lock the app), turn on **airplane mode** and type the PIN. It works without the internet.
+   - **Wrong PIN:** type a wrong PIN: the keypad waits 30 seconds with a countdown, then 1 minute, 5 minutes and 15 minutes after further wrong PINs. **پن بھول گئیں؟** (forgot PIN) and the emergency call still work.
+   - **Emergency call:** on the lock screen, tap **ایمرجنسی: سپروائزر کو کال**: the phone's dialer opens with `supervisor.demo`'s made-up number (`0000-5550000`). Do not call it.
+   - **PIN reset (offline):** tap **پن بھول گئیں؟**. The app shows a 6-digit code. In the portal, as `supervisor.demo`, open **PIN reset codes**, choose `LHW-DEMO-001`, type the code and read the 8-digit reply code. Type it in the app and create a new PIN. The records stay on the phone.
+   - **Auto-lock:** leave the app untouched for 5 minutes. It locks and asks for the PIN.
+   - **Password reset:** in the portal, as `admin.demo`, reset the password of `LHW-DEMO-001`. On the phone, sync: the app asks to sign in again; type the new password. The records and the PIN stay.
+   - **Deactivation:** in the portal, as `admin.demo`, open **LHW accounts** and deactivate `LHW-DEMO-001`. On the phone, tap **ابھی سنک کریں** (sync now): the app locks, says the account is deactivated and refuses the PIN. Activate it again in the portal, then tap **دوبارہ سائن ان کریں** (sign in again) on the phone.
+   - **Register a pregnant woman offline (M2):** unlock the app, turn on **airplane mode** and tap **حاملہ خاتون کا اندراج** (register a pregnant woman).
      1. Fill in a made-up name, age, pregnancy month and village; use synthetic values only, never a real person (LI-10).
      2. Outdoors, tap **گھر کا مقام محفوظ کریں** (record home location). The first fix without mobile data can take a minute; indoors it may fail, and the form can be saved without it.
      3. Tap **اندراج محفوظ کریں** (save registration). The app shows the patient ID, for example `LHW-DEMO-001-0001`.
      4. Open **رجسٹرڈ خواتین** (registered women): she is listed under her village, marked "not sent yet". Search for part of her name.
      5. Turn airplane mode off and sync. In the portal, as `supervisor.demo`, open **Registered women**: she is there with her history, and the dashboard count goes up.
    - **Record a visit offline (M3):** with **airplane mode** on, open her file from **رجسٹرڈ خواتین** and tap **نیا وزٹ** (new visit).
-     1. **Voice guidance:** with the app in Urdu, tap the first field. The phone reads its name aloud and a speaker shows next to it. The registration form does the same. The speaker button at the top mutes it; the same switch is in the settings (gear icon), with **آواز آزمائیں** (test the voice). In English there is no voice. If nothing is heard, tap **آواز آزمائیں**: the app says whether the phone has an Urdu voice and how to install one.
-     2. Leave every field empty and tap **وزٹ محفوظ کریں** (save visit): each required field says so. Type `98.6` as the temperature: it is refused, because the app takes °C.
-     3. Type a systolic BP of `255` with the other values normal and save: a dialog asks you to check it. **درست کریں** goes back; **جی ہاں، محفوظ کریں** saves it.
-     4. The file shows the visit, marked "not sent yet".
+     1. Leave every field empty and tap **وزٹ محفوظ کریں** (save visit): each required field says so. Type `98.6` as the temperature: it is refused, because the app takes °C.
+     2. Type a systolic BP of `255` with the other values normal and save: a dialog asks you to check it. **درست کریں** goes back; **جی ہاں، محفوظ کریں** saves it.
+     3. The file shows the visit, marked "not sent yet".
    - **Automatic sync and the conflict queue (M3):** turn airplane mode off, wait a few seconds and go back to the home screen: the status bar says everything is synced, without tapping sync. Then record a **second visit for the same woman** and wait again.
      1. Her file marks the second visit "waiting for the supervisor": the server held it because she already had a visit that day.
      2. In the portal, as `supervisor.demo`, open **Sync conflicts**: both visits are side by side. Choose one of the three decisions.
@@ -147,20 +150,16 @@ This tries Module 1 sign-in (phone approval, offline sign-in, auto-lock), Module
    - **ویجٹ کٹ** (widget kit): scroll through the Urdu controls and check that nothing is cut off.
    - **ڈیٹا سنک کی جانچ** (sync test):
      1. Turn on **airplane mode** and tap **ٹیسٹ گھرانہ بنائیں** (create test household). It is saved on the phone.
-     2. Turn airplane mode off and tap **ابھی سنک کریں** (sync now). The household gets a server number. If you signed in offline, the app asks you to sign in again with the internet first.
+     2. Turn airplane mode off and tap **ابھی سنک کریں** (sync now). The household gets a server number.
      3. In the portal, sign in as `supervisor.demo`: the household is in the count, on the map and in the table.
-   - **اردو آواز کی جانچ** (Urdu voice check):
-     1. With the app in Urdu and the phone in airplane mode, open it and tap the sample button. In English, the button is off, because voice guidance works only in Urdu.
-     2. Write the results for this phone in the table in [`docs/decisions/0004-urdu-voice-source.md`](decisions/0004-urdu-voice-source.md).
-     3. Repeat on every test phone.
-7. **No phone at hand?** Use the configuration **MediQore app: Android emulator** with an emulator from Android Studio. The voice check still needs a real phone.
+7. **No phone at hand?** Use the configuration **MediQore app: Android emulator** with an emulator from Android Studio. The emergency call needs a real phone.
 
 ## Test APK: install the app on any phone
 
 No USB cable, Flutter or Android Studio is needed. GitHub builds the app after every push to `dev` that changes `mobile/` (workflow **Test APK**). The test APK:
 
 - starts with the staging server, `https://mediqore-staging.onrender.com` ([`staging.md`](staging.md));
-- can use another server, for example your laptop's: press and hold the logo on the sign-in screen (nothing about the server shows on the screen);
+- can use another server, for example your laptop's: press and hold the logo on the activation screen (nothing about the server shows on the screen);
 - talks to a laptop server over plain HTTP;
 - shows **فیز 0 کی جانچ** (Phase 0 checks) in the settings.
 
@@ -173,15 +172,15 @@ It is signed with a test key and is for testing only. Builds for LHWs will use o
    - If Google Play Protect warns about an unknown app, tap **More details** → **Install anyway**.
    - If Android says **App not installed** or that the package conflicts, uninstall the old MediQore first. This happens when the old app came from VS Code or from a test APK built before 6 October 2026, or when no test APK was built for a week (the test key then changes). Uninstalling deletes records on the phone that were not synced.
 4. **Wake the staging server:** open `https://mediqore-staging.onrender.com` in a browser and wait until the portal loads. The free server sleeps after 15 minutes without use and takes about a minute to wake.
-5. **Sign in on the phone** as a synthetic LHW, for example `syn.lhw.001`, with the staging password. Approve the phone in the portal as `syn.admin` (**Phone approvals** → **Issue code**), then continue from step 7.5: offline sign-in, registration, visits and the conflict queue all work the same way. Staging has no `lhw.demo` account.
+5. **Activate the phone** as a synthetic LHW, for example `syn.lhw.001`, with the staging password and an activation code from the portal (as `syn.admin`: **LHW accounts** → **New activation code**), then continue from step 7.5: the PIN, PIN reset (as `syn.sup.01`), registration, visits and the conflict queue all work the same way. Staging has no `lhw.demo` account.
 
 **With the server on your laptop instead:**
 
 1. Run **MediQore: start API + portal** (step 5) and find the laptop's IPv4 address with `ipconfig` (step 7.3). The phone must be on the same Wi-Fi, and the firewall must allow Node.js on Private networks.
-2. On the sign-in screen, **press and hold the MediQore logo** for a second. The **سرور کا پتہ** (server address) box opens.
+2. On the activation screen, **press and hold the MediQore logo** for a second. The **سرور کا پتہ** (server address) box opens.
    1. Type `http://` + the IPv4 address + `:3000`, for example `http://192.168.1.10:3000`. The app adds `/api/v1`.
    2. Tap **محفوظ کریں** (save). The app remembers the address. To go back to staging, type `https://mediqore-staging.onrender.com`.
-3. Sign in as `lhw.demo` and approve the phone as `supervisor.demo` on `http://localhost:5173`.
+3. Activate the phone as `lhw.demo` with a code from `admin.demo` on `http://localhost:5173` (**LHW accounts** → **New activation code**).
 
 To build a test APK that starts with another address, open **Actions** → **Test APK** → **Run workflow** and type the address.
 

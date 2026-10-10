@@ -1,11 +1,10 @@
 // M3 FE-2: records sync automatically when the phone is online (roadmap,
 // Offline sync: "outbox with retry ... background sync when online"). While the
-// app is unlocked after an online sign-in, the phone syncs:
+// app is unlocked and holds a working refresh token, the phone syncs:
 // - shortly after a record is saved;
 // - every few minutes, which is also the retry after a failed attempt;
 // - when the app comes back to the foreground.
-// Nothing syncs while the app is locked: the database is then closed and
-// encrypted with a key only the LHW's password gives (LI-8).
+// Nothing syncs while the app is locked: the database is then closed (M1 FE-2).
 import 'dart:async';
 
 import 'package:drift/drift.dart' show TableUpdateQuery;
@@ -110,7 +109,7 @@ class AutoSync extends ChangeNotifier {
 
   void _onSessionChanged() {
     final data = _session.data;
-    final shouldRun = enabled && _session.isUnlocked && _session.isOnlineSession && data != null;
+    final shouldRun = enabled && _session.isUnlocked && _session.canSync && data != null;
     if (shouldRun == _started) return;
     if (!shouldRun) {
       _stop();

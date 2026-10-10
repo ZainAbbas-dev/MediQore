@@ -99,7 +99,7 @@ class _SyncTestScreenState extends State<SyncTestScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final signedIn = _services.session.isOnlineSession;
+    final signedIn = _services.session.canSync;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.syncTestTitle)),

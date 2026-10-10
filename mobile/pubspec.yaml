@@ -18,13 +18,14 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  flutter_tts: ^4.2.5
+  flutter_secure_storage: ^11.2.0
   geolocator: ^14.1.1
   http: ^1.6.0
   intl: ^0.20.3
   path_provider: ^2.1.5
   shared_preferences: ^2.5.5
   sqlite3: ^3.5.2
+  url_launcher: ^6.3.3
   uuid: ^4.6.0
 
 dev_dependencies:

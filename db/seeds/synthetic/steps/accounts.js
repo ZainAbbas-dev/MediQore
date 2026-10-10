@@ -1,5 +1,6 @@
 // Accounts (M1 FE-1): one admin, one supervisor per tehsil (assigned to all its
-// areas) and one LHW per area. Every account shares the synthetic password.
+// areas, with a made-up phone number for the app's emergency call, M1 FE-2)
+// and one LHW per area. Every account shares the synthetic password.
 const { WOMEN, FAMILY } = require('../names');
 
 const pad = (n, width) => String(n).padStart(width, '0');
@@ -10,7 +11,7 @@ function build({ options, random, passwordHash }, geo) {
   const supervisorAreas = [];
   const lhws = [];
   const user = (username, role, fullName) => {
-    const row = { id: random.uuid(), username, full_name: fullName, role, password_hash: passwordHash };
+    const row = { id: random.uuid(), username, full_name: fullName, role, password_hash: passwordHash, phone: null };
     users.push(row);
     return row;
   };
@@ -19,6 +20,7 @@ function build({ options, random, passwordHash }, geo) {
 
   geo.tehsils.forEach((tehsil, i) => {
     const supervisor = user(`${options.prefix}.sup.${pad(i + 1, 2)}`, 'supervisor', `${random.pick(WOMEN)} ${random.pick(FAMILY)}`);
+    supervisor.phone = `0000-${pad(5550000 + i + 1, 7)}`; // not a real number
     for (const area of geo.areas) {
       if (geo.areaMeta.get(area.id).tehsilId === tehsil.id) {
         supervisorAreas.push({ id: random.uuid(), supervisor_id: supervisor.id, area_id: area.id });

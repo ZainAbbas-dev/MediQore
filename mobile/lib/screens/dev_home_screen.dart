@@ -5,10 +5,9 @@ import '../l10n/app_localizations.dart';
 import '../widgets/language_switch.dart';
 import '../widgets/large_button.dart';
 import 'sync_test_screen.dart';
-import 'voice_check_screen.dart';
 import 'widget_kit_screen.dart';
 
-/// The Phase 0 checks (P0-2 widget kit, P0-6 sync, P0-11 Urdu voice), with
+/// The Phase 0 checks (P0-2 widget kit, P0-6 sync), with
 /// the Urdu/English choice (M1 FE-4) at the top. Opened from the settings in
 /// debug builds and test APKs only.
 class DevHomeScreen extends StatelessWidget {
@@ -34,12 +33,6 @@ class DevHomeScreen extends StatelessWidget {
             label: l10n.syncTestTitle,
             icon: Icons.sync,
             onPressed: () => open(SyncTestScreen(services: services)),
-          ),
-          const SizedBox(height: 12),
-          LargeButton(
-            label: l10n.voiceCheckTitle,
-            icon: Icons.record_voice_over,
-            onPressed: () => open(const VoiceCheckScreen()),
           ),
         ],
       ),

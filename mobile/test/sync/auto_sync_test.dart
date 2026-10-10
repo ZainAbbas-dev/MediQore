@@ -47,7 +47,7 @@ void main() {
       );
 
   test('a saved record is pushed shortly after, without pressing Sync', () async {
-    await signInApproved(services, server);
+    await activateApp(services, server);
     start();
     await until(() => auto.lastOutcome != null); // the first attempt after sign-in
     expect(auto.online, isTrue);
@@ -60,7 +60,7 @@ void main() {
   });
 
   test('offline, nothing is lost and the next attempt sends it (retry)', () async {
-    await signInApproved(services, server);
+    await activateApp(services, server);
     server.offline = true;
     start();
     await register('Synthetic Woman');
@@ -74,8 +74,8 @@ void main() {
     await until(() => auto.online == true);
   });
 
-  test('nothing syncs while the app is locked, or after an offline sign-in', () async {
-    await signInApproved(services, server); // downloads the area once
+  test('nothing syncs while the app is locked; syncing starts again after the PIN', () async {
+    await activateApp(services, server); // downloads the area once
     services.session.lock(null);
     await services.session.closed;
     final before = server.requests.length;
@@ -83,16 +83,31 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 400));
     expect(server.requests.skip(before), isEmpty);
 
-    server.offline = true; // signs in from the saved account, without tokens
-    await services.session.signIn(server.username, server.password);
-    expect(services.session.isOnlineSession, isFalse);
-    await register('Offline Woman');
+    await services.session.unlock(testPin);
+    expect(services.session.canSync, isTrue);
+    await register('After the PIN');
     await Future<void>.delayed(const Duration(milliseconds: 400));
-    expect(auto.lastOutcome, isNull, reason: 'no attempt without an online sign-in');
+    expect(await services.db.pendingCount(), 0, reason: 'the saved refresh token is used, without the password');
+    expect(server.requests, contains('POST /auth/refresh'));
+  });
+
+  test('nothing syncs once the sign-in has expired, until she signs in again', () async {
+    await activateApp(services, server);
+    server
+      ..expireAccessTokens()
+      ..validRefreshTokens.clear();
+    start();
+    expect((await auto.run()).problem, SyncProblem.needsSignIn);
+    expect(services.session.canSync, isFalse);
+    final before = server.requests.length;
+
+    await register('While expired');
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    expect(server.requests.skip(before), isEmpty);
   });
 
   test('a sync that starts while another runs joins it', () async {
-    await signInApproved(services, server);
+    await activateApp(services, server);
     await register('Synthetic Woman');
     start();
 

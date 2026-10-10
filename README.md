@@ -29,7 +29,7 @@ The app syncs with a central server whenever a connection is available. Supervis
 >
 > Still with people: branch protection on `main` (P0-1), submitting the IEC application (P0-9), a Clinical Advisor for the rules table (P0-11), and the review of schema v1 and OpenAPI v1 by both members.
 >
-> **Phase 1 (Modules 1, 2, 3 and the Module 10 base)** was built on `dev` against the earlier scope and is next revised to the updated one. What exists now: LHW, supervisor and admin accounts and the admin panel; sign-in with a portal-issued phone approval code and a password-based offline sign-in; registration of pregnant women with GPS and the patient list; the encrypted visit form with range checks and automatic sync with the supervisor conflict queue; the dashboard, household map and audit log. The revision brings the activation code, offline PIN with progressive delays and PIN reset, the Keystore-wrapped database key, the visit form's pulse counter, blood sugar details and danger-sign checklist, the final screen design, and removes voice guidance (out of scope, LI-6).
+> **Phase 1 (Modules 1, 2, 3 and the Module 10 base)** was built on `dev` against the earlier scope and is being revised to the updated one. Module 1 is revised: the admin's one-time activation code, the offline six-digit PIN with progressive delays, PIN reset with the supervisor's reply code, the lock-screen emergency call and the Keystore-wrapped database key; voice guidance is removed (LI-6). Also in place: supervisor and admin accounts and the admin panel; registration of pregnant women with GPS and the patient list; the encrypted visit form with range checks and automatic sync with the supervisor conflict queue; the dashboard, household map and audit log. Still to come in the revision: the registration wizard and obstetric flags (M2), the visit form's pulse counter, blood sugar details and danger-sign checklist (M3), and the final design of the remaining screens.
 >
 > **Data notice:** MediQore is developed and demonstrated on synthetic data only. No real patient data is used before IEC approval (LI-10). AI results are decision support, not a clinical diagnosis (LI-5).
 
@@ -37,10 +37,10 @@ The app syncs with a central server whenever a connection is available. Supervis
 
 | Part | Folder | Stack | Status |
 |---|---|---|---|
-| LHW Android app (Modules 1–9) | [`mobile/`](mobile/) | Flutter 3.x, Drift + SQLite3MultipleCiphers, ONNX Runtime | Urdu and English shell, widget kit in the final design (P0-2); local database, outbox and sync (P0-6); sign-in, phone approval, offline sign-in and auto-lock (M1); registration, patient list and pregnancy file (M2); encrypted database, visit form, automatic sync and voice guidance (M3) |
-| REST API | [`api/`](api/) | Node.js 24 LTS + Express 5, JWT, Joi | Skeleton (P0-3); `/sync` push/pull (P0-6); login with phone approval, refresh tokens, LHW accounts, phone approvals (M1); registrations through `/sync` and `GET /women` (M2); visits through `/sync`, the same-day conflict queue and the dashboard summary (M3); role permissions, admin panel, audit log, LHW activity and map filters (M10 base) |
+| LHW Android app (Modules 1–9) | [`mobile/`](mobile/) | Flutter 3.x, Drift + SQLite3MultipleCiphers, ONNX Runtime | Urdu and English shell, widget kit in the final design (P0-2); local database, outbox and sync (P0-6); activation code, offline PIN with progressive delays, PIN reset, emergency call, Keystore-wrapped database key and auto-lock (M1); registration, patient list and pregnancy file (M2); encrypted database, visit form and automatic sync (M3) |
+| REST API | [`api/`](api/) | Node.js 24 LTS + Express 5, JWT, Joi | Skeleton (P0-3); `/sync` push/pull (P0-6); activation codes, re-sign-in, refresh tokens, LHW accounts, PIN-reset reply codes (M1); registrations through `/sync` and `GET /women` (M2); visits through `/sync`, the same-day conflict queue and the dashboard summary (M3); role permissions, admin panel, audit log, LHW activity and map filters (M10 base) |
 | Database | [`db/`](db/) | PostgreSQL 15 migrations and synthetic seed scripts | Schema v1 for all ten modules, brought up to the final scope (P0-4); Clinical Rules Table loader (P0-11); demo seed; synthetic data generator (P0-8); LHW ID numbering and the previous area after a reassignment (M1); held conflicts and hospitals in the synthetic data (M3, M10) |
-| Supervisor and admin portal (Module 10) | [`web/`](web/) | React 18 + Leaflet.js, installable web app | Login, auth guard, sidebar layout, map dashboard, manifest and service worker ready for web push (P0-5); LHW accounts and phone approvals (M1); registered women (M2); sync conflict review queue, visits on the dashboard (M3); LHW activity, map filters and auto-refresh, admin panel and audit log (M10 base) |
+| Supervisor and admin portal (Module 10) | [`web/`](web/) | React 18 + Leaflet.js, installable web app | Login, auth guard, sidebar layout, map dashboard, manifest and service worker ready for web push (P0-5); LHW accounts with activation codes, PIN reset codes (M1); registered women (M2); sync conflict review queue, visits on the dashboard (M3); LHW activity, map filters and auto-refresh, admin panel and audit log (M10 base) |
 | ML training | [`ml/`](ml/) | Python 3.11, scikit-learn, imbalanced-learn, SHAP, skl2onnx | Dataset download and exploratory notebook (P0-10); training of the five- and six-feature models in Phase 2 |
 | Clinical Rules Table | [`clinical-rules/`](clinical-rules/) | Versioned JSON, read by the app and the API | v0 with WHO-referenced defaults, pending clinical review (P0-11) |
 
@@ -156,7 +156,7 @@ The Phase 0 exit gate says: "One test record created on the phone offline, synce
      ```powershell
      cd mobile; flutter run --dart-define=API_BASE_URL=http://<laptop-ip>:3000/api/v1
      ```
-   - Sign in as `lhw.demo`. Until the Phase 1 revision brings the activation code, the first sign-in on a phone asks for a one-time code (decision 0002): in the portal (step 4), sign in as `supervisor.demo`, open **Phone approvals**, click **Issue code** and type the code in the app.
+   - Activate the phone as `lhw.demo`: in the portal (step 4), sign in as `admin.demo`, open **LHW accounts**, click **New activation code** for `LHW-DEMO-001`, type it in the app with the password, then create a six-digit PIN.
    - Open **سیٹنگز** (Settings, the gear icon at the top of the home screen), then **فیز 0 کی جانچ** (Phase 0 checks, shown in debug builds and the test APK) and **ڈیٹا سنک کی جانچ** (Sync test).
    - Turn on airplane mode and tap **ٹیسٹ گھرانہ بنائیں** (create test household).
    - Turn airplane mode off and tap **ابھی سنک کریں** (sync now).
@@ -166,9 +166,9 @@ The Phase 0 exit gate says: "One test record created on the phone offline, synce
    ```
    Open http://localhost:5173 and sign in as `supervisor.demo`. The household appears in the count, on the map and in the table.
 
-Without a phone, `flutter test test/e2e/sync_e2e_test.dart --dart-define=E2E_API_BASE_URL=http://localhost:3000/api/v1` runs the same app code against the API, including the phone approval (it issues the code as `admin.demo`).
+Without a phone, `flutter test test/e2e/sync_e2e_test.dart --dart-define=E2E_API_BASE_URL=http://localhost:3000/api/v1` runs the same app code against the API, including activation (it issues the code as `admin.demo`) and a PIN-reset reply code from `supervisor.demo`.
 
-[docs/local-setup.md](docs/local-setup.md) step 7 also walks through the Module 1 and 2 checks on the phone: offline sign-in, auto-lock, deactivation, and registering a woman in airplane mode.
+[docs/local-setup.md](docs/local-setup.md) step 7 also walks through the Module 1 and 2 checks on the phone: activation, offline PIN unlock, the wrong-PIN wait, PIN reset, the emergency call, auto-lock, deactivation, and registering a woman in airplane mode.
 
 ## Branches and pull requests
 

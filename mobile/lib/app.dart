@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'app_services.dart';
+import 'auth/session.dart';
 import 'l10n/app_localizations.dart';
+import 'screens/activation_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/login_screen.dart';
+import 'screens/lock_screen.dart';
+import 'screens/pin_create_screen.dart';
 import 'theme/app_theme.dart';
 import 'widgets/inactivity_lock.dart';
 
@@ -11,9 +14,10 @@ import 'widgets/inactivity_lock.dart';
 /// English (M1 FE-4). The locale also sets the layout direction: Urdu right to
 /// left, English left to right. Changing the language rebuilds every screen.
 ///
-/// M1 FE-2: the login screen until someone signs in, then the home screen.
-/// Locking (inactivity, the Lock button, sign-out or a deactivated account)
-/// closes every open screen and returns to the login screen.
+/// M1 FE-2: activation until the phone is activated, then the PIN screen, then
+/// the lock screen whenever the app is locked and the home screen while it is
+/// open. Every change of stage (unlock, lock by inactivity or the Lock button,
+/// sign-out, a deactivated account) closes the screens opened on top.
 class MediQoreApp extends StatefulWidget {
   const MediQoreApp({super.key, required this.services});
 
@@ -25,12 +29,12 @@ class MediQoreApp extends StatefulWidget {
 
 class _MediQoreAppState extends State<MediQoreApp> {
   final _navigator = GlobalKey<NavigatorState>();
-  late bool _wasUnlocked;
+  late SessionStage _stage;
 
   @override
   void initState() {
     super.initState();
-    _wasUnlocked = widget.services.session.isUnlocked;
+    _stage = widget.services.session.stage;
     widget.services.session.addListener(_onSessionChanged);
   }
 
@@ -41,9 +45,9 @@ class _MediQoreAppState extends State<MediQoreApp> {
   }
 
   void _onSessionChanged() {
-    final unlocked = widget.services.session.isUnlocked;
-    if (_wasUnlocked && !unlocked) _navigator.currentState?.popUntil((route) => route.isFirst);
-    _wasUnlocked = unlocked;
+    final stage = widget.services.session.stage;
+    if (stage != _stage) _navigator.currentState?.popUntil((route) => route.isFirst);
+    _stage = stage;
   }
 
   @override
@@ -64,8 +68,12 @@ class _MediQoreAppState extends State<MediQoreApp> {
         builder: (context, child) => InactivityLock(session: session, child: child!),
         home: ListenableBuilder(
           listenable: session,
-          builder: (context, _) =>
-              session.isUnlocked ? HomeScreen(services: services) : LoginScreen(services: services),
+          builder: (context, _) => switch (session.stage) {
+            SessionStage.activation => ActivationScreen(services: services),
+            SessionStage.createPin => PinCreateScreen(services: services, mode: PinCreateMode.activation),
+            SessionStage.locked => LockScreen(services: services),
+            SessionStage.unlocked => HomeScreen(services: services),
+          },
         ),
       ),
     );

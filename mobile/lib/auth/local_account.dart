@@ -1,12 +1,14 @@
-// M1 FE-2, LI-8: the account last signed in on this phone, kept so the LHW can
-// sign in again without the internet. Holds who the user is and the password
-// key's salt and verifier, never the password, the key or any patient data.
+// M1 FE-2: the account this phone is activated for. It is saved in plain
+// storage so the lock screen can greet the LHW and call her supervisor before
+// the PIN is typed: who she is and her supervisors' names and numbers, never
+// a password, a token, a key or any patient data.
 import 'dart:convert';
 
 import '../settings/app_settings.dart';
 import 'password_key.dart';
 
-/// Who is signed in, as the server described them at the last online sign-in.
+/// Who is signed in, as the server described them at the last activation,
+/// sign-in or token refresh.
 class SessionUser {
   const SessionUser({
     required this.id,
@@ -38,8 +40,7 @@ class SessionUser {
   final String? areaId;
   final String? areaName;
 
-  /// The highest patient number the server knew for this LHW at the last
-  /// online sign-in (M2 FE-1).
+  /// The highest patient number the server knew for this LHW (M2 FE-1).
   final int? lastPatientNumber;
 
   Map<String, Object?> toJson() => {
@@ -54,34 +55,102 @@ class SessionUser {
   };
 }
 
+/// A supervisor of the LHW's area, for the lock screen's emergency call.
+class Supervisor {
+  const Supervisor({required this.name, required this.phone});
+
+  factory Supervisor.fromJson(Map<String, dynamic> json) =>
+      Supervisor(name: json['name'] as String, phone: json['phone'] as String);
+
+  final String name;
+  final String phone;
+
+  Map<String, Object> toJson() => {'name': name, 'phone': phone};
+}
+
 class LocalAccount {
-  const LocalAccount({required this.user, required this.key, this.deactivated = false});
+  const LocalAccount({
+    required this.user,
+    this.supervisors = const [],
+    this.dataAreaId,
+    this.deactivated = false,
+  });
+
+  static const String storageKey = AppSettings.accountKey;
 
   final SessionUser user;
-  final PasswordKey key;
+  final List<Supervisor> supervisors;
 
-  /// Set when the server said the account is deactivated (M1 FE-3); offline
-  /// sign-in is then refused too, until an online sign-in succeeds again.
+  /// The area whose records are in the phone's database. When an admin moves
+  /// the LHW (M1 FE-3), the next sync sends what is waiting, then replaces the
+  /// old area's records with the new area's.
+  final String? dataAreaId;
+
+  /// Set when the server said the account is deactivated (M1 FE-3): the PIN
+  /// no longer opens the app until an online sign-in succeeds again.
   final bool deactivated;
 
-  bool isFor(String username) => user.username.toLowerCase() == username.trim().toLowerCase();
-
-  LocalAccount copyWith({SessionUser? user, PasswordKey? key, bool? deactivated}) =>
-      LocalAccount(user: user ?? this.user, key: key ?? this.key, deactivated: deactivated ?? this.deactivated);
+  LocalAccount copyWith({
+    SessionUser? user,
+    List<Supervisor>? supervisors,
+    String? dataAreaId,
+    bool? deactivated,
+  }) => LocalAccount(
+    user: user ?? this.user,
+    supervisors: supervisors ?? this.supervisors,
+    dataAreaId: dataAreaId ?? this.dataAreaId,
+    deactivated: deactivated ?? this.deactivated,
+  );
 
   static LocalAccount? read(SettingsStore store) {
-    final text = store.getString(AppSettings.localAccountKey);
+    final text = store.getString(storageKey);
     if (text == null || text.isEmpty) return null;
     final json = jsonDecode(text) as Map<String, dynamic>;
     return LocalAccount(
       user: SessionUser.fromJson(json['user'] as Map<String, dynamic>),
-      key: PasswordKey.fromJson(json['key'] as Map<String, dynamic>),
+      supervisors: [
+        for (final s in (json['supervisors'] as List? ?? const [])) Supervisor.fromJson(s as Map<String, dynamic>),
+      ],
+      dataAreaId: json['dataAreaId'] as String?,
       deactivated: json['deactivated'] as bool? ?? false,
     );
   }
 
   Future<void> write(SettingsStore store) => store.setString(
-    AppSettings.localAccountKey,
-    jsonEncode({'user': user.toJson(), 'key': key.toJson(), 'deactivated': deactivated}),
+    storageKey,
+    jsonEncode({
+      'user': user.toJson(),
+      'supervisors': [for (final s in supervisors) s.toJson()],
+      'dataAreaId': dataAreaId,
+      'deactivated': deactivated,
+    }),
   );
+
+  static Future<void> clear(SettingsStore store) => store.setString(storageKey, '');
+}
+
+/// The account saved by app versions before the Phase 1 revision, whose
+/// database key was derived from the password (PasswordKey). Read once at
+/// activation, to keep that database's records, then removed.
+class LegacyAccount {
+  const LegacyAccount({required this.user, required this.key});
+
+  static const String storageKey = AppSettings.legacyAccountKey;
+
+  final SessionUser user;
+  final PasswordKey key;
+
+  static LegacyAccount? read(SettingsStore store) {
+    final text = store.getString(storageKey);
+    if (text == null || text.isEmpty) return null;
+    final json = jsonDecode(text) as Map<String, dynamic>;
+    final key = json['key'];
+    if (key is! Map) return null;
+    return LegacyAccount(
+      user: SessionUser.fromJson(json['user'] as Map<String, dynamic>),
+      key: PasswordKey.fromJson(Map<String, dynamic>.from(key)),
+    );
+  }
+
+  static Future<void> clear(SettingsStore store) => store.setString(storageKey, '');
 }

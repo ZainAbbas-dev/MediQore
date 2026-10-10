@@ -1,5 +1,5 @@
 // M1 FE-4: interface language (Urdu or English), kept on the phone.
-// M1 FE-2: the phone's installation ID and the saved account for offline login.
+// M1 FE-2: the phone's installation ID and the account it is activated for.
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
@@ -48,8 +48,7 @@ class MemorySettingsStore implements SettingsStore {
 ///
 /// The interface language is Urdu by default; the LHW can switch to English
 /// (M1 FE-4). The whole app follows it: Urdu right to left, English left to
-/// right. Voice guidance reads Urdu labels only (LI-6), so it is available
-/// only while the app is in Urdu.
+/// right. The app has no audio guidance (LI-6).
 ///
 /// It also holds the installation ID the phone signs in with (M1 FE-2), made
 /// once on first start.
@@ -60,7 +59,7 @@ class AppSettings extends ChangeNotifier {
   AppSettings._(SettingsStore store)
     : _store = store,
       _locale = _localeFor(store.getString(_languageKey)),
-      deviceId = store.getString(_deviceIdKey) ?? _newDeviceId(store);
+      _deviceId = store.getString(_deviceIdKey) ?? _newDeviceId(store);
 
   /// Opens the phone's storage and reads the saved values.
   static Future<AppSettings> load() async {
@@ -72,19 +71,20 @@ class AppSettings extends ChangeNotifier {
   static const String _languageKey = 'interface_language';
   static const String _deviceIdKey = 'device_id';
   static const String _pendingRecordsKey = 'pending_records';
-  static const String _voiceMutedKey = 'voice_guidance_muted';
   static const String _serverAddressKey = 'server_address';
 
-  /// Where the signed-in account is kept for offline login (see LocalAccount).
-  static const String localAccountKey = 'local_account';
+  /// The account the phone is activated for (LocalAccount), and the account
+  /// saved by app versions before the Phase 1 revision (LegacyAccount).
+  static const String accountKey = 'account';
+  static const String legacyAccountKey = 'local_account';
 
   /// Every key the app keeps in plain storage. Nothing patient-related.
   static const Set<String> storedKeys = {
     _languageKey,
     _deviceIdKey,
-    localAccountKey,
+    accountKey,
+    legacyAccountKey,
     _pendingRecordsKey,
-    _voiceMutedKey,
     _serverAddressKey,
   };
 
@@ -94,10 +94,18 @@ class AppSettings extends ChangeNotifier {
     return id;
   }
 
-  /// This installation's ID (UUID v4), sent at sign-in and with every push.
-  final String deviceId;
+  /// This installation's ID (UUID v4), sent at activation and with every push.
+  String get deviceId => _deviceId;
+  String _deviceId;
 
-  /// The plain storage behind these settings, also used for the saved account.
+  /// A new installation ID after sign-out, so the phone can be activated
+  /// again, also for another LHW (the server ties each ID to one account).
+  Future<void> newDeviceId() async {
+    _deviceId = const Uuid().v4();
+    await _store.setString(_deviceIdKey, _deviceId);
+  }
+
+  /// The plain storage behind these settings, also used for the account.
   SettingsStore get store => _store;
 
   static const Locale urdu = Locale('ur');
@@ -112,28 +120,11 @@ class AppSettings extends ChangeNotifier {
   Locale get locale => _locale;
   bool get isUrdu => _locale == urdu;
 
-  /// Whether voice guidance (M3 FE-3) may speak. Off in English.
-  bool get voiceGuidanceAvailable => voiceGuidanceAvailableFor(_locale);
-
-  /// The LHW turned voice guidance off (M3 FE-3). It is on until she does.
-  bool get voiceMuted => _store.getString(_voiceMutedKey) == 'true';
-
-  /// Mutes or unmutes voice guidance and saves the choice on the phone.
-  Future<void> setVoiceMuted(bool muted) async {
-    if (muted == voiceMuted) return;
-    await _store.setString(_voiceMutedKey, '$muted');
-    notifyListeners();
-  }
-
   /// The server address a test build was pointed at on the sign-in screen, or
   /// null for the address fixed at build time (see `testBuild`).
   String? get serverAddress => _store.getString(_serverAddressKey);
 
   Future<void> setServerAddress(String address) => _store.setString(_serverAddressKey, address);
-
-  /// The same rule for a screen that only knows its locale, for example
-  /// `Localizations.localeOf(context)`.
-  static bool voiceGuidanceAvailableFor(Locale locale) => locale.languageCode == urdu.languageCode;
 
   /// Switches the whole app to [locale] and saves the choice on the phone.
   Future<void> setLocale(Locale locale) async {

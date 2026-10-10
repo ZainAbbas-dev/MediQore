@@ -10,8 +10,11 @@ import 'package:mediqore/data/visit_repository.dart';
 import 'package:mediqore/l10n/app_localizations.dart';
 import 'package:mediqore/screens/dev_home_screen.dart';
 import 'package:mediqore/screens/home_screen.dart';
-import 'package:mediqore/screens/login_screen.dart';
-import 'package:mediqore/screens/otp_screen.dart';
+import 'package:mediqore/screens/activation_screen.dart';
+import 'package:mediqore/screens/lock_screen.dart';
+import 'package:mediqore/screens/pin_create_screen.dart';
+import 'package:mediqore/screens/pin_reset_screen.dart';
+import 'package:mediqore/screens/sign_in_again_screen.dart';
 import 'package:mediqore/screens/patient_file_screen.dart';
 import 'package:mediqore/screens/patient_list_screen.dart';
 import 'package:mediqore/screens/register_screen.dart';
@@ -36,13 +39,13 @@ void main() {
   });
   tearDown(() => services.dispose());
 
-  testWidgets('app starts on the login screen in Urdu, right to left', (tester) async {
+  testWidgets('app starts on the activation screen in Urdu, right to left', (tester) async {
     await tester.pumpWidget(MediQoreApp(services: services));
     await tester.pumpAndSettle();
 
-    expect(find.byType(LoginScreen), findsOneWidget);
-    expect(find.text('سائن ان'), findsOneWidget);
-    expect(Directionality.of(tester.element(find.byType(LoginScreen))), TextDirection.rtl);
+    expect(find.byType(ActivationScreen), findsOneWidget);
+    expect(find.text('اس فون کو پہلی بار فعال کریں'), findsOneWidget);
+    expect(Directionality.of(tester.element(find.byType(ActivationScreen))), TextDirection.rtl);
   });
 
   testWidgets('English strings exist for every key', (tester) async {
@@ -50,11 +53,11 @@ void main() {
     await tester.pumpWidget(MediQoreApp(services: services));
     await tester.pumpAndSettle();
 
-    expect(find.text('Sign in'), findsWidgets);
-    expect(Directionality.of(tester.element(find.byType(LoginScreen))), TextDirection.ltr);
+    expect(find.text('Activate phone'), findsWidgets);
+    expect(Directionality.of(tester.element(find.byType(ActivationScreen))), TextDirection.ltr);
   });
 
-  testWidgets('the language switch on the login screen changes the whole app and is saved (M1 FE-4)', (tester) async {
+  testWidgets('the language switch on the activation screen changes the whole app and is saved (M1 FE-4)', (tester) async {
     final store = MemorySettingsStore();
     await services.dispose();
     services = testServices(server, AppSettings(store: store));
@@ -64,9 +67,9 @@ void main() {
     await tester.tap(find.text('English'));
     await tester.pumpAndSettle();
     expect(find.text('LHW ID'), findsOneWidget);
-    expect(Directionality.of(tester.element(find.byType(LoginScreen))), TextDirection.ltr);
+    expect(Directionality.of(tester.element(find.byType(ActivationScreen))), TextDirection.ltr);
     expect(
-      Theme.of(tester.element(find.byType(LoginScreen))).textTheme.bodyLarge?.fontFamily,
+      Theme.of(tester.element(find.byType(ActivationScreen))).textTheme.bodyLarge?.fontFamily,
       isNot(AppTheme.urduFontFamily),
     );
 
@@ -76,7 +79,7 @@ void main() {
     await tester.tap(find.text('اردو'));
     await tester.pumpAndSettle();
     expect(find.text('ایل ایچ ڈبلیو آئی ڈی'), findsOneWidget);
-    expect(Directionality.of(tester.element(find.byType(LoginScreen))), TextDirection.rtl);
+    expect(Directionality.of(tester.element(find.byType(ActivationScreen))), TextDirection.rtl);
     expect(AppSettings(store: store).locale, AppSettings.urdu);
   });
 
@@ -143,7 +146,7 @@ void main() {
 
     // Long Urdu names and villages, so the rows have to wrap.
     Future<LocalWoman> registerLongNames() async {
-      await signInApproved(services, server);
+      await activateApp(services, server);
       final first = await services.patients.register(
         const RegistrationInput(
           name: 'سیدہ فاطمہ بی بی زوجہ محمد اسلم',
@@ -170,27 +173,85 @@ void main() {
     for (final english in [false, true]) {
       final language = english ? 'English' : 'Urdu';
 
-      testWidgets('the login screen fits ($language)', (tester) async {
-        await pumpScreen(tester, LoginScreen(services: services), english: english);
+      testWidgets('the activation screen fits, with an error ($language)', (tester) async {
+        final l10n = lookupAppLocalizations(english ? AppSettings.english : AppSettings.urdu);
+        await pumpScreen(tester, ActivationScreen(services: services), english: english);
+        await tester.ensureVisible(find.text(l10n.activateButton));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(l10n.activateButton));
+        await tester.pumpAndSettle();
+        expect(find.text(l10n.activateFillAll), findsOneWidget);
         await scrollToEnd(tester);
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('the code screen fits ($language)', (tester) async {
-        await pumpScreen(tester, OtpScreen(services: services), english: english);
+      testWidgets('the PIN screen fits, with an error ($language)', (tester) async {
+        final l10n = lookupAppLocalizations(english ? AppSettings.english : AppSettings.urdu);
+        await pumpScreen(tester, PinCreateScreen(services: services, mode: PinCreateMode.activation), english: english);
+        for (final pin in ['123456', '654321']) {
+          for (final digit in pin.split('')) {
+            await tester.tap(find.text(digit));
+          }
+          await tester.pumpAndSettle();
+        }
+        expect(find.text(l10n.pinMismatch), findsOneWidget);
+        await scrollToEnd(tester);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('the lock screen fits, while waiting after a wrong PIN ($language)', (tester) async {
+        final l10n = lookupAppLocalizations(english ? AppSettings.english : AppSettings.urdu);
+        await tester.runAsync(() async {
+          await activateApp(services, server);
+          services.session.lock();
+          await services.session.closed;
+          await services.session.unlock('000000');
+        });
+        await pumpScreen(tester, LockScreen(services: services), english: english);
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+        await tester.pump();
+        expect(find.text(l10n.lockWrongPin), findsOneWidget);
+        expect(find.text(l10n.emergencyCallButton), findsOneWidget);
+        await scrollToEnd(tester);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox()); // stops the countdown
+      });
+
+      testWidgets('the PIN reset screen fits, with an error ($language)', (tester) async {
+        final l10n = lookupAppLocalizations(english ? AppSettings.english : AppSettings.urdu);
+        await tester.runAsync(() async {
+          await activateApp(services, server);
+          services.session.lock();
+        });
+        await pumpScreen(tester, PinResetScreen(services: services), english: english);
+        await tester.enterText(find.byType(TextFormField), '12345678');
+        await tester.ensureVisible(find.text(l10n.resetCheckButton));
+        await tester.runAsync(() async {
+          await tester.tap(find.text(l10n.resetCheckButton));
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+        });
+        await tester.pumpAndSettle();
+        expect(find.text(l10n.resetWrongReply), findsOneWidget);
+        await scrollToEnd(tester);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('the sign-in-again screen fits ($language)', (tester) async {
+        await tester.runAsync(() => activateApp(services, server));
+        await pumpScreen(tester, SignInAgainScreen(services: services), english: english);
         await scrollToEnd(tester);
         expect(tester.takeException(), isNull);
       });
 
       testWidgets('the home screen fits ($language)', (tester) async {
-        await tester.runAsync(() => signInApproved(services, server));
+        await tester.runAsync(() => activateApp(services, server));
         await pumpScreen(tester, HomeScreen(services: services), english: english);
         await scrollToEnd(tester);
         expect(tester.takeException(), isNull);
       });
 
       testWidgets('the settings fit ($language)', (tester) async {
-        await tester.runAsync(() => signInApproved(services, server));
+        await tester.runAsync(() => activateApp(services, server));
         await pumpScreen(tester, SettingsScreen(services: services), english: english);
         await scrollToEnd(tester);
         expect(tester.takeException(), isNull);
@@ -331,7 +392,7 @@ void main() {
       });
 
       testWidgets('the sync test screen fits ($language)', (tester) async {
-        await tester.runAsync(() => signInApproved(services, server));
+        await tester.runAsync(() => activateApp(services, server));
         await pumpScreen(tester, SyncTestScreen(services: services), english: english);
         await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
         await tester.pumpAndSettle();

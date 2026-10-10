@@ -12,21 +12,17 @@ import 'package:mediqore/widgets/form_fields.dart';
 
 import '../helpers.dart';
 import '../support/fake_sync_server.dart';
-import '../support/fake_voice.dart';
 
 /// Module 3 in the whole app, offline: a visit from the woman's file, with the
-/// range checks (FE-1), its sync state (FE-2) and voice guidance (FE-3).
+/// range checks (FE-1) and its sync state (FE-2).
 void main() {
   final ur = lookupAppLocalizations(AppSettings.urdu);
-  final en = lookupAppLocalizations(AppSettings.english);
   late FakeSyncServer server;
-  late FakeVoice voice;
   late AppServices services;
 
   setUp(() {
     server = FakeSyncServer();
-    voice = FakeVoice();
-    services = testServices(server, null, null, null, voice);
+    services = testServices(server);
   });
   tearDown(() => services.dispose());
 
@@ -53,7 +49,7 @@ void main() {
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
     await tester.runAsync(() async {
-      await signInApproved(services, server);
+      await activateApp(services, server);
       await services.patients.register(
         const RegistrationInput(name: 'Synthetic Woman', age: 26, pregnancyMonth: 5, village: 'Dhok Syedan'),
         by: services.session.user!,
@@ -160,48 +156,6 @@ void main() {
     expect((await savedVisits(tester)).single.systolicBpMmhg, 255);
   });
 
-  testWidgets('in Urdu a field reads its label aloud when it gets focus, with a speaker, until muted (M3 FE-3)', (tester) async {
-    await openVisitForm(tester);
-
-    await tester.tap(vital(ur.fieldSystolicBp));
-    await tester.pumpAndSettle();
-    expect(voice.spoken, [ur.fieldSystolicBp]);
-    final systolicField = find.byWidgetPredicate((w) => w is VitalField && w.label == ur.fieldSystolicBp);
-    expect(find.descendant(of: systolicField, matching: find.byIcon(Icons.volume_up)), findsOneWidget);
-
-    await tester.tap(vital(ur.fieldDiastolicBp));
-    await tester.pumpAndSettle();
-    expect(voice.spoken.last, ur.fieldDiastolicBp);
-    expect(find.descendant(of: systolicField, matching: find.byIcon(Icons.volume_up)), findsNothing);
-
-    await tester.ensureVisible(find.text(ur.fieldBleeding));
-    await tester.tap(find.text(ur.fieldBleeding));
-    await tester.pumpAndSettle();
-    expect(voice.spoken.last, ur.fieldBleeding, reason: 'a checkbox reads its label when tapped');
-
-    // The mute toggle on the form is the same setting as on the home screen.
-    await tester.tap(find.byTooltip(ur.voiceMute));
-    await tester.pumpAndSettle();
-    expect(services.settings.voiceMuted, isTrue);
-    expect(voice.stops, greaterThan(0), reason: 'muting stops a label being read');
-    final before = voice.spoken.length;
-    await tester.tap(vital(ur.fieldWeight));
-    await tester.pumpAndSettle();
-    expect(voice.spoken, hasLength(before));
-    expect(find.byIcon(Icons.volume_off), findsOneWidget);
-  });
-
-  testWidgets('in English there is no voice guidance: nothing is read and there is no mute button (M1 FE-4)', (tester) async {
-    await services.settings.setLocale(AppSettings.english);
-    await openVisitForm(tester, l10n: en);
-
-    await tester.tap(vital(en.fieldSystolicBp));
-    await tester.pumpAndSettle();
-    expect(voice.spoken, isEmpty);
-    expect(find.byTooltip(en.voiceMute), findsNothing);
-    expect(find.byIcon(Icons.volume_up), findsNothing);
-  });
-
   testWidgets('a visit the server holds for the supervisor says so in the file (M3 FE-2)', (tester) async {
     await openVisitForm(tester);
     await fillVitals(tester, ur);
@@ -218,61 +172,5 @@ void main() {
     await tapAndWait(tester, find.text('Synthetic Woman'));
 
     expect(find.text(ur.syncHeld), findsOneWidget);
-  });
-
-  Future<void> openSettings(WidgetTester tester) async {
-    await tester.tap(find.byTooltip(ur.homeSettingsSection));
-    await tester.pumpAndSettle();
-  }
-
-  testWidgets('the settings hold the voice guidance switch in Urdu, and a note in English (M3 FE-3)', (tester) async {
-    await pumpHome(tester);
-    await openSettings(tester);
-    final toggle = find.widgetWithText(SwitchListTile, ur.voiceGuidanceLabel);
-    await tester.ensureVisible(toggle);
-    expect(tester.widget<SwitchListTile>(toggle).value, isTrue, reason: 'on until the LHW mutes it');
-    expect(find.text(ur.voiceNoUrduVoice), findsNothing);
-
-    await tester.tap(toggle);
-    await tester.pumpAndSettle();
-    expect(services.settings.voiceMuted, isTrue);
-    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
-
-    await tester.tap(find.text(en.languageNameEnglish));
-    await tester.pumpAndSettle();
-    expect(find.byType(SwitchListTile), findsNothing);
-    expect(find.text(en.voiceGuidanceUrduOnly), findsOneWidget);
-  });
-
-  testWidgets('a phone without an Urdu voice says so in the settings', (tester) async {
-    voice.hasUrdu = false;
-    await pumpHome(tester);
-    await openSettings(tester);
-    expect(find.text(ur.voiceNoUrduVoice), findsOneWidget);
-  });
-
-  testWidgets('the settings test the voice, also while voice guidance is muted', (tester) async {
-    await services.settings.setVoiceMuted(true);
-    await pumpHome(tester);
-    await openSettings(tester);
-
-    await tester.tap(find.text(ur.voiceTestButton));
-    await tester.pumpAndSettle();
-
-    expect(voice.spoken, [ur.voiceTestSample]);
-    expect(find.text(ur.voiceTestPlayed), findsOneWidget);
-  });
-
-  testWidgets('the registration form reads its labels aloud too (M3 FE-3)', (tester) async {
-    await pumpHome(tester);
-    await tapAndWait(tester, find.text(ur.homeRegisterButton));
-
-    await tester.tap(
-      find.descendant(of: find.byWidgetPredicate((w) => w is AppTextField && w.label == ur.regName), matching: find.byType(TextFormField)),
-    );
-    await tester.pumpAndSettle();
-
-    expect(voice.spoken, [ur.regName]);
-    expect(find.byTooltip(ur.voiceMute), findsOneWidget, reason: 'the mute button is in the app bar');
   });
 }

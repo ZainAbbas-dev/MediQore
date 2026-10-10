@@ -80,4 +80,4 @@ Roadmap task P0-7 asks for the Phase 1 screens: activation and PIN unlock, LHW h
 
 ## Built in the app so far
 
-The Phase 1 screens in `mobile/` were built before the final design and the updated scope. The Phase 1 revision rebuilds them to this document: activation code and PIN screens instead of the phone-approval code, the three-step visit form with the pulse counter, blood sugar details and the danger-sign checklist, the curved headers and pill buttons, and no voice guidance.
+The Phase 1 revision rebuilds the screens in `mobile/` to this document. Done: screens 1–5 (activation, create a PIN, unlock, wrong-PIN wait, PIN reset) and 7 (settings), with no voice guidance; screen 21's activation code and the **PIN reset codes** page on the portal. Next: the home screen, the registration wizard, the list and file (6, 8–14) and the three-step visit form with the pulse counter, blood sugar details and the danger-sign checklist (15–19).

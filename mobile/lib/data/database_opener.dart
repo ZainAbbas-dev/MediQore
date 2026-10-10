@@ -1,8 +1,10 @@
 // M3 FE-2, LI-8: the local database is encrypted with AES-256 (the SQLCipher
 // format, through the SQLite3 Multiple Ciphers build bundled by package:sqlite3,
-// see pubspec.yaml and decision 0006). It is opened only after sign-in, with
-// the key derived from the LHW's password (M1 FE-2), and closed when the app
-// locks. Without the password the file cannot be read.
+// see pubspec.yaml and decision 0006). Its key is 256 random bits made on the
+// phone and kept wrapped by the Android Keystore (M1 FE-2, LI-8); it is never
+// derived from the password or the PIN, so a password reset or a new PIN keeps
+// the records. The database is opened when the PIN unlocks the app and closed
+// when it locks.
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -13,7 +15,7 @@ import 'package:sqlite3/sqlite3.dart' show sqlite3;
 
 import 'app_database.dart';
 
-/// The key does not open the database: it was made with another password.
+/// The key does not open the database: it was made with another key.
 class WrongDatabaseKey implements Exception {
   @override
   String toString() => 'WrongDatabaseKey';
@@ -27,8 +29,13 @@ abstract interface class DatabaseOpener {
   /// Closes [db], for example when the app locks.
   Future<void> close(AppDatabase db);
 
-  /// Deletes the database: another LHW signs in, or the password changed and
-  /// the old key can no longer be derived (LI-8).
+  /// Encrypts the database with [newKey] instead of [oldKey]: an earlier
+  /// version's database, made with the password key, moves to the random key
+  /// at activation. Throws [WrongDatabaseKey] if [oldKey] does not open it.
+  Future<void> rekey(Uint8List oldKey, Uint8List newKey);
+
+  /// Deletes the database: at activation (unless an earlier version's database
+  /// can be kept) and at sign-out.
   Future<void> destroy();
 
   /// Records still waiting to be pushed, if they can be counted without a key
@@ -51,8 +58,8 @@ void unlockDatabase(CommonDatabase raw, String hexKey) {
   }
 }
 
-// AES-256 in the SQLCipher 4 format. The key is already derived from the
-// password (PBKDF2, see PasswordKey), so it is passed raw, without a second KDF.
+// AES-256 in the SQLCipher 4 format. The key is already 256 random bits, so it
+// is passed raw, without a key derivation.
 void _setCipher(CommonDatabase raw) {
   raw.execute("PRAGMA cipher = 'sqlcipher'");
   raw.execute('PRAGMA legacy = 4');
@@ -101,6 +108,21 @@ class EncryptedDatabaseOpener implements DatabaseOpener {
 
   @override
   Future<void> close(AppDatabase db) => db.close();
+
+  @override
+  Future<void> rekey(Uint8List oldKey, Uint8List newKey) async {
+    final file = await _file();
+    if (!await file.exists()) throw WrongDatabaseKey();
+    _encryptIfPlain(file.path, hexOf(oldKey));
+    final raw = sqlite3.open(file.path);
+    try {
+      unlockDatabase(raw, hexOf(oldKey));
+      raw.execute('PRAGMA journal_mode = DELETE');
+      raw.execute('PRAGMA rekey = "x\'${hexOf(newKey)}\'"');
+    } finally {
+      raw.close();
+    }
+  }
 
   @override
   Future<void> dispose() async {}

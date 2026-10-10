@@ -9,7 +9,7 @@ import 'package:mediqore/data/database_opener.dart';
 import 'package:mediqore/data/household_repository.dart';
 
 /// The real encrypted file (M3 FE-2, LI-8): what is on the disk, and what a
-/// wrong key, an older unencrypted database and a reset do.
+/// wrong key, an older unencrypted database, a new key and a reset do.
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late Directory folder;
@@ -57,6 +57,25 @@ void main() {
 
     expect(fileShows('Made before encryption'), isFalse);
     expect(await opener.readablePendingCount(), isNull, reason: 'encrypted now');
+  });
+
+  test('rekey moves the database to a new key, keeping its records (an earlier version at activation)', () async {
+    var db = await opener.open(keyA);
+    await HouseholdRepository(db).create(village: 'Made with the password key');
+    await opener.close(db);
+
+    await expectLater(opener.rekey(keyB, keyA), throwsA(isA<WrongDatabaseKey>()));
+    await opener.rekey(keyA, keyB);
+
+    await expectLater(opener.open(keyA), throwsA(isA<WrongDatabaseKey>()));
+    db = await opener.open(keyB);
+    expect((await HouseholdRepository(db).all()).single.village, 'Made with the password key');
+    await opener.close(db);
+    expect(fileShows('Made with the password key'), isFalse);
+  });
+
+  test('rekey of a missing database is refused', () async {
+    await expectLater(opener.rekey(keyA, keyB), throwsA(isA<WrongDatabaseKey>()));
   });
 
   test('destroy removes the database; the next open starts empty', () async {

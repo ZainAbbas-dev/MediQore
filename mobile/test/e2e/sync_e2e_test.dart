@@ -6,7 +6,7 @@
 // Needs the demo accounts (`npm run seed:demo` in db/). Set E2E_PASSWORD if the
 // demo password was changed. Each run adds synthetic records (households,
 // three registrations, three visits, one decided sync conflict) and seven
-// approved test phones for lhw.demo.
+// activated test phones for lhw.demo.
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show driftRuntimeOptions;
@@ -14,6 +14,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:mediqore/app_services.dart';
+import 'package:mediqore/auth/secure_store.dart';
 import 'package:mediqore/auth/session.dart';
 import 'package:mediqore/data/app_database.dart';
 import 'package:mediqore/data/household_repository.dart';
@@ -43,35 +44,47 @@ Future<Map<String, dynamic>> send(String method, String path, {String? token, Ob
 Future<String> adminToken() async =>
     (await send('POST', '/auth/login', body: {'username': 'admin.demo', 'password': password}))['accessToken'] as String;
 
-/// What the admin does on the portal's Phone approvals page: sign in and issue
-/// the one-time code for the waiting phone (decision 0002).
-Future<String> issueCodeAsAdmin(String deviceId) async {
-  final token = await adminToken();
-  final pending = (await send('GET', '/devices/pending', token: token))['devices'] as List;
-  expect(pending.map((d) => (d as Map)['id']), contains(deviceId));
-  return (await send('POST', '/devices/$deviceId/code', token: token))['code'] as String;
+/// lhw.demo's account ID, as the admin sees it on the portal.
+Future<String> demoLhwId() async {
+  final lhws = (await send('GET', '/admin/lhws?search=LHW-DEMO-001', token: await adminToken()))['lhws'] as List;
+  return (lhws.single as Map)['id'] as String;
 }
 
-/// Signs lhw.demo in from a new phone: the first try asks for the code, the
-/// code from the admin approves the phone.
+/// What the admin does on the portal's LHW accounts page: New activation code
+/// for lhw.demo (M1 FE-2).
+Future<String> issueCodeAsAdmin() async => (await send(
+  'POST',
+  '/admin/lhws/${await demoLhwId()}/activation-code',
+  token: await adminToken(),
+))['activationCode'] as String;
+
+/// Activates a new phone for lhw.demo with a code from the admin; the next
+/// sign-in on the same phone needs only the password.
 Future<String> signInNewPhone(SyncApi api, String deviceId) async {
-  final first = await api.login('lhw.demo', password, deviceId: deviceId);
-  expect(first.otpRequired, isTrue, reason: 'a new phone needs its one-time code');
-  final code = await issueCodeAsAdmin(deviceId);
-  final tokens = await api.verifyOtp('lhw.demo', password, deviceId: deviceId, code: code);
+  final tokens = await api.activate('lhw.demo', password, code: await issueCodeAsAdmin(), deviceId: deviceId);
   expect(tokens.user.areaName, isNotNull);
+  expect(tokens.activationSecret, isNotNull);
 
-  // The phone is approved now: the next sign-in needs no code.
   final again = await api.login('lhw.demo', password, deviceId: deviceId);
-  expect(again.otpRequired, isFalse);
-  return again.tokens!.accessToken;
+  return again.accessToken;
 }
 
-/// The app on a new phone, signed in as lhw.demo with the code from the admin.
+const String e2ePin = '135790';
+
+AppServices newPhone() => AppServices(
+  opener: MemoryDatabaseOpener(),
+  api: SyncApi(baseUrl: apiBaseUrl),
+  secureStore: MemorySecureStore(),
+  pinIterations: 1000,
+  autoSync: false,
+);
+
+/// The app on a new phone, activated as lhw.demo with the code from the admin.
 Future<AppServices> signedInNewPhone() async {
-  final services = AppServices(opener: MemoryDatabaseOpener(), api: SyncApi(baseUrl: apiBaseUrl), autoSync: false);
-  expect(await services.session.signIn('lhw.demo', password), SignInResult.needsCode);
-  expect(await services.session.verifyCode(await issueCodeAsAdmin(services.settings.deviceId)), SignInResult.signedIn);
+  final services = newPhone();
+  expect(await services.session.activate('lhw.demo', password, await issueCodeAsAdmin()), SignInResult.activated);
+  await services.session.completeActivation(e2ePin);
+  expect(services.session.isUnlocked, isTrue);
   return services;
 }
 
@@ -138,26 +151,48 @@ void main() {
   );
 
   test(
-    "the app's sign-in on a new phone: code, area download, sync, sign-out (M1 FE-2)",
+    "the app's activation on a new phone: code, PIN, area download, sync, PIN reset with the supervisor's reply code, sign-out (M1 FE-2)",
     () async {
-      final services = AppServices(opener: MemoryDatabaseOpener(), api: SyncApi(baseUrl: apiBaseUrl), autoSync: false);
+      final services = newPhone();
       final session = services.session;
 
-      expect(await session.signIn('lhw.demo', password), SignInResult.needsCode);
-      final code = await issueCodeAsAdmin(services.settings.deviceId);
-      expect(await session.verifyCode(code), SignInResult.signedIn);
+      expect(await session.activate('lhw.demo', password, 'AAAA-BBBB'), SignInResult.codeInvalid);
+      expect(await session.activate('lhw.demo', password, await issueCodeAsAdmin()), SignInResult.activated);
+      await session.completeActivation(e2ePin);
 
       expect(session.user!.lhwCode, isNotNull);
       expect(session.user!.areaName, 'Demo Area 1');
-      expect(await services.households.all(), isNotEmpty, reason: 'the area was downloaded at the first sign-in');
+      expect(session.account!.supervisors.map((s) => s.name), isNotEmpty, reason: 'the emergency call has a number');
+      expect(await services.households.all(), isNotEmpty, reason: 'the area was downloaded at activation');
+      expect((await session.sync()).rejected, 0);
 
-      final report = await session.sync();
-      expect(report.rejected, 0);
+      // Locked, the PIN opens the app and the saved refresh token syncs.
+      session.lock(null);
+      await session.closed;
+      expect((await session.unlock(e2ePin)).result, UnlockResult.unlocked);
+      expect((await session.sync()).rejected, 0);
 
-      // Signed out, the same password unlocks the phone again (online here).
-      await session.signOut();
-      expect(await session.signIn('lhw.demo', password), SignInResult.signedIn);
-      await session.signOut();
+      // PIN reset: the supervisor's reply code from the real server is accepted.
+      session.lock(null);
+      await session.closed;
+      final challenge = session.newResetChallenge();
+      final supervisor = (await send(
+        'POST',
+        '/auth/login',
+        body: {'username': 'supervisor.demo', 'password': password},
+      ))['accessToken'] as String;
+      final reply = (await send(
+        'POST',
+        '/pin-reset/reply-code',
+        token: supervisor,
+        body: {'lhwId': await demoLhwId(), 'challenge': challenge},
+      ))['replyCode'] as String;
+      expect(await session.checkResetReply(challenge, reply), isTrue);
+      expect(await session.resetPin('246802'), isTrue);
+      expect(session.isUnlocked, isTrue);
+
+      expect(await session.signOut(), isTrue);
+      expect(session.stage, SessionStage.activation);
       await services.dispose();
     },
     skip: apiBaseUrl.isEmpty ? 'Set --dart-define=E2E_API_BASE_URL to run against a real API' : false,

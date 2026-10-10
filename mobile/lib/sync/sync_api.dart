@@ -69,28 +69,36 @@ class PullPage {
   final bool hasMore;
 }
 
-/// Tokens from a successful sign-in, code check or refresh (M1 FE-2).
+/// Tokens and profile from an activation, sign-in or refresh (M1 FE-2).
 class AuthTokens {
-  AuthTokens({required this.accessToken, required this.refreshToken, required this.user});
+  AuthTokens({
+    required this.accessToken,
+    required this.refreshToken,
+    required this.user,
+    this.supervisors = const [],
+    this.activationSecret,
+  });
 
   factory AuthTokens.fromJson(Map<String, dynamic> json) => AuthTokens(
     accessToken: json['accessToken'] as String,
     refreshToken: json['refreshToken'] as String,
     user: SessionUser.fromJson(Map<String, dynamic>.from(json['user'] as Map)),
+    supervisors: [
+      for (final s in (json['supervisors'] as List? ?? const []))
+        Supervisor.fromJson(Map<String, dynamic>.from(s as Map)),
+    ],
+    activationSecret: json['activationSecret'] as String?,
   );
 
   final String accessToken;
   final String refreshToken;
   final SessionUser user;
-}
 
-/// The answer to a sign-in: tokens, or "this phone needs its one-time code".
-class LoginOutcome {
-  LoginOutcome.signedIn(AuthTokens this.tokens) : otpRequired = false;
-  LoginOutcome.needsCode() : tokens = null, otpRequired = true;
+  /// The supervisors of the LHW's area with a phone number (emergency call).
+  final List<Supervisor> supervisors;
 
-  final AuthTokens? tokens;
-  final bool otpRequired;
+  /// Sent once, by activation: the secret that checks PIN-reset reply codes.
+  final String? activationSecret;
 }
 
 /// The `/auth` and `/sync` endpoints (docs/openapi.yaml).
@@ -105,25 +113,24 @@ class SyncApi {
 
   static const Duration _timeout = Duration(seconds: 30);
 
-  /// M1 FE-2: signs in from this phone. A phone that has not been approved
-  /// gets [LoginOutcome.needsCode] (HTTP 202) until [verifyOtp] succeeds.
-  Future<LoginOutcome> login(String username, String password, {required String deviceId}) async {
-    final (status, body) = await _sendWithStatus(
+  /// M1 FE-2: activates this phone with the admin's one-time activation code
+  /// and signs in. The answer carries the activation secret, once.
+  Future<AuthTokens> activate(String username, String password, {required String code, required String deviceId}) async {
+    final body = await _send(
+      'POST',
+      '/auth/activate',
+      body: {'username': username, 'password': password, 'activationCode': code, 'deviceId': deviceId},
+    );
+    return AuthTokens.fromJson(body);
+  }
+
+  /// Signs in again with the password on this activated phone, when its
+  /// refresh token no longer works (for example after a password reset).
+  Future<AuthTokens> login(String username, String password, {required String deviceId}) async {
+    final body = await _send(
       'POST',
       '/auth/login',
       body: {'username': username, 'password': password, 'deviceId': deviceId},
-    );
-    if (status == 202 || body['status'] == 'otp_required') return LoginOutcome.needsCode();
-    return LoginOutcome.signedIn(AuthTokens.fromJson(body));
-  }
-
-  /// Approves this phone with the one-time code an admin or supervisor issued
-  /// for it (decision 0002), and signs in.
-  Future<AuthTokens> verifyOtp(String username, String password, {required String deviceId, required String code}) async {
-    final body = await _send(
-      'POST',
-      '/auth/otp/verify',
-      body: {'username': username, 'password': password, 'deviceId': deviceId, 'code': code},
     );
     return AuthTokens.fromJson(body);
   }
@@ -150,10 +157,7 @@ class SyncApi {
     );
   }
 
-  Future<Map<String, dynamic>> _send(String method, String path, {String? token, Object? body}) async =>
-      (await _sendWithStatus(method, path, token: token, body: body)).$2;
-
-  Future<(int, Map<String, dynamic>)> _sendWithStatus(String method, String path, {String? token, Object? body}) async {
+  Future<Map<String, dynamic>> _send(String method, String path, {String? token, Object? body}) async {
     final request = http.Request(method, Uri.parse('$baseUrl$path'))
       ..headers['Accept'] = 'application/json';
     if (token != null) request.headers['Authorization'] = 'Bearer $token';
@@ -170,6 +174,6 @@ class SyncApi {
       final error = (decoded['error'] as Map?) ?? const {};
       throw ApiException(response.statusCode, (error['code'] ?? 'HTTP_${response.statusCode}') as String, (error['message'] ?? '') as String);
     }
-    return (response.statusCode, decoded);
+    return decoded;
   }
 }

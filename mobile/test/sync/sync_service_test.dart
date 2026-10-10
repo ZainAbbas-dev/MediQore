@@ -26,7 +26,7 @@ void main() {
     db = AppDatabase(NativeDatabase.memory());
     households = HouseholdRepository(db);
     server = FakeSyncServer()
-      ..approve('device-1')
+      ..activate('device-1')
       ..validAccessTokens.add('token-1');
     sync = SyncService(db: db, api: SyncApi(client: server.client, baseUrl: 'http://test/api/v1'), deviceId: 'device-1');
   });
@@ -58,12 +58,12 @@ void main() {
     expect(report.lastServerSeq, stored.serverSeq);
   });
 
-  test('pushes as this phone, which the server must have approved (M1 FE-2)', () async {
+  test('pushes as this phone, which must be activated on the server (M1 FE-2)', () async {
     await households.create(village: 'Test village');
-    final unapproved = SyncService(db: db, api: SyncApi(client: server.client, baseUrl: 'http://test/api/v1'), deviceId: 'device-2');
+    final notActivated = SyncService(db: db, api: SyncApi(client: server.client, baseUrl: 'http://test/api/v1'), deviceId: 'device-2');
 
     await expectLater(
-      unapproved.syncNow('token-1'),
+      notActivated.syncNow('token-1'),
       throwsA(isA<ApiException>().having((e) => e.code, 'code', 'DEVICE_NOT_ALLOWED')),
     );
     expect(await db.pendingCount(), 1, reason: 'nothing is lost');

@@ -59,7 +59,7 @@ npm run seed:synthetic -- --allow-remote
 
 ### 4. The test APK for staging
 
-The staging address is `https://mediqore-staging.onrender.com`. Test APKs start with it (`.github/workflows/apk.yml`), so the server does not need changing on the phone. To use a laptop server instead, press and hold the logo on the sign-in screen.
+The staging address is `https://mediqore-staging.onrender.com`. Test APKs start with it (`.github/workflows/apk.yml`), so the server does not need changing on the phone. To use a laptop server instead, press and hold the logo on the activation screen.
 
 If the address ever changes, set it for the APK builds on GitHub: **Settings** → **Secrets and variables** → **Actions** → **Variables** → **New repository variable**, name `MEDIQORE_API_BASE_URL`, value `https://<new address>/api/v1`. Then run **Actions** → **Test APK** → **Run workflow**.
 
@@ -67,12 +67,11 @@ If the address ever changes, set it for the APK builds on GitHub: **Settings** �
 
 - **Portal:** open `https://<address>` and sign in as `syn.sup.01` (supervisor) or `syn.admin` (admin).
 - **App:**
-  1. Sign in as a synthetic LHW, for example `syn.lhw.001`. The app asks for the phone's 6-digit code.
-  2. In the portal, as `syn.admin`, open **Phone approvals** and click **Issue code**.
-  3. Type the code in the app.
-  4. Then test as in step 7.5 of [`local-setup.md`](local-setup.md).
+  1. In the portal, as `syn.admin`, open **LHW accounts** and click **New activation code** for a synthetic LHW, for example `syn.lhw.001`.
+  2. In the app, type her LHW ID, the staging password and the code, then create a PIN.
+  3. Then test as in step 7.5 of [`local-setup.md`](local-setup.md); `syn.sup.01` gives PIN reset codes.
 - **The free Render plan sleeps** after 15 minutes without requests. The next request then takes about a minute.
-  - Open the portal or the health address first and wait until it loads, then sign in on the phone.
+  - Open the portal or the health address first and wait until it loads, then activate or sync the phone.
   - The app gives up after 30 seconds and says that it needs the internet.
 - **Neon's free plan** pauses the database after 5 minutes without use. It wakes in about a second.
 - **Updates:** every push to `dev` deploys by itself, and new migrations run at the next start. If a deploy fails, read **Events** and **Logs** on the service's page in Render.

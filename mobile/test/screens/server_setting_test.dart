@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mediqore/app_services.dart';
 import 'package:mediqore/l10n/app_localizations.dart';
-import 'package:mediqore/screens/login_screen.dart';
+import 'package:mediqore/screens/activation_screen.dart';
 import 'package:mediqore/settings/app_settings.dart';
 import 'package:mediqore/theme/app_theme.dart';
 
@@ -10,7 +10,7 @@ import '../helpers.dart';
 import '../support/fake_sync_server.dart';
 
 /// The server address of a test build (M1 FE-2), changed by pressing and
-/// holding the logo on the sign-in screen, for example to point the app at a
+/// holding the logo on the activation screen, for example to point the app at a
 /// laptop on the same Wi-Fi.
 void main() {
   group('serverAddressFrom', () {
@@ -53,7 +53,7 @@ void main() {
         locale: locale,
         supportedLocales: AppLocalizations.supportedLocales,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
-        home: LoginScreen(services: services, showServerSetting: showServerSetting),
+        home: ActivationScreen(services: services, showServerSetting: showServerSetting),
       ),
     );
     await tester.pumpAndSettle();
@@ -71,7 +71,7 @@ void main() {
   for (final locale in AppSettings.languages) {
     testWidgets('changes the server address and keeps it (${locale.languageCode})', (tester) async {
       final l10n = await pumpLogin(tester, locale);
-      expect(find.text('http://test/api/v1'), findsNothing, reason: 'the address is not on the sign-in screen');
+      expect(find.text('http://test/api/v1'), findsNothing, reason: 'the address is not on the activation screen');
 
       await openDialog(tester);
       expect(find.text(l10n.loginServerTitle), findsOneWidget);
@@ -91,9 +91,9 @@ void main() {
       expect(settings.serverAddress, 'http://192.168.1.20:3000/api/v1', reason: 'kept for the next app start');
       expect(tester.takeException(), isNull, reason: 'no overflow on a small phone');
 
-      // Sign-in now goes to the new server.
-      await tester.runAsync(() => services.session.signIn(server.username, server.password));
-      expect(server.urls.last.toString(), startsWith('http://192.168.1.20:3000/api/v1/auth/login'));
+      // Activation now goes to the new server.
+      await tester.runAsync(() => services.session.activate(server.username, server.password, 'K7QM-4R2X'));
+      expect(server.urls.last.toString(), startsWith('http://192.168.1.20:3000/api/v1/auth/activate'));
     });
   }
 

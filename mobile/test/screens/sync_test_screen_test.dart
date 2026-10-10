@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mediqore/app_services.dart';
+import 'package:mediqore/auth/session.dart';
 import 'package:mediqore/l10n/app_localizations.dart';
 import 'package:mediqore/screens/sync_test_screen.dart';
 import 'package:mediqore/theme/app_theme.dart';
@@ -46,7 +47,7 @@ void main() {
   }
 
   testWidgets('a household made offline is pushed with the signed-in session', (tester) async {
-    await tester.runAsync(() => signInApproved(services, server));
+    await tester.runAsync(() => activateApp(services, server));
     server.offline = true;
     await pumpScreen(tester);
     expect(find.text('lhw.demo کے طور پر سائن ان'), findsOneWidget);
@@ -65,12 +66,13 @@ void main() {
     expect(find.text('آن لائن: تمام ڈیٹا بھیج دیا گیا ہے'), findsOneWidget);
   });
 
-  testWidgets('after an offline sign-in, sync waits for an online sign-in', (tester) async {
+  testWidgets('when the sign-in has expired, sync waits for an online sign-in', (tester) async {
     await tester.runAsync(() async {
-      await signInApproved(services, server);
-      services.session.lock();
-      server.offline = true;
-      await services.session.signIn('lhw.demo', 'demo-password');
+      await activateApp(services, server);
+      server
+        ..expireAccessTokens()
+        ..validRefreshTokens.clear();
+      await expectLater(services.session.sync(), throwsA(isA<NeedsOnlineSignIn>()));
     });
     await pumpScreen(tester);
 
@@ -78,6 +80,6 @@ void main() {
       find.ancestor(of: find.text('سنک کے لیے سائن ان کریں'), matching: find.byType(FilledButton)),
     );
     expect(syncButton.onPressed, isNull);
-    expect(find.text('سنک کے لیے انٹرنیٹ کے ساتھ دوبارہ سائن ان کریں۔'), findsOneWidget);
+    expect(find.text(lookupAppLocalizations(const Locale('ur')).homeSyncNeedsSignIn), findsOneWidget);
   });
 }

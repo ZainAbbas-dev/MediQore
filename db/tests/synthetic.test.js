@@ -49,6 +49,13 @@ describe('synthetic data (in memory)', () => {
     }
   });
 
+  test('every supervisor has a made-up phone number for the app\'s emergency call (M1 FE-2)', () => {
+    const supervisors = data.users.filter((u) => u.role === 'supervisor');
+    assert.ok(supervisors.length > 0);
+    for (const s of supervisors) assert.match(s.phone, /^0000-\d{7}$/);
+    assert.ok(data.users.filter((u) => u.role !== 'supervisor').every((u) => u.phone === null));
+  });
+
   test('a DHQ hospital per district and a THQ per tehsil, near their district, made by the admin (M10 FE-3)', () => {
     const admin = data.users.find((u) => u.role === 'admin');
     assert.deepEqual(data.hospitals.map((h) => h.facility_type).sort(), ['DHQ', 'DHQ', 'THQ', 'THQ']);

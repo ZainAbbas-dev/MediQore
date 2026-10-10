@@ -92,7 +92,7 @@ class _LiveStatusBarState extends State<LiveStatusBar> {
     return ListenableBuilder(
       listenable: services.autoSync,
       builder: (context, _) =>
-          OfflineStatusBar(isOnline: services.autoSync.online ?? services.session.isOnlineSession, pendingCount: _pending),
+          OfflineStatusBar(isOnline: services.autoSync.online ?? services.session.canSync, pendingCount: _pending),
     );
   }
 }

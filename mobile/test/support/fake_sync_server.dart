@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:mediqore/auth/pin_reset.dart';
 
 /// JSON response encoded as UTF-8, like the real API (Urdu text included).
 http.Response _json(Object body, int status) =>
@@ -11,9 +12,10 @@ http.Response _error(int status, String code) => _json({
   'error': {'code': code, 'message': code},
 }, status);
 
-/// A fake API for tests: sign-in with phone approval by one-time code
-/// (decision 0002), rotating refresh tokens, and /sync that keeps records in
-/// memory and numbers them like the real server (one global sequence).
+/// A fake API for tests: activation with the admin's one-time code and its
+/// activation secret (M1 FE-2), sign-in again on an activated phone, rotating
+/// refresh tokens, and /sync that keeps records in memory and numbers them like
+/// the real server (one global sequence).
 class FakeSyncServer {
   FakeSyncServer({this.username = 'lhw.demo', this.password = 'demo-password', this.userId = 'user-1'});
 
@@ -25,17 +27,28 @@ class FakeSyncServer {
   String areaId = 'area-1';
   String areaName = 'Demo Area 1';
 
+  /// Only LHW accounts may use the app (APP_FOR_LHWS otherwise).
+  String role = 'lhw';
+
   /// Sent at sign-in: the highest patient number used with this LHW code (M2 FE-1).
   int lastPatientNumber = 0;
   bool deactivated = false;
   bool offline = false;
 
-  /// Phones allowed to sign in without a code.
-  final Set<String> approvedDevices = {};
+  /// Phones activated for the account.
+  final Set<String> activatedDevices = {};
 
-  /// One-time codes issued for pending phones.
-  final Map<String, String> codes = {};
-  final List<String> pendingDevices = [];
+  /// The unused activation code the admin issued, if any.
+  String? activationCode;
+
+  /// The secret activation sends to the phone (32 bytes of 7, base64url), the
+  /// same as the API's shared test vector.
+  static final List<int> activationSecret = List.filled(32, 7);
+
+  /// The area supervisors sent with every session, for the emergency call.
+  List<Map<String, String>> supervisors = [
+    {'name': 'Syn Supervisor', 'phone': '0000-1112223'},
+  ];
   final Set<String> revokedRefreshTokens = {};
   final Set<String> validAccessTokens = {};
   final Set<String> validRefreshTokens = {};
@@ -54,11 +67,15 @@ class FakeSyncServer {
   int _seq = 0;
   int _tokens = 0;
 
-  /// Approves [deviceId] without the code step, as if it was approved earlier.
-  void approve(String deviceId) => approvedDevices.add(deviceId);
+  /// Marks [deviceId] activated, as if it had been activated earlier.
+  void activate(String deviceId) => activatedDevices.add(deviceId);
 
-  /// Issues a code for a pending phone, as an admin would on the portal.
-  String issueCode(String deviceId) => codes[deviceId] = '482913';
+  /// Issues an activation code, as an admin would on the portal; an earlier
+  /// unused code stops working.
+  String issueActivationCode() => activationCode = 'K7QM-4R2X';
+
+  /// The reply code the portal gives a supervisor for [challenge].
+  String replyCodeFor(String challenge) => resetReplyFor(activationSecret, challenge);
 
   /// Makes every access token expire, so the next request gets 401.
   void expireAccessTokens() => validAccessTokens.clear();
@@ -75,6 +92,7 @@ class FakeSyncServer {
       'expiresIn': '15m',
       'refreshToken': refresh,
       'refreshExpiresAt': '2026-11-01T00:00:00.000Z',
+      'supervisors': supervisors,
       'user': {
         'id': userId,
         'username': username,
@@ -95,24 +113,23 @@ class FakeSyncServer {
     urls.add(request.url);
     final body = request.body.isEmpty ? <String, dynamic>{} : jsonDecode(request.body) as Map<String, dynamic>;
 
-    if (path.endsWith('/auth/login') || path.endsWith('/auth/otp/verify')) {
+    if (path.endsWith('/auth/login') || path.endsWith('/auth/activate')) {
       if ((body['username'] as String).toLowerCase() != username.toLowerCase() || body['password'] != password) {
         return _error(401, 'INVALID_CREDENTIALS');
       }
       if (deactivated) return _error(403, 'ACCOUNT_INACTIVE');
+      if (role != 'lhw') return _error(403, 'APP_FOR_LHWS');
       final deviceId = body['deviceId'] as String?;
       if (deviceId == null) return _error(400, 'DEVICE_REQUIRED');
-      if (path.endsWith('/auth/otp/verify')) {
-        if (codes[deviceId] == null) return _error(400, 'OTP_NOT_ISSUED');
-        if (codes[deviceId] != body['code']) return _error(400, 'OTP_INVALID');
-        codes.remove(deviceId);
-        approvedDevices.add(deviceId);
-        return _json(_session(deviceId), 200);
+      if (path.endsWith('/auth/activate')) {
+        final typed = (body['activationCode'] as String).toUpperCase().replaceAll(RegExp(r'[\s-]'), '');
+        final issued = activationCode?.replaceAll('-', '');
+        if (issued == null || typed != issued) return _error(400, 'ACTIVATION_CODE_INVALID');
+        activationCode = null;
+        activatedDevices.add(deviceId);
+        return _json({..._session(deviceId), 'activationSecret': base64Url.encode(activationSecret).replaceAll('=', '')}, 200);
       }
-      if (!approvedDevices.contains(deviceId)) {
-        if (!pendingDevices.contains(deviceId)) pendingDevices.add(deviceId);
-        return _json({'status': 'otp_required', 'otp': {'channel': 'admin_issued'}}, 202);
-      }
+      if (!activatedDevices.contains(deviceId)) return _error(403, 'ACTIVATION_REQUIRED');
       return _json(_session(deviceId), 200);
     }
     if (path.endsWith('/auth/refresh')) {
@@ -135,7 +152,7 @@ class FakeSyncServer {
     if (deactivated) return _error(403, 'ACCOUNT_INACTIVE');
 
     if (path.endsWith('/sync/push')) {
-      if (!approvedDevices.contains(body['deviceId'])) return _error(403, 'DEVICE_NOT_ALLOWED');
+      if (!activatedDevices.contains(body['deviceId'])) return _error(403, 'DEVICE_NOT_ALLOWED');
       final batch = (body['records'] as List).cast<Map<String, dynamic>>();
       pushedBatches.add(batch);
       final results = [

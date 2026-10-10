@@ -19,7 +19,8 @@ const PASSWORD = process.env.DEMO_PASSWORD || 'demo-password';
 
 const USERS = [
   { username: 'admin.demo', fullName: 'Demo Admin', role: 'admin' },
-  { username: 'supervisor.demo', fullName: 'Demo Supervisor', role: 'supervisor' },
+  // The phone number is made up (0000-); the app's emergency call dials it (M1 FE-2).
+  { username: 'supervisor.demo', fullName: 'Demo Supervisor', role: 'supervisor', phone: '0000-5550000' },
   { username: 'lhw.demo', fullName: 'Demo LHW', role: 'lhw', lhwCode: 'LHW-DEMO-001' },
 ];
 
@@ -65,6 +66,7 @@ async function main() {
           [userId, user.lhwCode, areaId]);
       }
       if (user.role === 'supervisor') {
+        await client.query('UPDATE users SET phone = $2 WHERE id = $1 AND phone IS NULL', [userId, user.phone]);
         await client.query(
           `INSERT INTO supervisor_areas (supervisor_id, area_id) VALUES ($1, $2)
            ON CONFLICT (supervisor_id, area_id) WHERE deleted_at IS NULL DO NOTHING`,

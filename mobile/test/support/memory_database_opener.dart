@@ -21,7 +21,17 @@ class MemoryDatabaseOpener implements DatabaseOpener {
   }
 
   @override
-  Future<void> close(AppDatabase db) async {} // kept for the next sign-in, like the file
+  Future<void> close(AppDatabase db) async {} // kept for the next unlock, like the file
+
+  @override
+  Future<void> rekey(Uint8List oldKey, Uint8List newKey) async {
+    if (_key == null || !listEquals(_key, oldKey)) throw WrongDatabaseKey();
+    _key = newKey;
+  }
+
+  /// Makes the database as an earlier app version left it: encrypted with
+  /// [key] (its password key).
+  void useKey(Uint8List key) => _key = key;
 
   @override
   Future<void> destroy() async {

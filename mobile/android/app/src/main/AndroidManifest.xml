@@ -6,8 +6,11 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <!-- usesCleartextTraffic is false (HTTPS only, M1 FE-2) except in debug
          builds and test builds: see app/build.gradle.kts. -->
+    <!-- allowBackup is false: the encrypted database and the Keystore-wrapped
+         keys must not be copied into a cloud backup (M1 FE-2, LI-8). -->
     <application
         android:label="MediQore"
+        android:allowBackup="false"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="${usesCleartextTraffic}">
@@ -49,10 +52,11 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-        <!-- Lets flutter_tts find the phone's text-to-speech engines on Android 11+
-             (voice guidance, M3 FE-3). -->
+        <!-- Lets url_launcher open the phone's dialer for the lock screen's
+             emergency call to the supervisor (M1 FE-2). -->
         <intent>
-            <action android:name="android.intent.action.TTS_SERVICE"/>
+            <action android:name="android.intent.action.DIAL"/>
+            <data android:scheme="tel"/>
         </intent>
     </queries>
 </manifest>

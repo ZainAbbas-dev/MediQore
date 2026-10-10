@@ -1,11 +1,10 @@
 // The app's shared layout pieces: cards with a heading, label and value rows,
-// sync status chips, notices and the voice guidance mute button. Screens use
+// sync status chips and notices. Screens use
 // these so every screen looks the same in Urdu and English.
 import 'package:flutter/material.dart';
 
 import '../data/patient_repository.dart';
 import '../l10n/app_localizations.dart';
-import '../settings/app_settings.dart';
 import '../theme/app_colors.dart';
 import 'sync_status_text.dart';
 
@@ -35,7 +34,10 @@ class SectionCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -108,13 +110,24 @@ class SyncStatusChip extends StatelessWidget {
       SyncStatus.refused => (AppColors.statusProblem, AppColors.statusProblemBackground, Icons.error),
       SyncStatus.held => (AppColors.statusOffline, AppColors.statusOfflineBackground, Icons.hourglass_top),
     };
-    return StatusPill(label: syncStatusText(l10n, status) ?? l10n.syncSent, icon: icon, foreground: foreground, background: background);
+    return StatusPill(
+      label: syncStatusText(l10n, status) ?? l10n.syncSent,
+      icon: icon,
+      foreground: foreground,
+      background: background,
+    );
   }
 }
 
 /// A rounded label with an icon, for states and short facts.
 class StatusPill extends StatelessWidget {
-  const StatusPill({super.key, required this.label, required this.icon, required this.foreground, required this.background});
+  const StatusPill({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.foreground,
+    required this.background,
+  });
 
   final String label;
   final IconData icon;
@@ -196,30 +209,6 @@ class InitialAvatar extends StatelessWidget {
         trimmed.isEmpty ? '?' : trimmed.characters.first.toUpperCase(),
         style: TextStyle(fontSize: radius * 0.8, fontWeight: FontWeight.w600, height: 1.2),
       ),
-    );
-  }
-}
-
-/// M3 FE-3: the app bar button that mutes or unmutes voice guidance on a data
-/// entry form. Voice guidance exists only in Urdu (M1 FE-4), so the button is
-/// hidden in English.
-class VoiceMuteButton extends StatelessWidget {
-  const VoiceMuteButton({super.key, required this.settings});
-
-  final AppSettings settings;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return ListenableBuilder(
-      listenable: settings,
-      builder: (context, _) => !settings.voiceGuidanceAvailable
-          ? const SizedBox.shrink()
-          : IconButton(
-              icon: Icon(settings.voiceMuted ? Icons.volume_off : Icons.volume_up),
-              tooltip: settings.voiceMuted ? l10n.voiceUnmute : l10n.voiceMute,
-              onPressed: () => settings.setVoiceMuted(!settings.voiceMuted),
-            ),
     );
   }
 }

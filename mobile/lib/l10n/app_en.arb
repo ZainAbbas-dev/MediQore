@@ -191,75 +191,6 @@
       }
     }
   },
-  "voiceCheckTitle": "Urdu voice check",
-  "@voiceCheckTitle": {
-    "description": "Title of the Phase 0 screen that checks the phone's Urdu text-to-speech (P0-11)."
-  },
-  "voiceCheckIntro": "Checks whether this phone can read Urdu labels aloud. Note the results with the phone model and Android version.",
-  "@voiceCheckIntro": {
-    "description": "Explanation at the top of the voice check screen."
-  },
-  "voiceCheckLanguageAvailable": "Voice engine supports Urdu (ur-PK)",
-  "@voiceCheckLanguageAvailable": {
-    "description": "Voice check result: whether the text-to-speech engine supports Urdu."
-  },
-  "voiceCheckLanguageInstalled": "Urdu voice data is on the phone (works offline)",
-  "@voiceCheckLanguageInstalled": {
-    "description": "Voice check result: whether the Urdu voice data is installed, so it works without internet."
-  },
-  "voiceCheckUrduVoices": "Urdu voices",
-  "@voiceCheckUrduVoices": {
-    "description": "Voice check heading for the list of Urdu voices on the phone."
-  },
-  "voiceCheckDefaultEngine": "Default voice engine",
-  "@voiceCheckDefaultEngine": {
-    "description": "Voice check heading for the phone's default text-to-speech engine."
-  },
-  "voiceCheckEngines": "Voice engines on the phone",
-  "@voiceCheckEngines": {
-    "description": "Voice check heading for the list of installed text-to-speech engines."
-  },
-  "voiceCheckYes": "Yes",
-  "@voiceCheckYes": {
-    "description": "Voice check answer: yes."
-  },
-  "voiceCheckNo": "No",
-  "@voiceCheckNo": {
-    "description": "Voice check answer: no."
-  },
-  "voiceCheckUnknown": "Unknown",
-  "@voiceCheckUnknown": {
-    "description": "Voice check answer when the phone does not report a value."
-  },
-  "voiceCheckNone": "None",
-  "@voiceCheckNone": {
-    "description": "Voice check: shown when a list is empty."
-  },
-  "voiceCheckSpeak": "Speak a sample label",
-  "@voiceCheckSpeak": {
-    "description": "Button that reads a field label aloud in Urdu."
-  },
-  "voiceCheckSpoken": "Sample sent to the voice engine. Did you hear clear Urdu?",
-  "@voiceCheckSpoken": {
-    "description": "Shown after the sample label was sent to the voice engine."
-  },
-  "voiceCheckSpeakFailed": "The voice engine could not speak the sample.",
-  "@voiceCheckSpeakFailed": {
-    "description": "Shown when the voice engine refused to speak the sample."
-  },
-  "voiceCheckAgain": "Check again",
-  "@voiceCheckAgain": {
-    "description": "Button that repeats the voice check, for example after installing a voice."
-  },
-  "voiceCheckError": "Voice check failed: {reason}",
-  "@voiceCheckError": {
-    "description": "Shown when the voice engine could not be asked.",
-    "placeholders": {
-      "reason": {
-        "type": "String"
-      }
-    }
-  },
   "languageLabel": "Language",
   "@languageLabel": {
     "description": "Heading above the Urdu/English switch (M1 FE-4)."
@@ -272,21 +203,9 @@
   "@languageNameEnglish": {
     "description": "Name of the English option on the language switch. Always written in English, so an English reader can find it in either language."
   },
-  "voiceGuidanceUrduOnly": "Voice guidance works only in Urdu. Switch the app to Urdu to use it.",
-  "@voiceGuidanceUrduOnly": {
-    "description": "Shown where voice guidance would be offered while the app is in English (M1 FE-4, LI-6)."
-  },
-  "loginTitle": "Sign in",
-  "@loginTitle": {
-    "description": "Title of the login screen (M1 FE-2)."
-  },
   "loginUsername": "LHW ID",
   "@loginUsername": {
     "description": "Login field for the username, which is the LHW ID such as LHW-00001."
-  },
-  "loginSigningIn": "Signing in…",
-  "@loginSigningIn": {
-    "description": "Shown while the sign-in is checked."
   },
   "loginDownloading": "Downloading your area's records…",
   "@loginDownloading": {
@@ -296,9 +215,9 @@
   "@loginWrongPassword": {
     "description": "Login error: wrong username or password."
   },
-  "loginNeedsInternet": "The first sign-in on this phone needs the internet. Connect and try again.",
+  "loginNeedsInternet": "This step needs the internet. Connect and try again.",
   "@loginNeedsInternet": {
-    "description": "Login error: first sign-in attempted without a connection."
+    "description": "Activation or an online sign-in could not reach the server."
   },
   "loginDeactivated": "This account has been deactivated. Contact your supervisor.",
   "@loginDeactivated": {
@@ -312,7 +231,7 @@
   "@loginDeviceNotAllowed": {
     "description": "Login error: the phone is registered to another account."
   },
-  "loginOtherUserData": "This phone has records from another LHW that are not synced yet. That LHW must sign in and sync first.",
+  "loginOtherUserData": "This phone has records from another LHW that are not synced yet. She must activate this phone with her account and sync first.",
   "@loginOtherUserData": {
     "description": "Login error: another user's unsynced records are on this phone."
   },
@@ -320,58 +239,212 @@
   "@loginFailed": {
     "description": "Login error: anything else."
   },
-  "loginLockedNotice": "The app locked after a few minutes without use. Sign in again.",
+  "loginLockedNotice": "The app locked after a few minutes without use.",
   "@loginLockedNotice": {
-    "description": "Shown on the login screen after the inactivity auto-lock (M1 FE-2)."
+    "description": "Lock screen notice after the inactivity lock (M1 FE-2)."
   },
-  "loginSignedOutNotice": "Signed out.",
+  "loginSignedOutNotice": "Signed out. To use this phone again, activate it with a new activation code.",
   "@loginSignedOutNotice": {
     "description": "Shown on the login screen after signing out."
   },
-  "otpTitle": "Approve this phone",
-  "@otpTitle": {
-    "description": "Title of the one-time code screen (decision 0002)."
+  "activateTitle": "Activate this phone for the first time",
+  "@activateTitle": {
+    "description": "Title of the activation card (M1 FE-2, final design screen 1)."
   },
-  "otpIntro": "This phone has not been used with your account before. Ask your supervisor or the admin for this phone's 6-digit code and type it here.",
-  "@otpIntro": {
-    "description": "Explains why the one-time code is needed and where to get it."
+  "activateCodeLabel": "Activation code from the admin",
+  "@activateCodeLabel": {
+    "description": "Label of the activation code field."
   },
-  "otpPhoneId": "Phone ID ends in {suffix}",
-  "@otpPhoneId": {
-    "description": "Helps the supervisor find this phone on the portal.",
+  "activateButton": "Activate phone",
+  "@activateButton": {
+    "description": "Button that activates the phone."
+  },
+  "activateNote": "The internet is needed only this first time. The code works for 48 hours and only once. After that the app opens with your PIN, without the internet.",
+  "@activateNote": {
+    "description": "Note under the activation button."
+  },
+  "activateFillAll": "Fill in the LHW ID, password and activation code.",
+  "@activateFillAll": {
+    "description": "Shown when a field of the activation form is empty."
+  },
+  "activateBusy": "Activating the phone…",
+  "@activateBusy": {
+    "description": "Progress text while the phone is being activated."
+  },
+  "activateCodeInvalid": "The activation code is not correct, has expired or was already used. Ask the admin for a new code.",
+  "@activateCodeInvalid": {
+    "description": "Activation refused because of the code."
+  },
+  "loginNotLhw": "This app is for LHW accounts. Supervisors and admins use the web portal.",
+  "@loginNotLhw": {
+    "description": "A supervisor or admin account tried to activate the app."
+  },
+  "pinCreateTitle": "Create your PIN",
+  "@pinCreateTitle": {
+    "description": "Title of the screen that creates the PIN (final design screen 2)."
+  },
+  "pinCreateSubtitle": "A 6-digit PIN that opens the app without the internet",
+  "@pinCreateSubtitle": {
+    "description": "Subtitle of the PIN screens."
+  },
+  "pinStepEnter": "Step 1 of 2 · Type a PIN",
+  "@pinStepEnter": {
+    "description": "First step of creating a PIN."
+  },
+  "pinStepRepeat": "Step 2 of 2 · Type the PIN again",
+  "@pinStepRepeat": {
+    "description": "Second step of creating a PIN."
+  },
+  "pinStepCurrent": "Type your current PIN",
+  "@pinStepCurrent": {
+    "description": "First step of Change PIN."
+  },
+  "pinMismatch": "The two PINs are not the same. Start again.",
+  "@pinMismatch": {
+    "description": "The repeated PIN differs."
+  },
+  "pinCreateNote": "Do not tell anyone your PIN. If you forget it, you can make a new PIN without the internet with your supervisor's reply code.",
+  "@pinCreateNote": {
+    "description": "Note on the PIN screens."
+  },
+  "pinSaving": "Getting the app ready…",
+  "@pinSaving": {
+    "description": "Progress text while the PIN is saved and the records are downloaded."
+  },
+  "pinChangeTitle": "Change PIN",
+  "@pinChangeTitle": {
+    "description": "Settings button and title of the Change PIN screen."
+  },
+  "pinChangeWrong": "That is not your current PIN.",
+  "@pinChangeWrong": {
+    "description": "Change PIN: the current PIN was wrong."
+  },
+  "pinChanged": "Your PIN has been changed.",
+  "@pinChanged": {
+    "description": "Change PIN succeeded."
+  },
+  "pinResetNewTitle": "Create a new PIN",
+  "@pinResetNewTitle": {
+    "description": "Title when a new PIN is created after the supervisor's reply code."
+  },
+  "pinDelete": "Delete",
+  "@pinDelete": {
+    "description": "Keypad key that deletes the last digit."
+  },
+  "lockGreeting": "Assalam-o-Alaikum, {name}",
+  "@lockGreeting": {
+    "description": "Greeting on the lock screen.",
     "placeholders": {
-      "suffix": {
+      "name": {
         "type": "String"
       }
     }
   },
-  "otpCodeLabel": "6-digit code",
-  "@otpCodeLabel": {
-    "description": "Label of the one-time code field."
+  "lockPrompt": "Type your PIN to open the app",
+  "@lockPrompt": {
+    "description": "Lock screen instruction."
   },
-  "otpVerifyButton": "Approve and sign in",
-  "@otpVerifyButton": {
-    "description": "Button that checks the one-time code."
+  "lockWrongPin": "Wrong PIN. Please wait a little.",
+  "@lockWrongPin": {
+    "description": "Shown with the countdown after a wrong PIN."
   },
-  "otpBackButton": "Back to sign-in",
-  "@otpBackButton": {
-    "description": "Button that leaves the code screen."
+  "lockWaitNote": "Each wrong PIN makes the wait longer: 30 seconds, 1 minute, 5 minutes, 15 minutes. The app never locks you out and needs no internet.",
+  "@lockWaitNote": {
+    "description": "Explains the progressive delays (M1 FE-2)."
   },
-  "otpInvalid": "The code is not correct.",
-  "@otpInvalid": {
-    "description": "Code error: wrong code."
+  "lockForgotPin": "Forgot PIN?",
+  "@lockForgotPin": {
+    "description": "Opens the offline PIN reset."
   },
-  "otpLocked": "Too many wrong codes. Ask for a new code.",
-  "@otpLocked": {
-    "description": "Code error: five wrong codes; the code is void."
+  "lockFailed": "The app could not open. Try again.",
+  "@lockFailed": {
+    "description": "The PIN was right but the database could not be opened."
   },
-  "otpNotIssued": "No code has been issued for this phone, or it has expired. Ask your supervisor or the admin.",
-  "@otpNotIssued": {
-    "description": "Code error: no valid code exists for this phone."
+  "emergencyCallButton": "Emergency: call supervisor",
+  "@emergencyCallButton": {
+    "description": "Lock screen emergency button (M1 FE-2)."
   },
-  "otpNeedsInternet": "Approving the phone needs the internet.",
-  "@otpNeedsInternet": {
-    "description": "Code error: no connection."
+  "emergencyChooseSupervisor": "Call which supervisor?",
+  "@emergencyChooseSupervisor": {
+    "description": "Title of the list when the area has several supervisors."
+  },
+  "emergencyNoNumber": "No supervisor number is saved on this phone yet. It is saved when the phone syncs.",
+  "@emergencyNoNumber": {
+    "description": "No supervisor phone number known."
+  },
+  "emergencyCallFailed": "The phone could not open the dialer. Call {number} yourself.",
+  "@emergencyCallFailed": {
+    "description": "The dialer could not be opened.",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "resetTitle": "Make a new PIN",
+  "@resetTitle": {
+    "description": "Title of the PIN reset screen (final design screen 5)."
+  },
+  "resetIntro": "Without the internet: call your supervisor and do these two steps",
+  "@resetIntro": {
+    "description": "Introduction of the PIN reset screen."
+  },
+  "resetStep1": "Tell your supervisor this code",
+  "@resetStep1": {
+    "description": "PIN reset step 1."
+  },
+  "resetStep1Hint": "Your supervisor types it on the portal and tells you a reply code.",
+  "@resetStep1Hint": {
+    "description": "Under the code of step 1."
+  },
+  "resetStep2": "Type the supervisor's reply code",
+  "@resetStep2": {
+    "description": "PIN reset step 2."
+  },
+  "resetCheckButton": "Check the code and make a new PIN",
+  "@resetCheckButton": {
+    "description": "Button that checks the reply code."
+  },
+  "resetNote": "The records on the phone stay as they are. The code is checked on the phone, so no internet is needed.",
+  "@resetNote": {
+    "description": "Note on the PIN reset screen."
+  },
+  "resetCallSupervisor": "Call supervisor",
+  "@resetCallSupervisor": {
+    "description": "Button on the PIN reset screen."
+  },
+  "resetWrongReply": "This reply code is not right. Check it with your supervisor.",
+  "@resetWrongReply": {
+    "description": "The reply code did not match."
+  },
+  "signInAgainIntro": "Type your password once, with the internet on. Your records and your PIN stay as they are.",
+  "@signInAgainIntro": {
+    "description": "Introduction of the sign-in-again screen."
+  },
+  "signInAgainDone": "Signed in. Records will sync now.",
+  "@signInAgainDone": {
+    "description": "Shown after signing in again."
+  },
+  "signOutConfirmTitle": "Sign out of this phone?",
+  "@signOutConfirmTitle": {
+    "description": "Title of the sign-out confirmation."
+  },
+  "signOutConfirmText": "The records and your account are removed from this phone. To use it again, you need a new activation code from the admin.",
+  "@signOutConfirmText": {
+    "description": "Explains what sign-out does."
+  },
+  "actionCancel": "Cancel",
+  "@actionCancel": {
+    "description": "A Cancel button."
+  },
+  "signOutBlocked": "{count, plural, =1{1 record is waiting to be sent. Sync first, then sign out.} other{{count} records are waiting to be sent. Sync first, then sign out.}}",
+  "@signOutBlocked": {
+    "description": "Sign-out refused while records wait to sync.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "homeLhwCode": "LHW ID: {code}",
   "@homeLhwCode": {
@@ -391,11 +464,7 @@
       }
     }
   },
-  "homeOfflineSignIn": "Signed in without the internet. To sync, sign in again when you are connected.",
-  "@homeOfflineSignIn": {
-    "description": "Home screen note after an offline sign-in (LI-8)."
-  },
-  "homeSyncNeedsSignIn": "To sync, sign in again while connected to the internet.",
+  "homeSyncNeedsSignIn": "Your sign-in has expired, for example after a password change. Sign in again with your password to sync.",
   "@homeSyncNeedsSignIn": {
     "description": "Shown when sync needs a fresh online sign-in."
   },
@@ -403,7 +472,7 @@
   "@homeSyncOffline": {
     "description": "Shown when sync cannot reach the server."
   },
-  "homeLockButton": "Lock",
+  "homeLockButton": "Lock the app",
   "@homeLockButton": {
     "description": "Button that locks the app."
   },
@@ -712,9 +781,9 @@
   "@fileLocationSaved": {
     "description": "Shown after adding the home location from the file."
   },
-  "homeLostUnsynced": "Your password was changed. Records on this phone that had not been synced could not be opened with the new password. Records already on the server have been downloaded again.",
+  "homeLostUnsynced": "Records from the earlier app version that had not been synced could not be opened, because the password had changed. Records already on the server have been downloaded.",
   "@homeLostUnsynced": {
-    "description": "Shown after an online sign-in with a new password when unsynced records under the old key were lost (LI-8)."
+    "description": "Shown once after activation when an earlier version left unsynced records that could not be opened (LI-8)."
   },
   "visitTitle": "New visit",
   "@visitTitle": {
@@ -878,30 +947,6 @@
       }
     }
   },
-  "voiceReadingAloud": "Read aloud",
-  "@voiceReadingAloud": {
-    "description": "Screen reader label of the speaker shown on the field whose label is read aloud."
-  },
-  "voiceGuidanceLabel": "Voice guidance",
-  "@voiceGuidanceLabel": {
-    "description": "Settings: voice guidance switch."
-  },
-  "voiceGuidanceHint": "Reads the name of each field aloud on the registration and visit forms",
-  "@voiceGuidanceHint": {
-    "description": "Settings: explanation under the voice guidance switch."
-  },
-  "voiceMute": "Mute voice guidance",
-  "@voiceMute": {
-    "description": "Tooltip of the visit form button that mutes voice guidance."
-  },
-  "voiceUnmute": "Turn voice guidance on",
-  "@voiceUnmute": {
-    "description": "Tooltip of the visit form button that turns voice guidance on."
-  },
-  "voiceNoUrduVoice": "This phone has no Urdu voice yet. Open the phone's Settings → Text-to-speech output, choose Google's engine, install the Urdu voice data, then test again.",
-  "@voiceNoUrduVoice": {
-    "description": "Settings: the phone cannot speak Urdu."
-  },
   "homeSettingsSection": "Settings",
   "@homeSettingsSection": {
     "description": "Heading of the settings on the home screen."
@@ -971,25 +1016,9 @@
   "@settingsArea": {
     "description": "Settings: label of the signed-in LHW's area."
   },
-  "settingsVoiceSection": "Voice",
-  "@settingsVoiceSection": {
-    "description": "Settings: heading of the voice guidance settings."
-  },
   "settingsTestingSection": "Testing",
   "@settingsTestingSection": {
     "description": "Settings: heading of the tools shown only in test builds."
-  },
-  "voiceTestButton": "Test the voice",
-  "@voiceTestButton": {
-    "description": "Settings: button that speaks a sample Urdu sentence."
-  },
-  "voiceTestSample": "Voice guidance is on",
-  "@voiceTestSample": {
-    "description": "Settings: the sentence spoken by Test the voice (spoken in Urdu only)."
-  },
-  "voiceTestPlayed": "Did you hear the sentence in Urdu? If not, check the phone's volume.",
-  "@voiceTestPlayed": {
-    "description": "Settings: after Test the voice played the sample."
   },
   "syncSent": "Sent",
   "@syncSent": {

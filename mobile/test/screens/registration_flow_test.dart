@@ -53,7 +53,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 4000);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
-    await tester.runAsync(() => signInApproved(services, server));
+    await tester.runAsync(() => activateApp(services, server));
     server.offline = true;
     await tester.pumpWidget(MediQoreApp(services: services));
     await settle(tester);

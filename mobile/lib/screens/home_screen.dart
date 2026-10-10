@@ -1,7 +1,7 @@
 // M1 FE-2, FE-4: the first screen after sign-in (P0-7 screen 2). It shows who
 // is signed in and the sync status, and opens registration and the patient
-// list (M2). The gear icon opens the settings: language, voice guidance, lock
-// and sign-out.
+// list (M2). The gear icon opens the settings: language, Change PIN, lock and
+// sign-out.
 // M3 FE-2: records also sync on their own while online (AutoSync); the status
 // bar follows.
 import 'package:flutter/material.dart';
@@ -17,6 +17,7 @@ import '../widgets/offline_status_bar.dart';
 import 'patient_list_screen.dart';
 import 'register_screen.dart';
 import 'settings_screen.dart';
+import 'sign_in_again_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.services});
@@ -39,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _online = _services.autoSync.online ?? _services.session.isOnlineSession;
+    _online = _services.autoSync.online ?? _services.session.canSync;
     _services.autoSync.addListener(_onAutoSync);
     _refreshPending();
   }
@@ -132,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 _ProfileCard(user: user),
                 if (session.lostUnsyncedRecords) ...[gap, NoticeCard(text: l10n.homeLostUnsynced, warning: true)],
-                if (!session.isOnlineSession && _message == null) ...[gap, NoticeCard(text: l10n.homeOfflineSignIn)],
+                if (!session.canSync && !_needsSignIn) ...[gap, NoticeCard(text: l10n.homeSyncNeedsSignIn)],
                 if (user.lhwCode != null) ...[
                   const SizedBox(height: 16),
                   // M2: registration and the patient list work without the internet.
@@ -168,8 +169,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     if (_message != null) NoticeCard(text: _message!, icon: Icons.sync),
                     LargeButton(label: l10n.syncNowButton, icon: Icons.sync, secondary: true, onPressed: _busy ? null : () => _sync(l10n)),
-                    if (_needsSignIn)
-                      LargeButton(label: l10n.homeSignInAgainButton, icon: Icons.login, onPressed: () => session.lock(null)),
+                    if (_needsSignIn || !session.canSync)
+                      LargeButton(
+                        label: l10n.homeSignInAgainButton,
+                        icon: Icons.login,
+                        onPressed: () => _open(SignInAgainScreen(services: _services)),
+                      ),
                   ],
                 ),
               ],
