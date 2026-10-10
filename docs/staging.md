@@ -10,7 +10,7 @@ The roadmap's "one HTTPS staging server for supervisor reviews and demos" (Archi
 How it runs:
 
 - Render builds `db/`, `api/` and `web/` from the `dev` branch after every push.
-- Each start applies new migrations (`db`: `npm run migrate:up`), then starts the API.
+- Each start applies new migrations (`db`: `npm run migrate:up`), loads the Clinical Rules Table (`npm run rules:load`, P0-11), then starts the API.
 - The API serves the built portal (`PORTAL_DIR=../web/dist`), so the portal is at `https://<address>/` and the API at `https://<address>/api/v1`.
 - Plain HTTP is refused (M1 FE-2). Render ends TLS in front of the service (`TRUST_PROXY=1`).
 

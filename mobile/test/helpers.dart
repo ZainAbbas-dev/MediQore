@@ -60,7 +60,7 @@ AppServices testServices([
   );
 }
 
-/// The app's visit range config (assets/clinical/visit_ranges.json), read
+/// The visit form ranges from the bundled Clinical Rules Table, read
 /// without the asset bundle.
 final VisitRanges visitRanges = VisitRanges.fromJson(
   jsonDecode(File(VisitRanges.asset).readAsStringSync()) as Map<String, dynamic>,

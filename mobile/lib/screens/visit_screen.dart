@@ -2,8 +2,9 @@
 // with their units, symptoms as checkboxes and dropdowns, saved on the phone
 // with no internet needed. Values that are impossible cannot be saved; values
 // outside the usual range are saved only after the LHW confirms them. The
-// ranges come from assets/clinical/visit_ranges.json. In Urdu, each field's
-// label is read aloud when it gets focus, unless voice guidance is muted.
+// ranges come from the Clinical Rules Table (assets/clinical/clinical-rules.json).
+// In Urdu, each field's label is read aloud when it gets focus, unless voice
+// guidance is muted.
 import 'package:flutter/material.dart';
 
 import '../app_services.dart';

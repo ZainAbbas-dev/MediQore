@@ -1,6 +1,8 @@
-// M3 FE-1: range checks on the visit form, read from the versioned config file
-// assets/clinical/visit_ranges.json (CLAUDE.md: clinical rules live in JSON
-// config, never in code), so clinical advisors can review them.
+// M3 FE-1: range checks on the visit form, read from the visit_entry_checks
+// section of the Clinical Rules Table (P0-11). The app bundles a copy of
+// clinical-rules/clinical-rules.json as assets/clinical/clinical-rules.json
+// (CLAUDE.md: clinical rules live in that table, never in code), so the Clinical
+// Advisor reviews one file and the server checks the same bounds.
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
@@ -38,21 +40,26 @@ class VitalRange {
 class VisitRanges {
   const VisitRanges({required this.version, required this.vitals});
 
-  factory VisitRanges.fromJson(Map<String, dynamic> json) => VisitRanges(
-        version: json['version'] as int,
-        vitals: {
-          for (final MapEntry(:key, :value) in (json['vitals'] as Map<String, dynamic>).entries)
-            key: VitalRange.fromJson(value as Map<String, dynamic>),
-        },
-      );
+  /// Reads the visit_entry_checks section of the whole Clinical Rules Table.
+  factory VisitRanges.fromJson(Map<String, dynamic> json) {
+    final checks = json['visit_entry_checks'] as Map<String, dynamic>;
+    return VisitRanges(
+      version: json['version'] as String,
+      vitals: {
+        for (final MapEntry(:key, :value) in (checks['vitals'] as Map<String, dynamic>).entries)
+          key: VitalRange.fromJson(value as Map<String, dynamic>),
+      },
+    );
+  }
 
-  static const String asset = 'assets/clinical/visit_ranges.json';
+  static const String asset = 'assets/clinical/clinical-rules.json';
 
   /// Reads the config bundled with the app.
   static Future<VisitRanges> load([AssetBundle? bundle]) async =>
       VisitRanges.fromJson(jsonDecode(await (bundle ?? rootBundle).loadString(asset)) as Map<String, dynamic>);
 
-  final int version;
+  /// The Clinical Rules Table version, for example 0.1.0.
+  final String version;
   final Map<String, VitalRange> vitals;
 
   VitalRange operator [](String field) => vitals[field] ?? (throw ArgumentError.value(field, 'field', 'no range in $asset'));

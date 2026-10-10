@@ -10,10 +10,11 @@
     "migrate:create": "node-pg-migrate create --migration-file-language sql",
     "test": "node --test",
     "seed:demo": "node seeds/demo.js",
-    "seed:synthetic": "node seeds/synthetic/index.js"
+    "seed:synthetic": "node seeds/synthetic/index.js",
+    "rules:load": "node seeds/clinical-rules.js"
   },
   "engines": {
-    "node": ">=20.19"
+    "node": ">=24"
   },
   "devDependencies": {
     "bcryptjs": "^3.0.3",

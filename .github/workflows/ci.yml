@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   web:
-    name: web (Node.js 20)
+    name: web (Node.js 24)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -38,7 +38,7 @@ jobs:
       - uses: actions/setup-node@v5
         if: steps.manifest.outputs.found == 'true'
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Install dependencies
         if: steps.manifest.outputs.found == 'true'
@@ -58,7 +58,7 @@ jobs:
         run: npm run build --if-present
 
   api:
-    name: api (Node.js 20 + PostgreSQL 15)
+    name: api (Node.js 24 + PostgreSQL 15)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -98,7 +98,7 @@ jobs:
       - uses: actions/setup-node@v5
         if: steps.manifest.outputs.found == 'true'
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Apply the database migrations
         if: steps.manifest.outputs.found == 'true'
@@ -161,7 +161,7 @@ jobs:
       - uses: actions/setup-node@v5
         if: steps.manifest.outputs.found == 'true'
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Install dependencies
         if: steps.manifest.outputs.found == 'true'
@@ -184,6 +184,27 @@ jobs:
         run: |
           npx node-pg-migrate down "$(ls migrations | wc -l)"
           npm run migrate:up
+
+      - name: Load the Clinical Rules Table
+        if: steps.manifest.outputs.found == 'true'
+        run: npm run rules:load
+
+  clinical-rules:
+    name: clinical-rules (Node.js 24)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: clinical-rules
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      # The table's checks and the shared test cases (P0-11); no dependencies.
+      - name: Test
+        run: node --test
 
   ml:
     name: ml (Python 3.11)

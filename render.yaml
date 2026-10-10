@@ -4,7 +4,8 @@
 # One web service serves the REST API under /api/v1 and the built portal on the
 # same HTTPS address. The database is PostgreSQL on Neon: its connection string
 # is entered in the Render dashboard (DATABASE_URL) and never committed.
-# Each start applies new migrations first. Synthetic data only (LI-10).
+# Each start applies new migrations and loads the Clinical Rules Table first.
+# Synthetic data only (LI-10).
 services:
   - type: web
     name: mediqore-staging
@@ -16,10 +17,10 @@ services:
       cd db && npm ci --include=dev &&
       cd ../api && npm ci --omit=dev &&
       cd ../web && npm ci --include=dev && npm run build
-    startCommand: cd db && npm run migrate:up && cd ../api && npm start
+    startCommand: cd db && npm run migrate:up && npm run rules:load && cd ../api && npm start
     envVars:
       - key: NODE_VERSION
-        value: "20"
+        value: "24"
       - key: NODE_ENV
         value: production
       # Render ends TLS in front of the service: trust its proxy so the API

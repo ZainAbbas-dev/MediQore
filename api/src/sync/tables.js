@@ -1,5 +1,7 @@
 const Joi = require('joi');
 
+const { visit_entry_checks: { vitals: VISIT_ENTRY_CHECKS } } = require('../../../clinical-rules/clinical-rules.json');
+
 // Tables that devices may push and pull through /sync, with the fields the
 // device sends (camelCase) and the column each maps to. Only tables listed here
 // can be synced, and their names are the only identifiers ever placed in SQL.
@@ -23,11 +25,15 @@ const reference = () => Joi.string().guid({ version: 'uuidv4' }).required();
 const count = () => Joi.number().integer().min(0).max(30).default(0);
 const flag = () => Joi.boolean().default(false);
 
-// A vital sign in its stored unit. The bounds only refuse impossible values;
-// implausible ones (for example systolic BP outside 60-250) are confirmed in the
-// app, whose ranges live in a versioned config file.
-const vital = (min, max, decimals = 0) =>
-  (decimals ? Joi.number().precision(decimals) : Joi.number().integer()).min(min).max(max).allow(null).default(null);
+// A vital sign in its stored unit. Its bounds are the "allowed" range in the
+// Clinical Rules Table (clinical-rules/, P0-11), the same table the app reads, so
+// a visit saved offline is never refused at sync. They only refuse impossible
+// values; implausible ones (for example systolic BP outside 60-250) are
+// confirmed in the app.
+const vital = (field, decimals = 0) => {
+  const [min, max] = VISIT_ENTRY_CHECKS[field].allowed;
+  return (decimals ? Joi.number().precision(decimals) : Joi.number().integer()).min(min).max(max).allow(null).default(null);
+};
 
 // A calendar date as YYYY-MM-DD (DATE columns are read back as the same text, see db/pool.js).
 const calendarDate = () =>
@@ -119,12 +125,12 @@ const TABLES = {
     fields: {
       pregnancyId: { column: 'pregnancy_id', schema: reference() },
       visitedAt: { column: 'visited_at', type: 'timestamp', schema: Joi.date().iso().required() },
-      systolicBpMmhg: { column: 'systolic_bp_mmhg', type: 'number', schema: vital(20, 300) },
-      diastolicBpMmhg: { column: 'diastolic_bp_mmhg', type: 'number', schema: vital(10, 200) },
-      weightKg: { column: 'weight_kg', type: 'number', schema: vital(10, 250, 2) },
-      temperatureC: { column: 'temperature_c', type: 'number', schema: vital(25, 45, 1) },
-      pulseBpm: { column: 'pulse_bpm', type: 'number', schema: vital(20, 250) },
-      bloodSugarMmolL: { column: 'blood_sugar_mmol_l', type: 'number', schema: vital(0.5, 50, 1) },
+      systolicBpMmhg: { column: 'systolic_bp_mmhg', type: 'number', schema: vital('systolicBpMmhg') },
+      diastolicBpMmhg: { column: 'diastolic_bp_mmhg', type: 'number', schema: vital('diastolicBpMmhg') },
+      weightKg: { column: 'weight_kg', type: 'number', schema: vital('weightKg', 2) },
+      temperatureC: { column: 'temperature_c', type: 'number', schema: vital('temperatureC', 1) },
+      pulseBpm: { column: 'pulse_bpm', type: 'number', schema: vital('pulseBpm') },
+      bloodSugarMmolL: { column: 'blood_sugar_mmol_l', type: 'number', schema: vital('bloodSugarMmolL', 1) },
       fetalMovement: {
         column: 'fetal_movement',
         schema: Joi.string().valid('normal', 'reduced', 'absent').allow(null).default(null),

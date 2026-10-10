@@ -63,7 +63,7 @@ The app syncs with a central server whenever a connection is available. Supervis
 | Part | Folder | Stack | Status |
 |---|---|---|---|
 | LHW Android app (Modules 1–9) | [`mobile/`](mobile/) | Flutter 3.x, Drift + SQLCipher, ONNX Runtime | Urdu shell and widget kit (P0-2); local database, outbox and sync (P0-6); sign-in, phone approval, offline sign-in and auto-lock (M1); registration, patient list and pregnancy file (M2); encrypted database, visit form, automatic sync and voice guidance (M3) |
-| REST API | [`api/`](api/) | Node.js 20 + Express, JWT, Joi | Skeleton (P0-3); `/sync` push/pull (P0-6); login with phone approval, refresh tokens, LHW accounts, phone approvals (M1); registrations through `/sync` and `GET /women` (M2); visits through `/sync`, the same-day conflict queue and the dashboard summary (M3); role permissions, admin panel, audit log, LHW activity and map filters (M10 base) |
+| REST API | [`api/`](api/) | Node.js 24 LTS + Express 5, JWT, Joi | Skeleton (P0-3); `/sync` push/pull (P0-6); login with phone approval, refresh tokens, LHW accounts, phone approvals (M1); registrations through `/sync` and `GET /women` (M2); visits through `/sync`, the same-day conflict queue and the dashboard summary (M3); role permissions, admin panel, audit log, LHW activity and map filters (M10 base) |
 | Database | [`db/`](db/) | PostgreSQL 15 migrations and synthetic seed scripts | Schema v1 for all ten modules (P0-4); demo seed; synthetic data generator (P0-8); LHW ID numbering and the previous area after a reassignment (M1); held conflicts and hospitals in the synthetic data (M3, M10) |
 | Supervisor and admin portal (Module 10) | [`web/`](web/) | React 18 + Leaflet.js | Login, auth guard, sidebar layout, map dashboard (P0-5); LHW accounts and phone approvals (M1); registered women (M2); sync conflict review queue, visits on the dashboard (M3); LHW activity, map filters and auto-refresh, admin panel and audit log (M10 base) |
 | ML pipeline and analytics worker | [`ml/`](ml/) | Python 3.11, scikit-learn, SHAP, sklearn2onnx | Dataset download and exploratory notebook (P0-10); training in Phase 2 |
@@ -125,7 +125,8 @@ Each part's `CLAUDE.md` lists its full set of commands.
   ```powershell
   cd db; npm install; Copy-Item .env.example .env   # set DATABASE_URL
   npm run migrate:up                                  # create or upgrade the schema
-  npm test                                            # schema and generator checks
+  npm run rules:load                                  # load the Clinical Rules Table (P0-11)
+  npm test                                            # schema, generator and rules-loader checks
   npm run seed:synthetic                              # synthetic districts, LHWs, households, pregnancies and visits
   ```
   - Schema overview and design decisions: [docs/schema-v1.md](docs/schema-v1.md).

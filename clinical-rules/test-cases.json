@@ -1,0 +1,77 @@
+{
+  "description": "Shared test cases for the Clinical Rules Table (one or more per rule). The app's and the API's rule code must give the same results. Visits use the sync field names; a missing field is unanswered.",
+  "rules_version": "0.1.0",
+  "maternal_visits": [
+    { "name": "healthy visit", "visit": { "systolicBpMmhg": 118, "diastolicBpMmhg": 76, "temperatureC": 36.8, "fetalMovement": "normal", "anaemiaSigns": "none", "bleeding": false, "swelling": false, "convulsions": false, "severeHeadache": false, "blurredVision": false, "severeAbdominalPain": false, "fastBreathing": false, "feverWithWeakness": false }, "result": "none", "triggered": [], "flags": [] },
+    { "name": "systolic 160 is severe hypertension", "visit": { "systolicBpMmhg": 160, "diastolicBpMmhg": 95 }, "result": "emergency", "triggered": ["severe_hypertension", "raised_bp"], "flags": [] },
+    { "name": "diastolic 110 is severe hypertension", "visit": { "systolicBpMmhg": 150, "diastolicBpMmhg": 110 }, "result": "emergency", "triggered": ["severe_hypertension", "raised_bp"], "flags": [] },
+    { "name": "159/109 is not severe hypertension", "visit": { "systolicBpMmhg": 159, "diastolicBpMmhg": 109 }, "result": "yellow", "triggered": ["raised_bp"], "flags": [] },
+    { "name": "raised BP with severe headache", "visit": { "systolicBpMmhg": 142, "diastolicBpMmhg": 88, "severeHeadache": true }, "result": "emergency", "triggered": ["raised_bp_with_symptom", "raised_bp"], "flags": [] },
+    { "name": "raised BP with blurred vision", "visit": { "systolicBpMmhg": 130, "diastolicBpMmhg": 92, "blurredVision": true }, "result": "emergency", "triggered": ["raised_bp_with_symptom", "raised_bp"], "flags": [] },
+    { "name": "raised BP with upper abdominal pain", "visit": { "systolicBpMmhg": 140, "diastolicBpMmhg": 90, "severeAbdominalPain": true }, "result": "emergency", "triggered": ["raised_bp_with_symptom", "severe_abdominal_pain", "raised_bp"], "flags": [] },
+    { "name": "raised BP alone is at least yellow", "visit": { "systolicBpMmhg": 140, "diastolicBpMmhg": 80 }, "result": "yellow", "triggered": ["raised_bp"], "flags": [] },
+    { "name": "139/89 is not raised BP", "visit": { "systolicBpMmhg": 139, "diastolicBpMmhg": 89 }, "result": "none", "triggered": [], "flags": [] },
+    { "name": "vaginal bleeding", "visit": { "systolicBpMmhg": 110, "diastolicBpMmhg": 70, "bleeding": true }, "result": "emergency", "triggered": ["vaginal_bleeding"], "flags": [] },
+    { "name": "convulsions", "visit": { "convulsions": true }, "result": "emergency", "triggered": ["convulsions"], "flags": [] },
+    { "name": "severe headache with blurred vision and normal BP", "visit": { "systolicBpMmhg": 115, "diastolicBpMmhg": 75, "severeHeadache": true, "blurredVision": true }, "result": "emergency", "triggered": ["severe_headache_with_blurred_vision"], "flags": [] },
+    { "name": "severe headache alone with normal BP", "visit": { "systolicBpMmhg": 115, "diastolicBpMmhg": 75, "severeHeadache": true }, "result": "none", "triggered": [], "flags": [] },
+    { "name": "severe abdominal pain", "visit": { "severeAbdominalPain": true }, "result": "emergency", "triggered": ["severe_abdominal_pain"], "flags": [] },
+    { "name": "fast or difficult breathing", "visit": { "fastBreathing": true }, "result": "emergency", "triggered": ["fast_or_difficult_breathing"], "flags": [] },
+    { "name": "fever with weakness", "visit": { "temperatureC": 37.6, "feverWithWeakness": true }, "result": "emergency", "triggered": ["fever_with_weakness"], "flags": [] },
+    { "name": "high fever with reduced fetal movement", "visit": { "temperatureC": 38.0, "fetalMovement": "reduced" }, "result": "emergency", "triggered": ["high_fever_with_danger_sign", "absent_or_reduced_fetal_movement"], "flags": [] },
+    { "name": "high fever alone", "visit": { "temperatureC": 38.6 }, "result": "none", "triggered": [], "flags": [] },
+    { "name": "absent fetal movement", "visit": { "fetalMovement": "absent" }, "result": "emergency", "triggered": ["absent_or_reduced_fetal_movement"], "flags": [] },
+    { "name": "severe anaemia signs", "visit": { "anaemiaSigns": "severe" }, "result": "emergency", "triggered": ["severe_anaemia_signs"], "flags": [] },
+    { "name": "some anaemia signs only", "visit": { "anaemiaSigns": "present" }, "result": "none", "triggered": [], "flags": [] },
+    { "name": "swelling is a flag only", "visit": { "systolicBpMmhg": 120, "diastolicBpMmhg": 80, "swelling": true }, "result": "none", "triggered": [], "flags": ["swelling"] },
+    { "name": "unanswered checklist raises nothing", "visit": {}, "result": "none", "triggered": [], "flags": [] }
+  ],
+  "final_levels": [
+    { "model": "low", "rule_result": "emergency", "level": "red" },
+    { "model": "low", "rule_result": "yellow", "level": "yellow" },
+    { "model": "low", "rule_result": "none", "level": "green" },
+    { "model": "mid", "rule_result": "none", "level": "yellow" },
+    { "model": "high", "rule_result": "yellow", "level": "red" },
+    { "model": "high", "rule_result": "none", "level": "red" }
+  ],
+  "obstetric_histories": [
+    { "history": { "age": 26, "previousPregnancies": 2, "previousCSections": 0, "stillbirths": 0, "knownConditions": null }, "flags": [] },
+    { "history": { "age": 31, "previousPregnancies": 3, "previousCSections": 1, "stillbirths": 0, "knownConditions": "" }, "flags": ["previous_c_section"] },
+    { "history": { "age": 36, "previousPregnancies": 5, "previousCSections": 0, "stillbirths": 1, "knownConditions": "asthma" }, "flags": ["previous_stillbirth", "grand_multiparity", "known_medical_condition", "advanced_maternal_age"] },
+    { "history": { "age": 17, "previousPregnancies": 0, "previousCSections": 0, "stillbirths": 0, "knownConditions": null }, "flags": ["adolescent_pregnancy"] }
+  ],
+  "haemoglobin": [
+    { "hb_g_dl": 6.9, "level": "severe" },
+    { "hb_g_dl": 7.0, "level": "moderate" },
+    { "hb_g_dl": 9.9, "level": "moderate" },
+    { "hb_g_dl": 10.0, "level": "mild" },
+    { "hb_g_dl": 10.9, "level": "mild" },
+    { "hb_g_dl": 11.0, "level": "none" }
+  ],
+  "pregnancy_outcomes": [
+    { "live_birth": true, "gestational_weeks": 26, "type": "live_birth" },
+    { "live_birth": false, "gestational_weeks": 28, "type": "stillbirth" },
+    { "live_birth": false, "gestational_weeks": 27, "type": "miscarriage" }
+  ],
+  "muac": [
+    { "muac_mm": 114, "oedema": false, "class": "sam" },
+    { "muac_mm": 115, "oedema": false, "class": "mam" },
+    { "muac_mm": 124, "oedema": false, "class": "mam" },
+    { "muac_mm": 125, "oedema": false, "class": "normal" },
+    { "muac_mm": 140, "oedema": true, "class": "sam" }
+  ],
+  "imci_breathing": [
+    { "age_months": 6, "breaths_per_minute": 50, "chest_indrawing": false, "general_danger_signs": [], "class": "pneumonia" },
+    { "age_months": 6, "breaths_per_minute": 49, "chest_indrawing": false, "general_danger_signs": [], "class": "cough_or_cold" },
+    { "age_months": 12, "breaths_per_minute": 40, "chest_indrawing": false, "general_danger_signs": [], "class": "pneumonia" },
+    { "age_months": 30, "breaths_per_minute": 39, "chest_indrawing": false, "general_danger_signs": [], "class": "cough_or_cold" },
+    { "age_months": 30, "breaths_per_minute": 32, "chest_indrawing": true, "general_danger_signs": [], "class": "pneumonia" },
+    { "age_months": 30, "breaths_per_minute": 32, "chest_indrawing": false, "general_danger_signs": ["vomits_everything"], "class": "severe_pneumonia_or_very_severe_disease" }
+  ],
+  "imci_dehydration": [
+    { "signs": ["lethargic_or_unconscious", "sunken_eyes"], "class": "severe_dehydration" },
+    { "signs": ["restless_or_irritable", "drinks_eagerly_thirsty"], "class": "some_dehydration" },
+    { "signs": ["sunken_eyes"], "class": "no_dehydration" },
+    { "signs": [], "class": "no_dehydration" }
+  ]
+}

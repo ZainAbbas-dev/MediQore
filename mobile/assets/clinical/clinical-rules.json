@@ -1,0 +1,340 @@
+{
+  "name": "MediQore Clinical Rules Table",
+  "version": "0.1.0",
+  "status": "pending clinical review",
+  "effective_from": "2026-10-09",
+  "notice": "Version 0 for the prototype on synthetic data only (LI-10). Every value is a WHO-referenced default that the Clinical Advisor has not yet reviewed. Do not use with real patients until the table is signed (M4 FE-4, LI-12).",
+  "sign_off": {
+    "clinical_advisor": null,
+    "signed_on": null
+  },
+  "units": {
+    "blood_pressure": "mmHg",
+    "pulse": "beats/min",
+    "temperature": "°C",
+    "blood_sugar": "mmol/L",
+    "haemoglobin": "g/dL",
+    "weight": "kg",
+    "muac": "mm",
+    "height": "cm",
+    "respiratory_rate": "breaths/min"
+  },
+  "references": {
+    "who_pcpnc_2015": "WHO. Pregnancy, childbirth, postpartum and newborn care: a guide for essential practice, 3rd edition. Geneva: WHO; 2015.",
+    "who_mcpc_2017": "WHO. Managing complications in pregnancy and childbirth: a guide for midwives and doctors, 2nd edition. Geneva: WHO; 2017.",
+    "who_anc_2016": "WHO. WHO recommendations on antenatal care for a positive pregnancy experience. Geneva: WHO; 2016.",
+    "who_hb_2011": "WHO. Haemoglobin concentrations for the diagnosis of anaemia and assessment of severity (WHO/NMH/NHD/MNM/11.1). Geneva: WHO; 2011.",
+    "who_hb_2024": "WHO. Guideline on haemoglobin cutoffs to define anaemia in individuals and populations. Geneva: WHO; 2024.",
+    "who_tetanus_2017": "WHO. Tetanus vaccines: WHO position paper, February 2017. Weekly Epidemiological Record 2017;92(6):53-76.",
+    "who_stillbirth_2016": "WHO. Making every baby count: audit and review of stillbirths and neonatal deaths. Geneva: WHO; 2016 (stillbirth at 28 or more completed weeks for international comparison).",
+    "nhsrc_nip_2022": "Ministry of National Health Services, Regulations and Coordination (NHSRC). National Immunization Policy 2022. Islamabad: Government of Pakistan; 2022.",
+    "who_unicef_sam_2009": "WHO and UNICEF. WHO child growth standards and the identification of severe acute malnutrition in infants and children: a joint statement. Geneva: WHO; 2009.",
+    "who_sam_2013": "WHO. Guideline: updates on the management of severe acute malnutrition in infants and children. Geneva: WHO; 2013.",
+    "who_growth_2006": "WHO Multicentre Growth Reference Study Group. WHO Child Growth Standards: length/height-for-age, weight-for-age, weight-for-length, weight-for-height and body mass index-for-age. Geneva: WHO; 2006.",
+    "who_imci_2014": "WHO. Integrated Management of Childhood Illness: chart booklet. Geneva: WHO; 2014.",
+    "roadmap": "MediQore Full-Stack Implementation Roadmap, 10 Oct 2026 (Module 3: range checks to catch typing errors)."
+  },
+  "visit_entry_checks": {
+    "description": "Typing-error checks on the visit form (M3 FE-1). A value outside 'allowed' cannot be saved and the server refuses it. A value inside 'allowed' but outside 'plausible' is saved only after the LHW confirms it.",
+    "reference": "roadmap",
+    "review_note": "Only systolic BP 60-250 comes from the roadmap; the other ranges are proposals for the Clinical Advisor.",
+    "vitals": {
+      "systolicBpMmhg": { "unit": "mmHg", "decimals": 0, "allowed": [20, 300], "plausible": [60, 250] },
+      "diastolicBpMmhg": { "unit": "mmHg", "decimals": 0, "allowed": [10, 200], "plausible": [30, 150] },
+      "weightKg": { "unit": "kg", "decimals": 1, "allowed": [10, 250], "plausible": [30, 150] },
+      "temperatureC": { "unit": "°C", "decimals": 1, "allowed": [25, 45], "plausible": [34, 42] },
+      "pulseBpm": { "unit": "beats/min", "decimals": 0, "allowed": [20, 250], "plausible": [40, 180] },
+      "bloodSugarMmolL": { "unit": "mmol/L", "decimals": 1, "allowed": [0.5, 50], "plausible": [2, 30] }
+    },
+    "pulse_counter": {
+      "description": "When the BP device shows no pulse, the LHW taps once per beat for this many seconds and the app multiplies the count (M3 FE-1).",
+      "count_seconds": 30,
+      "multiplier": 2
+    },
+    "blood_sugar_conversion": {
+      "description": "A reading typed in mg/dL is stored in mmol/L: mmol/L = mg/dL / factor.",
+      "mg_dl_per_mmol_l": 18.0
+    }
+  },
+  "maternal_risk": {
+    "description": "Danger-sign rules checked on the phone after every visit, independently of the model (M4 FE-4). The final level is always the higher of the model result and the rule result.",
+    "levels": ["green", "yellow", "red"],
+    "model_class_to_level": { "low": "green", "mid": "yellow", "high": "red" },
+    "emergency_level": "red",
+    "fields": {
+      "systolicBpMmhg": "number",
+      "diastolicBpMmhg": "number",
+      "temperatureC": "number",
+      "fetalMovement": ["normal", "reduced", "absent"],
+      "anaemiaSigns": ["none", "present", "severe"],
+      "bleeding": "boolean",
+      "swelling": "boolean",
+      "convulsions": "boolean",
+      "severeHeadache": "boolean",
+      "blurredVision": "boolean",
+      "severeAbdominalPain": "boolean",
+      "fastBreathing": "boolean",
+      "feverWithWeakness": "boolean"
+    },
+    "rules": [
+      {
+        "id": "severe_hypertension",
+        "description": "Systolic BP 160 mmHg or above, or diastolic BP 110 mmHg or above.",
+        "result": "emergency",
+        "when": { "any": [
+          { "field": "systolicBpMmhg", "op": ">=", "value": 160 },
+          { "field": "diastolicBpMmhg", "op": ">=", "value": 110 }
+        ] },
+        "reference": "who_mcpc_2017"
+      },
+      {
+        "id": "raised_bp_with_symptom",
+        "description": "BP 140/90 mmHg or above together with severe headache, blurred vision or severe/upper abdominal pain.",
+        "result": "emergency",
+        "when": { "all": [
+          { "any": [
+            { "field": "systolicBpMmhg", "op": ">=", "value": 140 },
+            { "field": "diastolicBpMmhg", "op": ">=", "value": 90 }
+          ] },
+          { "any": [
+            { "field": "severeHeadache", "op": "==", "value": true },
+            { "field": "blurredVision", "op": "==", "value": true },
+            { "field": "severeAbdominalPain", "op": "==", "value": true }
+          ] }
+        ] },
+        "reference": "who_mcpc_2017"
+      },
+      {
+        "id": "vaginal_bleeding",
+        "description": "Vaginal bleeding.",
+        "result": "emergency",
+        "when": { "field": "bleeding", "op": "==", "value": true },
+        "reference": "who_pcpnc_2015"
+      },
+      {
+        "id": "convulsions",
+        "description": "Convulsions or fits.",
+        "result": "emergency",
+        "when": { "field": "convulsions", "op": "==", "value": true },
+        "reference": "who_pcpnc_2015"
+      },
+      {
+        "id": "severe_headache_with_blurred_vision",
+        "description": "Severe headache with blurred vision.",
+        "result": "emergency",
+        "when": { "all": [
+          { "field": "severeHeadache", "op": "==", "value": true },
+          { "field": "blurredVision", "op": "==", "value": true }
+        ] },
+        "reference": "who_pcpnc_2015"
+      },
+      {
+        "id": "severe_abdominal_pain",
+        "description": "Severe or upper abdominal pain.",
+        "result": "emergency",
+        "when": { "field": "severeAbdominalPain", "op": "==", "value": true },
+        "reference": "who_pcpnc_2015"
+      },
+      {
+        "id": "fast_or_difficult_breathing",
+        "description": "Fast or difficult breathing.",
+        "result": "emergency",
+        "when": { "field": "fastBreathing", "op": "==", "value": true },
+        "reference": "who_pcpnc_2015"
+      },
+      {
+        "id": "fever_with_weakness",
+        "description": "Fever and too weak to get out of bed.",
+        "result": "emergency",
+        "when": { "field": "feverWithWeakness", "op": "==", "value": true },
+        "reference": "who_pcpnc_2015"
+      },
+      {
+        "id": "high_fever_with_danger_sign",
+        "description": "Temperature 38 °C or above together with another danger sign.",
+        "result": "emergency",
+        "when": { "all": [
+          { "field": "temperatureC", "op": ">=", "value": 38.0 },
+          { "any": [
+            { "field": "bleeding", "op": "==", "value": true },
+            { "field": "convulsions", "op": "==", "value": true },
+            { "field": "severeHeadache", "op": "==", "value": true },
+            { "field": "blurredVision", "op": "==", "value": true },
+            { "field": "severeAbdominalPain", "op": "==", "value": true },
+            { "field": "fastBreathing", "op": "==", "value": true },
+            { "field": "feverWithWeakness", "op": "==", "value": true },
+            { "field": "fetalMovement", "op": "in", "value": ["reduced", "absent"] },
+            { "field": "anaemiaSigns", "op": "==", "value": "severe" }
+          ] }
+        ] },
+        "reference": "who_pcpnc_2015"
+      },
+      {
+        "id": "absent_or_reduced_fetal_movement",
+        "description": "Absent or markedly reduced fetal movement. The form's 'reduced' option means markedly reduced.",
+        "result": "emergency",
+        "when": { "field": "fetalMovement", "op": "in", "value": ["reduced", "absent"] },
+        "reference": "who_pcpnc_2015"
+      },
+      {
+        "id": "severe_anaemia_signs",
+        "description": "Severe anaemia signs (for example very pale palms or inner eyelids with breathlessness).",
+        "result": "emergency",
+        "when": { "field": "anaemiaSigns", "op": "==", "value": "severe" },
+        "reference": "who_pcpnc_2015"
+      },
+      {
+        "id": "raised_bp",
+        "description": "BP 140/90 mmHg or above on its own sets the level to at least Yellow, with a facility check.",
+        "result": "yellow",
+        "facility_check_within_hours": null,
+        "review_note": "The scope leaves the time for the facility check to the approved protocol: the Clinical Advisor sets facility_check_within_hours.",
+        "when": { "any": [
+          { "field": "systolicBpMmhg", "op": ">=", "value": 140 },
+          { "field": "diastolicBpMmhg", "op": ">=", "value": 90 }
+        ] },
+        "reference": "who_mcpc_2017"
+      }
+    ],
+    "flags": [
+      {
+        "id": "swelling",
+        "type": "swelling",
+        "description": "Swelling is recorded and shown as a flag; it does not change the risk level.",
+        "changes_level": false,
+        "when": { "field": "swelling", "op": "==", "value": true },
+        "reference": "who_pcpnc_2015"
+      }
+    ]
+  },
+  "anaemia": {
+    "description": "Anaemia flag from a verified haemoglobin value with its date and source (M6 FE-2). The flag never changes the risk colour unless the signed table says so.",
+    "changes_level": false,
+    "bands_g_dl": [
+      { "level": "severe", "below": 7.0 },
+      { "level": "moderate", "from": 7.0, "below": 10.0 },
+      { "level": "mild", "from": 10.0, "below": 11.0 },
+      { "level": "none", "from": 11.0 }
+    ],
+    "references": ["who_hb_2011", "who_hb_2024"],
+    "review_note": "WHO 2011 bands for pregnant women. The 2024 WHO guideline (who_hb_2024) uses 10.5 g/dL instead of 11.0 in the second trimester; the Clinical Advisor chooses which to apply."
+  },
+  "obstetric_history_flags": {
+    "description": "Risk-factor flags from the obstetric history and age at registration (M2 FE-2). They are shown on the profile and result screens and never change the risk colour unless the signed table says so.",
+    "changes_level": false,
+    "fields": {
+      "age": "number",
+      "previousPregnancies": "number",
+      "previousCSections": "number",
+      "stillbirths": "number",
+      "knownConditions": "text"
+    },
+    "flags": [
+      { "id": "previous_c_section", "description": "One or more previous C-sections.", "when": { "field": "previousCSections", "op": ">=", "value": 1 }, "reference": "who_mcpc_2017" },
+      { "id": "previous_stillbirth", "description": "One or more previous stillbirths.", "when": { "field": "stillbirths", "op": ">=", "value": 1 }, "reference": "who_anc_2016" },
+      { "id": "grand_multiparity", "description": "Five or more previous pregnancies.", "when": { "field": "previousPregnancies", "op": ">=", "value": 5 }, "reference": "who_mcpc_2017" },
+      { "id": "known_medical_condition", "description": "A known medical condition was recorded.", "when": { "field": "knownConditions", "op": "present" }, "reference": "who_anc_2016" },
+      { "id": "adolescent_pregnancy", "description": "Age under 18 at registration.", "when": { "field": "age", "op": "<", "value": 18 }, "reference": "who_anc_2016" },
+      { "id": "advanced_maternal_age", "description": "Age 35 or above at registration.", "when": { "field": "age", "op": ">=", "value": 35 }, "reference": "who_anc_2016" }
+    ],
+    "review_note": "The scope names 'Previous C-section' as an example. The other flags and their cut-offs are proposals for the Clinical Advisor."
+  },
+  "pregnancy_outcomes": {
+    "description": "A pregnancy that ends at or after this gestational age without a live birth is a stillbirth; before it, a miscarriage (M6 FE-4).",
+    "stillbirth_min_gestational_weeks": 28,
+    "reference": "who_stillbirth_2016"
+  },
+  "anc_schedule": {
+    "description": "Antenatal contacts generated from the gestational age at registration (M6 FE-1). Contacts already past at registration are skipped.",
+    "contacts_at_weeks": [12, 20, 26, 30, 34, 36, 38, 40],
+    "first_contact": "up to 12 weeks",
+    "reference": "who_anc_2016"
+  },
+  "tetanus_toxoid": {
+    "description": "TT/Td doses for a pregnant woman without earlier doses (M6 FE-1). The first dose is given at the first contact; each later dose has a minimum interval from the previous one.",
+    "doses": [
+      { "dose_number": 1, "min_interval": null },
+      { "dose_number": 2, "min_interval": { "weeks": 4 } },
+      { "dose_number": 3, "min_interval": { "months": 6 } },
+      { "dose_number": 4, "min_interval": { "months": 12 } },
+      { "dose_number": 5, "min_interval": { "months": 12 } }
+    ],
+    "reference": "who_tetanus_2017"
+  },
+  "supplements": {
+    "description": "Daily iron and folic acid throughout pregnancy; the app tracks compliance against this (M6 FE-1).",
+    "iron_folic_acid": { "frequency": "daily", "iron_mg": [30, 60], "folic_acid_ug": 400 },
+    "reference": "who_anc_2016"
+  },
+  "epi_schedule": {
+    "description": "Routine EPI schedule for children under 2 (M8 FE-1). For each dose: dose number, minimum age, recommended age, minimum interval from the previous dose of the same antigen, maximum age where applicable. A late child's next dose is due at the later of the recommended age and the previous dose date plus the minimum interval.",
+    "schedule_version": "pk-epi-2022.1",
+    "effective_from": "2022-01-01",
+    "reference": "nhsrc_nip_2022",
+    "review_note": "Verify every row against the current Federal Directorate of Immunization schedule. Maximum ages (for example the rotavirus and OPV-0 limits) are left null where the schedule does not state them; the Clinical Advisor fills them in.",
+    "zero_dose_indicator": { "antigen": "Penta", "dose_number": 1, "description": "A child with no recorded Penta-1 after its recommended age (M8 FE-2)." },
+    "doses": [
+      { "antigen": "BCG", "dose_number": 1, "min_age": { "days": 0 }, "recommended_age": { "days": 0 }, "min_interval": null, "max_age": null, "rollout_by_area": false },
+      { "antigen": "OPV", "dose_number": 0, "min_age": { "days": 0 }, "recommended_age": { "days": 0 }, "min_interval": null, "max_age": null, "rollout_by_area": false },
+      { "antigen": "HepB", "dose_number": 0, "min_age": { "days": 0 }, "recommended_age": { "days": 0 }, "min_interval": null, "max_age": null, "rollout_by_area": true, "enabled_area_ids": [] },
+      { "antigen": "OPV", "dose_number": 1, "min_age": { "weeks": 6 }, "recommended_age": { "weeks": 6 }, "min_interval": { "weeks": 4 }, "max_age": null, "rollout_by_area": false },
+      { "antigen": "Penta", "dose_number": 1, "min_age": { "weeks": 6 }, "recommended_age": { "weeks": 6 }, "min_interval": null, "max_age": null, "rollout_by_area": false },
+      { "antigen": "PCV", "dose_number": 1, "min_age": { "weeks": 6 }, "recommended_age": { "weeks": 6 }, "min_interval": null, "max_age": null, "rollout_by_area": false },
+      { "antigen": "Rota", "dose_number": 1, "min_age": { "weeks": 6 }, "recommended_age": { "weeks": 6 }, "min_interval": null, "max_age": null, "rollout_by_area": false },
+      { "antigen": "OPV", "dose_number": 2, "min_age": { "weeks": 10 }, "recommended_age": { "weeks": 10 }, "min_interval": { "weeks": 4 }, "max_age": null, "rollout_by_area": false },
+      { "antigen": "Penta", "dose_number": 2, "min_age": { "weeks": 10 }, "recommended_age": { "weeks": 10 }, "min_interval": { "weeks": 4 }, "max_age": null, "rollout_by_area": false },
+      { "antigen": "PCV", "dose_number": 2, "min_age": { "weeks": 10 }, "recommended_age": { "weeks": 10 }, "min_interval": { "weeks": 4 }, "max_age": null, "rollout_by_area": false },
+      { "antigen": "Rota", "dose_number": 2, "min_age": { "weeks": 10 }, "recommended_age": { "weeks": 10 }, "min_interval": { "weeks": 4 }, "max_age": null, "rollout_by_area": false },
+      { "antigen": "OPV", "dose_number": 3, "min_age": { "weeks": 14 }, "recommended_age": { "weeks": 14 }, "min_interval": { "weeks": 4 }, "max_age": null, "rollout_by_area": false },
+      { "antigen": "Penta", "dose_number": 3, "min_age": { "weeks": 14 }, "recommended_age": { "weeks": 14 }, "min_interval": { "weeks": 4 }, "max_age": null, "rollout_by_area": false },
+      { "antigen": "PCV", "dose_number": 3, "min_age": { "weeks": 14 }, "recommended_age": { "weeks": 14 }, "min_interval": { "weeks": 4 }, "max_age": null, "rollout_by_area": false },
+      { "antigen": "IPV", "dose_number": 1, "min_age": { "weeks": 14 }, "recommended_age": { "weeks": 14 }, "min_interval": null, "max_age": null, "rollout_by_area": false },
+      { "antigen": "MR", "dose_number": 1, "min_age": { "months": 9 }, "recommended_age": { "months": 9 }, "min_interval": null, "max_age": null, "rollout_by_area": false },
+      { "antigen": "TCV", "dose_number": 1, "min_age": { "months": 9 }, "recommended_age": { "months": 9 }, "min_interval": null, "max_age": null, "rollout_by_area": false },
+      { "antigen": "IPV", "dose_number": 2, "min_age": { "months": 9 }, "recommended_age": { "months": 9 }, "min_interval": { "months": 4 }, "max_age": null, "rollout_by_area": false },
+      { "antigen": "MR", "dose_number": 2, "min_age": { "months": 15 }, "recommended_age": { "months": 15 }, "min_interval": { "weeks": 4 }, "max_age": null, "rollout_by_area": false }
+    ]
+  },
+  "nutrition": {
+    "description": "MUAC classification for children aged 6-59 months; bilateral pitting oedema means SAM regardless of MUAC (M9 FE-1). No wasting classification.",
+    "muac_age_months": [6, 59],
+    "muac_bands_mm": [
+      { "class": "sam", "below": 115 },
+      { "class": "mam", "from": 115, "below": 125 },
+      { "class": "normal", "from": 125 }
+    ],
+    "bilateral_pitting_oedema_class": "sam",
+    "references": ["who_unicef_sam_2009", "who_sam_2013"],
+    "z_scores": {
+      "description": "Weight-for-age (underweight) and height-for-age (stunting, only when height is measured) from the WHO Child Growth Standards tables, bundled with the app in Phase 3.",
+      "age_months": [0, 59],
+      "underweight": { "weight_for_age_below": -2, "severe_below": -3 },
+      "stunting": { "height_for_age_below": -2, "severe_below": -3 },
+      "reference": "who_growth_2006"
+    }
+  },
+  "imci": {
+    "description": "IMCI decision logic for a sick child aged 2 months up to 5 years (M9 FE-3). Severity colours follow the chart booklet: pink (urgent referral), yellow (treat), green (home care). The Urdu and English action texts live in the app's language files under each action key.",
+    "age_months": [2, 59],
+    "reference": "who_imci_2014",
+    "review_note": "The scope's checklist names respiratory rate, chest indrawing, stool frequency and dehydration signs. The IMCI logic also uses the general danger signs, listed here so the Phase 3 checklist can include them; the Clinical Advisor confirms the list.",
+    "general_danger_signs": ["unable_to_drink_or_breastfeed", "vomits_everything", "convulsions", "lethargic_or_unconscious"],
+    "fast_breathing": [
+      { "from_months": 2, "below_months": 12, "breaths_per_minute_at_least": 50 },
+      { "from_months": 12, "below_months": 60, "breaths_per_minute_at_least": 40 }
+    ],
+    "respiratory_rate_count_seconds": 60,
+    "cough_or_difficult_breathing": [
+      { "classification": "severe_pneumonia_or_very_severe_disease", "severity": "pink", "action_key": "imci_refer_urgently", "when": "any general danger sign" },
+      { "classification": "pneumonia", "severity": "yellow", "action_key": "imci_treat_pneumonia", "when": "chest indrawing or fast breathing" },
+      { "classification": "cough_or_cold", "severity": "green", "action_key": "imci_home_care_cough", "when": "no signs of pneumonia or very severe disease" }
+    ],
+    "diarrhoea_min_loose_stools_per_day": 3,
+    "dehydration_signs": ["lethargic_or_unconscious", "restless_or_irritable", "sunken_eyes", "not_able_to_drink_or_drinking_poorly", "drinks_eagerly_thirsty", "skin_pinch_very_slow", "skin_pinch_slow"],
+    "dehydration": [
+      { "classification": "severe_dehydration", "severity": "pink", "action_key": "imci_plan_c_refer_urgently", "min_signs": 2, "signs": ["lethargic_or_unconscious", "sunken_eyes", "not_able_to_drink_or_drinking_poorly", "skin_pinch_very_slow"] },
+      { "classification": "some_dehydration", "severity": "yellow", "action_key": "imci_plan_b_ors", "min_signs": 2, "signs": ["restless_or_irritable", "sunken_eyes", "drinks_eagerly_thirsty", "skin_pinch_slow"] },
+      { "classification": "no_dehydration", "severity": "green", "action_key": "imci_plan_a_home_fluids", "min_signs": 0, "signs": [] }
+    ]
+  }
+}
