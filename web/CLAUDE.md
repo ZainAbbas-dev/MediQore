@@ -67,9 +67,15 @@ React portal for Module 10: dashboard, map, alerts, reports and admin panel. Fol
   - `Dialog.jsx`: the modal dialog of the admin pages.
   - `AreaChecklist.jsx`: picks several areas, with a search box.
 - `src/runtime-config.js`: the API base URL from `import.meta.env`. Jest swaps it for `tests/runtime-config-stub.js`.
+- Installable web app (P0-5, M10 FE-1):
+  - `public/manifest.webmanifest` and `public/icons/` (192 px, 512 px, maskable 512 px, Apple touch icon, SVG favicon; Clinical Teal `#00695C`). `index.html` links them.
+  - `public/sw.js`: the service worker. It shows a push message (JSON `{ title, body, url, tag }`) as a notification that stays until tapped, and a tap opens or focuses the portal on `url`. Web push subscription through Firebase Cloud Messaging for web is added in Phase 2 (M10 update, M5 FE-2).
+  - The service worker has **no fetch handler and caches nothing**: the portal shows patient data, which must never sit in browser storage.
+  - `src/pwa/register-service-worker.js` registers it from `main.jsx`, in production builds only.
 - `tests/`: Jest + Testing Library.
   - `tests/helpers.jsx` has `renderApp(path, { session })`, `supervisorSession`, `adminSession` and `mockApi({ 'GET /path': [status, body] })`. A route can also map to a function `(options) => [status, body]`. The key includes the query string, for example `GET /conflicts?status=pending`. The dashboard calls `GET /dashboard/filters`, `GET /dashboard/summary`, `GET /households` and `GET /dashboard/lhw-activity` (see `dashboardApi()` in `tests/dashboard.test.jsx`).
   - Mock `AreaMap` in page tests; `tests/area-map.test.jsx` covers the real Leaflet map.
+  - `tests/pwa.test.js` checks the manifest and icon sizes, runs `public/sw.js` against a fake service worker global, and tests the registration.
 
 ## Commands
 

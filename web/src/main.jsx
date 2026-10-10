@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import './styles.css';
 import App from './App';
 import AuthProvider from './auth/AuthProvider';
+import { registerServiceWorker } from './pwa/register-service-worker';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -15,3 +16,5 @@ createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </StrictMode>,
 );
+
+registerServiceWorker({ enabled: import.meta.env.PROD });

@@ -1,0 +1,19 @@
+{
+  "name": "MediQore Portal",
+  "short_name": "MediQore",
+  "description": "MediQore supervisor and admin portal: dashboard, map, alerts, reports and administration.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "lang": "en",
+  "dir": "ltr",
+  "theme_color": "#00695C",
+  "background_color": "#F1F7F6",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
