@@ -9,7 +9,7 @@ Five components, one monorepo:
 | Folder | Component | Stack |
 |---|---|---|
 | `mobile/` | LHW Android app (LHW role + supervisor alert role) | Flutter 3.x |
-| `api/` | REST API | Node.js 20 + Express |
+| `api/` | REST API | Node.js 24 LTS + Express 5 |
 | `db/` | PostgreSQL migrations and synthetic seed scripts | PostgreSQL 15 |
 | `web/` | Supervisor and admin portal | React 18 + Leaflet.js |
 | `ml/` | Model training, SHAP lookup, ONNX export, Module 6 analytics worker | Python 3.11 |

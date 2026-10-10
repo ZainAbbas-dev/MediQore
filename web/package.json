@@ -11,7 +11,7 @@
     "test": "jest"
   },
   "engines": {
-    "node": ">=20.19"
+    "node": ">=24"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

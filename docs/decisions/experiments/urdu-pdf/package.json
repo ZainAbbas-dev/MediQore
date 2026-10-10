@@ -7,7 +7,7 @@
     "start": "node make-pdfs.js"
   },
   "engines": {
-    "node": ">=20.19"
+    "node": ">=24"
   },
   "dependencies": {
     "pdfkit": "0.20.2",

@@ -14,7 +14,7 @@ Use this guide to set up a Windows laptop and test everything built so far, quic
 |---|---|---|
 | Git for Windows | git-scm.com | Defaults are fine |
 | VS Code | code.visualstudio.com | |
-| Node.js **20 LTS** | nodejs.org | Check: `node -v` prints `v20…` |
+| Node.js **24 LTS** | nodejs.org | Check: `node -v` prints `v24…` |
 | PostgreSQL **15** | postgresql.org → Download → Windows installer | Set a password for the `postgres` user and remember it. Keep port 5432. Untick Stack Builder at the end. |
 | Flutter **3.47 or newer** (stable) + Android Studio | docs.flutter.dev → Get started → Windows → Android | **Only for step 7.** Finish when `flutter doctor` shows the Android toolchain in green. If Flutter is already installed, check `flutter --version` and run `flutter upgrade` if it is older than 3.47. |
 

@@ -9,7 +9,7 @@ PostgreSQL 15 schema for all ten modules (roadmap P0-4), managed with node-pg-mi
 | PostgreSQL | 15.x (scope Tools table) | Central relational database |
 | node-pg-migrate | 9.x | Migration tool chosen in P0-4 (the roadmap allows Knex or node-pg-migrate) |
 | pg | 8.x | PostgreSQL client for migrations and tests |
-| node:test | built into Node.js 20 | Schema and generator tests |
+| node:test | built into Node.js 24 | Schema and generator tests |
 
 ## Layout
 

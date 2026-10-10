@@ -2,7 +2,7 @@
   "name": "mediqore-api",
   "version": "0.1.0",
   "private": true,
-  "description": "MediQore REST API (Node.js 20 + Express)",
+  "description": "MediQore REST API (Node.js 24 + Express 5)",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -11,7 +11,7 @@
     "test": "jest --runInBand"
   },
   "engines": {
-    "node": ">=20.19"
+    "node": ">=24"
   },
   "jest": {
     "testEnvironment": "node",

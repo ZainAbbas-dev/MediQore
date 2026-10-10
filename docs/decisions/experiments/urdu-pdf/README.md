@@ -4,7 +4,7 @@ This experiment prints the same one-page Urdu report with **pdfkit** and with **
 
 ## Run it
 
-You need Node.js 20 and an installed Chrome or Chromium. From this folder (PowerShell):
+You need Node.js 24 and an installed Chrome or Chromium. From this folder (PowerShell):
 
 ```powershell
 npm install
