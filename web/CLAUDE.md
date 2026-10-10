@@ -49,13 +49,14 @@ React portal for Module 10: dashboard, map, alerts, reports and admin panel. Fol
     - refreshes every 5 minutes and on **Reload**; each part loads on its own, so one failure does not hide the others.
   - `WomenPage` (`/women`, admins and supervisors, M2 FE-1–3): registered women with their pregnancy file in short and their visit count and last visit (M3), from `GET /women`, with search. Wide tables go inside `.table-scroll`.
   - `ConflictsPage` (`/conflicts`, admins and supervisors, M3 FE-2): the sync conflict queue from `GET /conflicts?status=…`. Each held visit sits next to the stored one, with differing fields highlighted, and three decisions (`POST /conflicts/:id/resolve`: keep both, keep the stored visit, keep the held visit). Decided conflicts show who decided and when.
-  - `DevicesPage` (`/devices`, admins and supervisors, M1 FE-2): phones waiting for approval. **Issue code** shows a 6-digit one-time code once.
-  - `LhwsPage` (`/admin/lhws`, admins, M1 FE-1, FE-3):
-    - lists LHW accounts;
+  - `PinResetPage` (`/pin-reset`, admins and supervisors, M1 FE-2): **PIN reset codes**. Pick the LHW (from `GET /dashboard/filters`, so a supervisor sees only their areas), type the 6-digit code on her phone, and read back the 8-digit reply from `POST /pin-reset/reply-code`, shown once.
+  - `LhwsPage` (`/admin/lhws`, admins, M1 FE-1–3, final design screen 21):
+    - lists LHW accounts with status (Active, Waiting to activate, Deactivated) and the phone state (activated on a date, code issued, not activated);
     - creates an LHW and shows the issued LHW ID and password once;
+    - **New activation code** (after a confirmation that warns if a phone is already activated) shows the `XXXX-XXXX` code once with its expiry (M1 FE-2);
     - edits and reassigns; the note says the phone's unsynced records keep the old area (M1 FE-3);
     - deactivates or activates;
-    - resets the password after the LI-8 "sync before reset" warning.
+    - resets the password; the phone keeps its data and PIN (LI-8).
   - Admin panel (admins, M10 FE-3):
     - `StaffPage` (`/admin/staff`): supervisor and admin accounts. Create with a chosen username (password shown once), supervisor areas with `AreaChecklist`, role change (never for your own account), deactivate, activate, reset password.
     - `GeographyPage` (`/admin/geography`): four columns (district, tehsil, Union Council, area); choosing a unit shows its children. Add, rename, delete; a unit in use is refused with the API's reason.
@@ -89,4 +90,4 @@ npm test           # Jest
 npm run build      # production build in dist/
 ```
 
-Demo sign-in after `npm run seed:demo` in `db/`: `supervisor.demo` or `admin.demo`, password `demo-password`. Both see the dashboard, **Registered women**, **Sync conflicts** and **Phone approvals**; `admin.demo` also sees **Administration**. The synthetic data (`npm run seed:synthetic`) includes a few held same-day visits for the conflict queue, and DHQ and THQ hospitals.
+Demo sign-in after `npm run seed:demo` in `db/`: `supervisor.demo` or `admin.demo`, password `demo-password`. Both see the dashboard, **Registered women**, **Sync conflicts** and **PIN reset codes**; `admin.demo` also sees **Administration**, where **LHW accounts** generates the activation code for `lhw.demo`'s phone. The synthetic data (`npm run seed:synthetic`) includes a few held same-day visits for the conflict queue, and DHQ and THQ hospitals.

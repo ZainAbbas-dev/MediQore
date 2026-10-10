@@ -35,6 +35,10 @@ async function resetPassword(req, res) {
   res.json(await lhwsService.resetPassword(req.user, req.params.id));
 }
 
+async function issueActivationCode(req, res) {
+  res.status(201).json(await lhwsService.issueActivationCode(req.user, req.params.id));
+}
+
 // M10 FE-3: supervisor and admin accounts.
 
 async function listStaff(req, res) {
@@ -115,6 +119,7 @@ function listRoles(req, res) {
 
 module.exports = {
   listAreas, listLhws, createLhw, updateLhw, deactivateLhw, activateLhw, resetPassword,
+  issueActivationCode,
   listStaff, createStaff, updateStaff, deactivateStaff, activateStaff, resetStaffPassword,
   geographyTree, createUnit, renameUnit, deleteUnit,
   listFacilities, createFacility, updateFacility, deleteFacility,

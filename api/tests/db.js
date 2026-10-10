@@ -41,16 +41,17 @@ async function insertUser(username, role, { isActive = true } = {}) {
   return user.id;
 }
 
-// A phone already approved with a one-time code (M1 FE-2).
-async function insertApprovedDevice(userId) {
+// A phone already activated with an activation code (M1 FE-2).
+async function insertActivatedDevice(userId) {
   const { rows: [device] } = await db.query(
-    'INSERT INTO devices (id, user_id, verified_at) VALUES (gen_random_uuid(), $1, now()) RETURNING id',
+    `INSERT INTO devices (id, user_id, activated_at, activation_secret_ref)
+     VALUES (gen_random_uuid(), $1, now(), 'test-ref') RETURNING id`,
     [userId],
   );
   return device.id;
 }
 
-// Two areas, an LHW in each with an approved phone, a supervisor for area A,
+// Two areas, an LHW in each with an activated phone, a supervisor for area A,
 // an admin and an inactive LHW.
 async function createFixtures() {
   const areaA = await insertArea('Area A');
@@ -65,8 +66,8 @@ async function createFixtures() {
     [lhwA, lhwB, areaA, areaB],
   );
   await db.query('INSERT INTO supervisor_areas (supervisor_id, area_id) VALUES ($1, $2)', [supervisorA, areaA]);
-  const deviceA = await insertApprovedDevice(lhwA);
-  const deviceB = await insertApprovedDevice(lhwB);
+  const deviceA = await insertActivatedDevice(lhwA);
+  const deviceB = await insertActivatedDevice(lhwB);
   return { areaA, areaB, lhwA, lhwB, inactiveLhw, supervisorA, admin, deviceA, deviceB };
 }
 
@@ -78,6 +79,6 @@ function tokenFor(userId, role, deviceId) {
 }
 
 module.exports = {
-  describeDb, resetDatabase, createFixtures, insertArea, insertUser, insertApprovedDevice, tokenFor,
+  describeDb, resetDatabase, createFixtures, insertArea, insertUser, insertActivatedDevice, tokenFor,
   closePool: db.closePool, query: db.query, PASSWORD,
 };

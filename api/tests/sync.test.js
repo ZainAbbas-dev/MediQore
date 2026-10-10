@@ -115,7 +115,7 @@ describeDb('sync', () => {
       expect(res.body.error.code).toBe('DEVICE_NOT_ALLOWED');
     });
 
-    it('refuses a phone that has not been approved with a one-time code (M1 FE-2)', async () => {
+    it('refuses a phone that has not been activated with an activation code (M1 FE-2)', async () => {
       const pending = randomUUID();
       await query('INSERT INTO devices (id, user_id) VALUES ($1, $2)', [pending, ids.lhwA]);
 

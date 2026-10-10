@@ -8,21 +8,21 @@ const { TABLES, normalise } = require('../sync/tables');
 // track. The server never trusts device clocks: order comes only from server_seq,
 // which the database assigns in commit order (see db/migrations).
 
-// Only a phone approved with a one-time code (M1 FE-2) may sync, and only the
-// phone the access token was issued to. Push also records when it was last seen.
-async function requireApprovedDevice(client, deviceId, user, { touch = false } = {}) {
+// Only a phone activated with an activation code (M1 FE-2) may sync, and only
+// the phone the access token was issued to. Push also records when it was last seen.
+async function requireActivatedDevice(client, deviceId, user, { touch = false } = {}) {
   if (!user.deviceId || user.deviceId !== deviceId) {
     throw new AppError(403, 'DEVICE_NOT_ALLOWED', 'This request did not come from the phone that signed in');
   }
   const { rows } = await client.query(
     touch
       ? `UPDATE devices SET last_seen_at = now()
-         WHERE id = $1 AND user_id = $2 AND verified_at IS NOT NULL AND revoked_at IS NULL RETURNING id`
+         WHERE id = $1 AND user_id = $2 AND activated_at IS NOT NULL AND revoked_at IS NULL RETURNING id`
       : `SELECT id FROM devices
-         WHERE id = $1 AND user_id = $2 AND verified_at IS NOT NULL AND revoked_at IS NULL`,
+         WHERE id = $1 AND user_id = $2 AND activated_at IS NOT NULL AND revoked_at IS NULL`,
     [deviceId, user.id],
   );
-  if (!rows.length) throw new AppError(403, 'DEVICE_NOT_ALLOWED', 'This phone is not approved for this account');
+  if (!rows.length) throw new AppError(403, 'DEVICE_NOT_ALLOWED', 'This phone is not activated for this account');
 }
 
 function sameAsStored(def, row, record) {
@@ -202,7 +202,7 @@ async function applyRecordOrRefuse(client, ctx, record) {
 async function push(user, deviceId, records) {
   return db.withTransaction(async (client) => {
     const { areaId, previousAreaId } = await lhwAreas(client, user.id);
-    await requireApprovedDevice(client, deviceId, user, { touch: true });
+    await requireActivatedDevice(client, deviceId, user, { touch: true });
     const allowedAreaIds = previousAreaId ? [areaId, previousAreaId] : [areaId];
     const ctx = { userId: user.id, deviceId, areaId, allowedAreaIds };
     const results = [];
@@ -233,7 +233,7 @@ function toRecord(table, def, row) {
 // read from one consistent snapshot, oldest first.
 async function pull(user, since, limit) {
   return db.withTransaction(async (client) => {
-    await requireApprovedDevice(client, user.deviceId, user);
+    await requireActivatedDevice(client, user.deviceId, user);
     const areaId = await lhwAreaId(client, user.id);
     const rows = [];
     for (const [table, def] of Object.entries(TABLES)) {

@@ -29,7 +29,7 @@ The groups follow the roadmap's data model (10 Oct 2026). Tables marked *Phase 1
 | Group (migration) | Tables | Synced | Scope |
 |---|---|---|---|
 | Geography | districts, tehsils, union_councils, areas | no | M1 FE-1, M10 FE-3 |
-| Users and access | users, lhw_profiles, supervisor_areas, devices (with activation secret reference), activation_codes, refresh_tokens; otp_codes (*Phase 1 rework*) | no | M1 FE-1–3 |
+| Users and access | users, lhw_profiles, supervisor_areas, devices (with activation secret reference), activation_codes, refresh_tokens | no | M1 FE-1–3 |
 | System | audit_log, sync_conflicts, report_jobs, clinical_rules_versions | no | M10 FE-3, M3 FE-2, M10 FE-2, M4 FE-4 |
 | Households and women | households, women, pregnancies, obstetric_history | yes | M2 FE-1–3 |
 | Visits | visits (vitals including pulse; optional blood sugar with unit, date and source; danger-sign checklist) | yes | M3 FE-1 |
@@ -55,6 +55,7 @@ Each change is a new migration in `db/migrations/`; v1's files are not edited.
 | `lhw-code-sequence` | `lhw_code_seq` numbers new LHW IDs (`LHW-00001`); an index on phones waiting for approval | M1 FE-1, FE-2 |
 | `lhw-previous-area` | `lhw_profiles.previous_area_id`: the area before the last reassignment, so records a phone made there and syncs late keep that area | M1 FE-3 |
 | `final-scope-data-model` | Brings v1 up to the updated final scope and the roadmap of 10 Oct 2026, listed below | P0-4 |
+| `activation-replaces-otp` | Drops `otp_codes` and the index on phones waiting for approval; adds indexes on activated phones and on unused activation codes. A phone is activated when `devices.activated_at` is set; phones approved under the earlier scheme must be activated again | M1 FE-2 |
 
 ### What `final-scope-data-model` changes
 
@@ -91,7 +92,7 @@ The scope and roadmap name the tables but not every column. These choices were m
 10. **Danger-sign checklist answers** are nullable booleans: NULL means "not asked", so visits recorded before the checklist stay honest. The Phase 1 visit form requires every answer.
 11. **Pulse is required** (M3 FE-1), but `visits.pulse_bpm` stays nullable in the database because earlier synced visits may lack it. The API requires it from Phase 1.
 12. **Blood sugar** is always stored in mmol/L. The unit the LHW typed (`mmol_l` or `mg_dl`) is kept in `blood_sugar_entered_unit` for traceability; the date and the source (`glucometer` or `lab_report`) are stored with it.
-13. **Activation secret:** the server stores only a reference (`devices.activation_secret_ref`) to where the per-device secret is held, never the secret in plain text. Where it is held is settled when the PIN reset is built in Phase 1.
+13. **Activation secret:** the server stores only a reference (`devices.activation_secret_ref`) to where the per-device secret is held, never the secret in plain text. The API derives the secret from the reference with a server key (HMAC-SHA256), so nothing secret is in the database (`api/src/services/activation.service.js`).
 14. **Outcome place** is `home`, `health_facility` or `other`.
 15. **Hep B birth dose and other area-dependent doses** are marked `rollout_by_area` in `epi_schedule`. Which areas switch them on is set in the Clinical Rules Table's EPI section in Phase 3.
-16. **`otp_codes`** (the earlier phone-approval code) stays until Phase 1 replaces it with `activation_codes`; a later migration then drops it.
+16. **`otp_codes`** (the earlier phone-approval code) was dropped by `activation-replaces-otp` in the Phase 1 revision.

@@ -113,6 +113,7 @@ router.patch('/lhws/:id', accounts, validate({ params: idParams, body: lhwUpdate
 router.post('/lhws/:id/deactivate', accounts, validate({ params: idParams }), adminController.deactivateLhw);
 router.post('/lhws/:id/activate', accounts, validate({ params: idParams }), adminController.activateLhw);
 router.post('/lhws/:id/reset-password', accounts, validate({ params: idParams }), adminController.resetPassword);
+router.post('/lhws/:id/activation-code', accounts, validate({ params: idParams }), adminController.issueActivationCode);
 
 router.get('/staff', accounts, validate({ query: staffListQuery }), adminController.listStaff);
 router.post('/staff', accounts, validate({ body: staffCreateBody }), adminController.createStaff);

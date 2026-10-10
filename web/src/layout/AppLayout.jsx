@@ -17,7 +17,7 @@ export default function AppLayout() {
           </NavLink>
           <NavLink to="/women">Registered women</NavLink>
           <NavLink to="/conflicts">Sync conflicts</NavLink>
-          <NavLink to="/devices">Phone approvals</NavLink>
+          <NavLink to="/pin-reset">PIN reset codes</NavLink>
         </nav>
         {user?.role === 'admin' && (
           <nav aria-label="Administration">

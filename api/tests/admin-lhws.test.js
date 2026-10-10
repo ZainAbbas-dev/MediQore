@@ -4,7 +4,7 @@ const { randomUUID } = require('node:crypto');
 const request = require('supertest');
 const { createApp } = require('../src/app');
 const { loginThrottle } = require('../src/services/login-throttle');
-const { describeDb, resetDatabase, createFixtures, insertApprovedDevice, tokenFor, closePool, query } = require('./db');
+const { describeDb, resetDatabase, createFixtures, insertActivatedDevice, tokenFor, closePool, query } = require('./db');
 
 const app = createApp();
 
@@ -57,7 +57,8 @@ describeDb('LHW accounts (admin)', () => {
         phone: '0300 1234567',
         isActive: true,
         area: { id: ids.areaB, name: 'Area B', district: { name: 'Area B District' } },
-        devices: { approved: 0, pending: 0 },
+        devices: { activated: 0, lastActivatedAt: null },
+        activationCodeExpiresAt: null,
       });
       expect(created.credentials.username).toBe('LHW-00001');
       expect(created.credentials.password).toMatch(/^[A-HJ-NP-Za-hj-km-np-z2-9]{10}$/);
@@ -65,12 +66,16 @@ describeDb('LHW accounts (admin)', () => {
       expect(user.password_hash).not.toContain(created.credentials.password);
     });
 
-    it('lets the new LHW sign in from the app, pending phone approval', async () => {
-      const res = await request(app).post('/api/v1/auth/login').send({
-        username: created.credentials.username, password: created.credentials.password, deviceId: randomUUID(),
-      });
+    it('lets the new LHW activate a phone with an activation code (M1 FE-2)', async () => {
+      const credentials = { username: created.credentials.username, password: created.credentials.password, deviceId: randomUUID() };
+      const before = await request(app).post('/api/v1/auth/login').send(credentials);
+      const { body: issued } = await admin.post(`/admin/lhws/${created.lhw.id}/activation-code`);
+      const res = await request(app).post('/api/v1/auth/activate').send({ ...credentials, activationCode: issued.activationCode });
 
-      expect(res.status).toBe(202);
+      expect(before.status).toBe(403);
+      expect(before.body.error.code).toBe('ACTIVATION_REQUIRED');
+      expect(res.status).toBe(200);
+      expect(res.body.user.lhwCode).toBe('LHW-00001');
     });
 
     it('gives each new LHW the next number and audits the creation', async () => {
@@ -101,7 +106,7 @@ describeDb('LHW accounts (admin)', () => {
       expect(all.body.lhws.map((l) => l.lhwCode)).toEqual(['LHW-00001', 'LHW-00002', 'LHW-A', 'LHW-B']);
       expect(search.body.lhws.map((l) => l.lhwCode)).toEqual(['LHW-00001']);
       expect(inArea.body.lhws.map((l) => l.lhwCode)).toEqual(['LHW-00002', 'LHW-A']);
-      expect(all.body.lhws.find((l) => l.lhwCode === 'LHW-A').devices).toEqual({ approved: 1, pending: 0 });
+      expect(all.body.lhws.find((l) => l.lhwCode === 'LHW-A').devices).toEqual({ activated: 1, lastActivatedAt: expect.any(String) });
     });
   });
 
@@ -120,10 +125,11 @@ describeDb('LHW accounts (admin)', () => {
     expect(login.body.user.areaId).toBe(ids.areaB);
   });
 
-  it('deactivates an LHW: refresh tokens revoked, next sync refused; reactivation lets them back', async () => {
+  it('deactivates an LHW: refresh tokens and unused activation codes revoked, next sync refused; reactivation lets them back', async () => {
     const lhw = await insertLhwWithPhone('Deactivate me', ids.areaA);
     const { body: session } = await request(app).post('/api/v1/auth/login')
       .send({ username: lhw.username, password: lhw.password, deviceId: lhw.deviceId });
+    const { body: issued } = await admin.post(`/admin/lhws/${lhw.id}/activation-code`);
 
     const off = await admin.post(`/admin/lhws/${lhw.id}/deactivate`);
     const sync = await request(app).get('/api/v1/sync/pull').set('Authorization', `Bearer ${session.accessToken}`);
@@ -137,8 +143,12 @@ describeDb('LHW accounts (admin)', () => {
     const on = await admin.post(`/admin/lhws/${lhw.id}/activate`);
     const login = await request(app).post('/api/v1/auth/login')
       .send({ username: lhw.username, password: lhw.password, deviceId: lhw.deviceId });
+    const oldCode = await request(app).post('/api/v1/auth/activate').send({
+      username: lhw.username, password: lhw.password, deviceId: randomUUID(), activationCode: issued.activationCode,
+    });
     expect(on.body.lhw.isActive).toBe(true);
     expect(login.status).toBe(200);
+    expect(oldCode.body.error.code).toBe('ACTIVATION_CODE_INVALID');
 
     const { rows } = await query(
       `SELECT details->>'change' AS change FROM audit_log WHERE action = 'edit' AND entity_id = $1 ORDER BY id`, [lhw.id]);
@@ -169,10 +179,10 @@ describeDb('LHW accounts (admin)', () => {
     expect(res.status).toBe(404);
   });
 
-  // Creates an LHW through the API and approves a phone for them.
+  // Creates an LHW through the API and activates a phone for them.
   async function insertLhwWithPhone(fullName, areaId) {
     const { body } = await admin.post('/admin/lhws', { fullName, areaId });
-    const deviceId = await insertApprovedDevice(body.lhw.id);
+    const deviceId = await insertActivatedDevice(body.lhw.id);
     return { id: body.lhw.id, username: body.credentials.username, password: body.credentials.password, deviceId };
   }
 });

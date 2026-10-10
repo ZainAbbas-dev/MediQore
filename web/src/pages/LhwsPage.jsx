@@ -1,12 +1,22 @@
 // M1 FE-1, FE-3: LHW accounts, for admins. Create an LHW (the system issues the
-// LHW ID and a password), edit and reassign the area, deactivate or reactivate,
-// and reset the password after the "sync before reset" warning (LI-8).
+// LHW ID and a password), generate the one-time activation code for her phone
+// (M1 FE-2), edit and reassign the area, deactivate or reactivate, and reset the
+// password. A password reset loses no data on the phone (LI-8).
+// Activation codes and passwords are shown once, in their dialog only.
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../auth/context';
 import Dialog from '../components/Dialog';
 
 const areaLabel = (a) => `${a.district} › ${a.tehsil} › ${a.unionCouncil} › ${a.name}`;
 const formatTime = (value) => (value ? new Date(value).toLocaleString() : 'Never');
+const formatDate = (value) => new Date(value).toLocaleDateString();
+
+// The phone column and status of the final design (screen 21).
+function phoneState(lhw) {
+  if (lhw.devices.activated > 0) return `Activated ${formatDate(lhw.devices.lastActivatedAt)}`;
+  if (lhw.activationCodeExpiresAt) return 'Code issued, not used';
+  return 'Not activated';
+}
 
 function LhwForm({ areas, lhw, onSubmit, onCancel }) {
   const [fullName, setFullName] = useState(lhw?.fullName ?? '');
@@ -77,8 +87,8 @@ function Credentials({ credentials, intro, onDone }) {
         <dd className="code">{credentials.password}</dd>
       </dl>
       <p className="muted">
-        The password is shown only now. On first sign-in the LHW&apos;s phone also needs approval: issue its code under
-        Phone approvals.
+        The password is shown only now. To sign in on her phone the first time, she also needs an activation code: use{' '}
+        <strong>New activation code</strong> in the list.
       </p>
       <div className="actions">
         <button type="button" onClick={onDone}>
@@ -149,6 +159,13 @@ export default function LhwsPage() {
       load();
     });
 
+  const issueActivationCode = (lhw) =>
+    run(async () => {
+      const result = await request(`/admin/lhws/${lhw.id}/activation-code`, { method: 'POST' });
+      setDialog({ type: 'activation-code', lhw: result.lhw, code: result.activationCode, expiresAt: result.expiresAt });
+      load();
+    });
+
   const resetPassword = (lhw) =>
     run(async () => {
       const result = await request(`/admin/lhws/${lhw.id}/reset-password`, { method: 'POST' });
@@ -194,7 +211,7 @@ export default function LhwsPage() {
               <th>Area</th>
               <th>Phone</th>
               <th>Status</th>
-              <th>Phones</th>
+              <th>LHW phone</th>
               <th>Last sign-in</th>
               <th aria-label="Actions" />
             </tr>
@@ -209,17 +226,30 @@ export default function LhwsPage() {
                 </td>
                 <td>{lhw.phone || '–'}</td>
                 <td>
-                  <span className={lhw.isActive ? 'badge ok' : 'badge off'}>{lhw.isActive ? 'Active' : 'Deactivated'}</span>
+                  {!lhw.isActive ? (
+                    <span className="badge off">Deactivated</span>
+                  ) : lhw.devices.activated > 0 ? (
+                    <span className="badge ok">Active</span>
+                  ) : (
+                    <span className="badge wait">Waiting to activate</span>
+                  )}
                 </td>
-                <td>
-                  {lhw.devices.approved} approved
-                  {lhw.devices.pending > 0 && `, ${lhw.devices.pending} waiting`}
-                </td>
+                <td>{phoneState(lhw)}</td>
                 <td>{formatTime(lhw.lastLoginAt)}</td>
                 <td className="row-actions">
                   <button type="button" className="secondary" onClick={() => setDialog({ type: 'edit', lhw })} aria-label={`Edit ${lhw.lhwCode}`}>
                     Edit
                   </button>
+                  {lhw.isActive && (
+                    <button
+                      type="button"
+                      className={lhw.devices.activated > 0 ? 'secondary' : undefined}
+                      onClick={() => setDialog({ type: 'new-code', lhw })}
+                      aria-label={`New activation code for ${lhw.lhwCode}`}
+                    >
+                      New activation code
+                    </button>
+                  )}
                   {lhw.isActive ? (
                     <button type="button" className="secondary" onClick={() => setDialog({ type: 'deactivate', lhw })} aria-label={`Deactivate ${lhw.lhwCode}`}>
                       Deactivate
@@ -255,11 +285,47 @@ export default function LhwsPage() {
           <LhwForm areas={areas} lhw={dialog.lhw} onSubmit={(values) => save(dialog.lhw, values)} onCancel={close} />
         </Dialog>
       )}
+      {dialog?.type === 'new-code' && (
+        <Dialog title={`New activation code for ${dialog.lhw.lhwCode}?`}>
+          <p>
+            {dialog.lhw.fullName} types it once on her phone, with her LHW ID and password, to activate it. It works on
+            one phone, for 48 hours. A code issued earlier and not used stops working.
+          </p>
+          {dialog.lhw.devices.activated > 0 && (
+            <p className="warning">
+              She already has an activated phone. Issue a new code only for a new or reinstalled phone; records on the
+              old phone that were not synced cannot be recovered (LI-8).
+            </p>
+          )}
+          <div className="actions">
+            <button type="button" onClick={() => issueActivationCode(dialog.lhw)}>
+              Generate code
+            </button>
+            <button type="button" className="secondary" onClick={close}>
+              Cancel
+            </button>
+          </div>
+        </Dialog>
+      )}
+      {dialog?.type === 'activation-code' && (
+        <Dialog title={`Activation code for ${dialog.lhw.lhwCode} (${dialog.lhw.area.name})`}>
+          <p className="code">{dialog.code}</p>
+          <p className="muted">
+            Give it to {dialog.lhw.fullName} with her LHW ID and password. It works once, on one phone, and expires on{' '}
+            {formatTime(dialog.expiresAt)}. It is shown only now; MediQore keeps only its hash.
+          </p>
+          <div className="actions">
+            <button type="button" onClick={close}>
+              Done
+            </button>
+          </div>
+        </Dialog>
+      )}
       {dialog?.type === 'deactivate' && (
         <Dialog title={`Deactivate ${dialog.lhw.lhwCode}?`}>
           <p>
-            {dialog.lhw.fullName} will not be able to sign in or sync. Records already on the server stay. You can
-            reactivate the account later.
+            {dialog.lhw.fullName} will not be able to sign in or sync, from the next time her phone connects. Her unused
+            activation code stops working. Records already on the server stay. You can reactivate the account later.
           </p>
           <div className="actions">
             <button type="button" className="danger" onClick={() => setActive(dialog.lhw, false)}>
@@ -273,9 +339,9 @@ export default function LhwsPage() {
       )}
       {dialog?.type === 'reset' && (
         <Dialog title={`Reset the password of ${dialog.lhw.lhwCode}?`}>
-          <p className="warning">
-            Sync before reset: make sure {dialog.lhw.fullName} has synced the phone. Records on the phone that are not
-            synced cannot be read after the reset (LI-8).
+          <p>
+            {dialog.lhw.fullName} gets a new password and signs in with it once, when her phone next connects. The records
+            and the PIN on her phone stay as they are (LI-8). If she forgot her PIN, use PIN reset codes instead.
           </p>
           <div className="actions">
             <button type="button" className="danger" onClick={() => resetPassword(dialog.lhw)}>

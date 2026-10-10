@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const db = require('../db/pool');
 const AppError = require('../utils/app-error');
+const activation = require('./activation.service');
 const { writeAudit } = require('./audit.service');
 const tokens = require('./tokens.service');
 
@@ -11,7 +12,10 @@ const tokens = require('./tokens.service');
 //   and stored only as a bcrypt hash.
 // - Admins can rename, reassign the area, deactivate or reactivate an LHW, and
 //   reset the password. Deactivation and a password reset revoke the LHW's
-//   refresh tokens, so the phone is refused at its next sync.
+//   refresh tokens, so the phone is refused at its next sync. A password reset
+//   loses no data on the phone, because its database key is not password-based.
+// - Admins give an LHW a one-time activation code for the first sign-in on a
+//   phone (M1 FE-2). It is shown once and stored only as a hash.
 // Every change writes an audit row with the admin as the user (M10 FE-3).
 
 // No look-alike characters (0/O, 1/l/I), so a password read aloud or copied by
@@ -29,8 +33,10 @@ const LHW_SQL = `
          uc.id AS union_council_id, uc.name AS union_council_name,
          t.id AS tehsil_id, t.name AS tehsil_name,
          d.id AS district_id, d.name AS district_name,
-         (SELECT count(*)::int FROM devices v WHERE v.user_id = u.id AND v.verified_at IS NOT NULL AND v.revoked_at IS NULL) AS approved_devices,
-         (SELECT count(*)::int FROM devices v WHERE v.user_id = u.id AND v.verified_at IS NULL AND v.revoked_at IS NULL) AS pending_devices
+         (SELECT count(*)::int FROM devices v WHERE v.user_id = u.id AND v.activated_at IS NOT NULL AND v.revoked_at IS NULL) AS activated_devices,
+         (SELECT max(v.activated_at) FROM devices v WHERE v.user_id = u.id AND v.revoked_at IS NULL) AS last_activated_at,
+         (SELECT max(c.expires_at) FROM activation_codes c
+           WHERE c.user_id = u.id AND c.consumed_at IS NULL AND c.revoked_at IS NULL AND c.expires_at > now()) AS code_expires_at
   FROM users u
   JOIN lhw_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
   JOIN areas a ON a.id = p.area_id
@@ -56,7 +62,8 @@ function toLhw(row) {
       tehsil: { id: row.tehsil_id, name: row.tehsil_name },
       district: { id: row.district_id, name: row.district_name },
     },
-    devices: { approved: row.approved_devices, pending: row.pending_devices },
+    devices: { activated: row.activated_devices, lastActivatedAt: row.last_activated_at },
+    activationCodeExpiresAt: row.code_expires_at,
   };
 }
 
@@ -145,7 +152,10 @@ async function setActive(admin, id, active) {
     const before = await findLhw(client, id, { lock: true });
     if (before.is_active !== active) {
       await client.query('UPDATE users SET is_active = $2 WHERE id = $1', [id, active]);
-      if (!active) await tokens.revokeAllForUser(client, id);
+      if (!active) {
+        await tokens.revokeAllForUser(client, id);
+        await activation.revokeOpenCodes(client, id);
+      }
       await writeAudit(client, {
         userId: admin.id, action: 'edit', entityType: 'users', entityId: id,
         details: { change: active ? 'activate' : 'deactivate' },
@@ -155,8 +165,8 @@ async function setActive(admin, id, active) {
   });
 }
 
-// POST /admin/lhws/:id/reset-password. The portal warns first that unsynced
-// data on the phone becomes unreadable (LI-8).
+// POST /admin/lhws/:id/reset-password. The phone keeps its data; the LHW signs
+// in once with the new password when the app next connects.
 async function resetPassword(admin, id) {
   return db.withTransaction(async (client) => {
     const before = await findLhw(client, id, { lock: true });
@@ -165,6 +175,22 @@ async function resetPassword(admin, id) {
     await tokens.revokeAllForUser(client, id);
     await writeAudit(client, { userId: admin.id, action: 'edit', entityType: 'users', entityId: id, details: { change: 'password_reset' } });
     return { lhw: toLhw(await findLhw(client, id)), credentials: { username: before.username, password } };
+  });
+}
+
+// POST /admin/lhws/:id/activation-code: a new one-time code for the LHW's
+// first sign-in on a phone. Earlier unused codes stop working.
+async function issueActivationCode(admin, id) {
+  return db.withTransaction(async (client) => {
+    const lhw = await findLhw(client, id, { lock: true });
+    if (!lhw.is_active) throw new AppError(409, 'ACCOUNT_INACTIVE', 'Activate the account before giving it an activation code');
+    const issued = await activation.issueCode(client, { userId: id, issuedBy: admin.id });
+    // Never log the code itself.
+    await writeAudit(client, {
+      userId: admin.id, action: 'create', entityType: 'activation_codes', entityId: issued.id,
+      details: { forUser: id, expiresAt: issued.expiresAt },
+    });
+    return { activationCode: issued.code, expiresAt: issued.expiresAt, lhw: toLhw(await findLhw(client, id)) };
   });
 }
 
@@ -184,4 +210,4 @@ async function listAreas() {
   };
 }
 
-module.exports = { list, create, update, setActive, resetPassword, listAreas, newPassword };
+module.exports = { list, create, update, setActive, resetPassword, issueActivationCode, listAreas, newPassword, findLhw };

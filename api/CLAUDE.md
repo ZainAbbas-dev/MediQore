@@ -2,8 +2,6 @@
 
 Node.js + Express REST API: auth and activation codes, sync endpoints, conflict detection, alerts and server-side escalation, reports and audit log. Follow the root `CLAUDE.md` first; this file only adds what is specific to `api/`.
 
-> **Phase 1 revision pending.** Sign-in was built against the earlier scope (a portal-issued phone approval code, `otp_codes`). The updated scope replaces it with the admin activation code (`activation_codes`: about 8 characters, 48 hours, single use, hashed) and adds the supervisor's PIN-reset reply codes (M1 FE-2). The sign-in section below describes the code as it is.
-
 ## Stack (scope Tools table)
 
 | Tool | Version | Purpose |
@@ -43,25 +41,30 @@ From the roadmap:
   - `validate.js`: Joi middleware. It replaces `req.body`, `req.query` and `req.params` with the validated values, or answers 400 `VALIDATION_ERROR`.
   - `error-handler.js`: 404 and the central error handler. Throw `AppError(status, code, message, details)` from `src/utils/app-error.js` for expected errors; anything else becomes a generic 500.
   - `request-logger.js`: one JSON log line per request, path only (no query string or body).
-- `src/auth/permissions.js` (M10 FE-3): the three fixed roles and the permissions each holds (`sync`, `records.view`, `conflicts.resolve`, `devices.approve`, `accounts.manage`, `geography.manage`, `facilities.manage`, `audit.view`). Routes check these names, never role lists, and `GET /admin/roles` shows the same map on the portal. To change who may do something, change it here.
+- `src/auth/permissions.js` (M10 FE-3): the three fixed roles and the permissions each holds (`sync`, `records.view`, `conflicts.resolve`, `pin_reset.reply`, `accounts.manage`, `geography.manage`, `facilities.manage`, `audit.view`). Routes check these names, never role lists, and `GET /admin/roles` shows the same map on the portal. To change who may do something, change it here.
 - `src/services/`:
   - `scope.service.js`: area scoping, `lhwAreaId`, `lhwAreas` (current and previous area) and `supervisorAreaIds`. Use it in every query that returns records.
   - `audit.service.js`: `writeAudit(client, ...)`. Call it inside the same transaction as the change.
   - Sign-in (M1 FE-2):
-    - `auth.service.js`: login, one-time code check, refresh and sign-out. The rules:
-      - LHWs sign in only from the app, with its installation ID.
-      - A new phone gets 202 `otp_required` until its code is verified.
-      - Supervisors and admins sign in on the portal without a device.
-    - `tokens.service.js`: JWT access tokens (claim `did` = the approved phone) and opaque refresh tokens. Refresh tokens are stored as SHA-256 hashes, rotated on every use, and revoked on sign-out, deactivation and password reset.
-    - `otp.service.js`: the swappable one-time-code service (decision 0002). Only the `admin_issued` channel exists. Codes are 6 digits, bcrypt-hashed, valid 24 hours and void after 5 wrong tries. Never log a code.
+    - `auth.service.js`: activation, login, refresh and sign-out. The rules:
+      - LHWs sign in only from the app, with its installation ID. Supervisors and admins sign in on the portal without a device (`APP_FOR_LHWS` from the app).
+      - `POST /auth/activate`: the first sign-in on a phone, with username, password and the admin's activation code. It sets `devices.activated_at` and a new `activation_secret_ref`, uses up the code, and returns the session plus `activationSecret` (once). A wrong code counts as a failed sign-in.
+      - `POST /auth/login` on an activated phone signs in again with the password (after the refresh token stopped working); a phone that is not activated gets 403 `ACTIVATION_REQUIRED`.
+      - An LHW's session body carries `supervisors` (area supervisors with a phone number) for the lock screen's emergency call.
+      - After that the app unlocks offline with the PIN; the server never sees the PIN.
+    - `activation.service.js`: activation codes and the PIN-reset formula.
+      - Codes are 8 characters from `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (shown `XXXX-XXXX`), valid `ACTIVATION_CODE_TTL_HOURS` (48), single use, bcrypt-hashed. A new code, or a deactivation, revokes the unused ones. Never log a code.
+      - The phone's secret is never stored: it is HMAC-SHA256(server key, `mediqore/activation/<deviceId>/<activation_secret_ref>`). The server key is `PIN_RESET_SECRET`, or derived from `JWT_ACCESS_SECRET` with HKDF if unset. Changing either changes every phone's secret, so phones would need activating again.
+      - Reply code: HMAC-SHA256(secret, `mediqore/pin-reset/<6-digit challenge>`), first 4 bytes big-endian modulo 10^8, 8 digits. `tests/activation.test.js` holds the test vector the app shares.
+    - `pin-reset.service.js`: `POST /pin-reset/reply-code` for supervisors (LHWs in their areas) and admins; the reply for her latest activated phone, audited without the code.
+    - `tokens.service.js`: JWT access tokens (claim `did` = the activated phone) and opaque refresh tokens. Refresh tokens are stored as SHA-256 hashes, rotated on every use, and revoked on sign-out, deactivation and password reset.
     - `login-throttle.js`: in-memory rate limit on failed sign-ins per address and username (429 `TOO_MANY_ATTEMPTS` with `Retry-After`). It holds one process's memory, so tests call `loginThrottle.reset()`.
-  - `devices.service.js`: pending phones and issuing their codes. Admins see all; supervisors see LHWs in their areas.
   - `lhws.service.js` (M1 FE-1, FE-3): LHW accounts.
     - The LHW ID comes from the `lhw_code_seq` sequence (`LHW-00001`) and is also the username.
     - Passwords are random, shown once and stored as bcrypt.
-    - It also handles reassignment, deactivation and password reset, with an audit row for each change.
+    - It also handles reassignment, deactivation, password reset and activation codes (`POST /admin/lhws/:id/activation-code`), with an audit row for each change.
     - Reassignment keeps the old area in `lhw_profiles.previous_area_id`. Push files a new record under the area the phone made it in (`areaId`), if that is the LHW's current or previous area, so records made before the move and synced after it stay in the old area (M1 FE-3).
-- Sync accepts only a phone approved by code, and only the phone named in the token (`DEVICE_NOT_ALLOWED`).
+- Sync accepts only an activated phone, and only the phone named in the token (`DEVICE_NOT_ALLOWED`).
 - `src/sync/tables.js`: the tables devices may push and pull, with their fields. Add a table here when its module is built. `services/sync.service.js` implements `/sync/push` and `/sync/pull`.
   - Synced so far: `households` (M2 FE-3), `women`, `pregnancies` (M2 FE-1), `obstetric_history` (M2 FE-2) and `visits` (M3 FE-1).
   - Vital bounds in `tables.js` are the `allowed` ranges of the Clinical Rules Table (`clinical-rules/clinical-rules.json`, `visit_entry_checks`), the same table the app bundles. They refuse only impossible values; the app confirms implausible ones.
@@ -86,7 +89,7 @@ From the roadmap:
 - `tests/`: Jest + Supertest.
   - Import `createApp()`; never start a real server in tests.
   - Database tests use `describeDb` from `tests/db.js`. They run only when `TEST_DATABASE_URL` points at a migrated database whose name ends in `_test`, and they empty it first.
-  - `createFixtures()` gives each fixture LHW an approved phone (`deviceA`, `deviceB`). `tokenFor(userId, role, deviceId)` signs a token, and app tokens carry the phone.
+  - `createFixtures()` gives each fixture LHW an activated phone (`deviceA`, `deviceB`). `tokenFor(userId, role, deviceId)` signs a token, and app tokens carry the phone.
   - The `server_seq` trigger stamps `synced_at` on every update; a test that needs an old `synced_at` disables the trigger for that one update (see `tests/dashboard-activity.test.js`).
 
 ## Commands
@@ -109,4 +112,4 @@ psql -U postgres -c "CREATE DATABASE mediqore_test OWNER mediqore;"
 cd ..\db; npm run migrate:test    # migrates TEST_DATABASE_URL from db/.env
 ```
 
-Demo accounts for local testing: `cd ..\db; npm run seed:demo` creates `admin.demo`, `supervisor.demo` and `lhw.demo` (see `db/CLAUDE.md`). The first time `lhw.demo` signs in on a phone, approve the phone on the portal (**Device approvals**, issue a code) and type the code in the app.
+Demo accounts for local testing: `cd ..\db; npm run seed:demo` creates `admin.demo`, `supervisor.demo` and `lhw.demo` (see `db/CLAUDE.md`). Before `lhw.demo` signs in on a phone, generate an activation code for her on the portal (**LHW accounts** as `admin.demo`, **New activation code**) and type it in the app with the password.

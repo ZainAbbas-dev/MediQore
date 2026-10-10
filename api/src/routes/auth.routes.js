@@ -1,4 +1,4 @@
-// M1 FE-2: sign-in, phone approval with a one-time code, token refresh and sign-out.
+// M1 FE-2: phone activation, sign-in, token refresh and sign-out.
 const { Router } = require('express');
 const Joi = require('joi');
 const validate = require('../middleware/validate');
@@ -17,11 +17,14 @@ const loginSchema = Joi.object({
   deviceModel: Joi.string().trim().max(100),
 });
 
-const otpSchema = Joi.object({
+// The activation code is 8 letters and digits; a dash or space between the
+// two halves, and lower case, are accepted.
+const activateSchema = Joi.object({
   username,
   password,
+  activationCode: Joi.string().trim().pattern(/^[A-Za-z0-9]{4}[\s-]?[A-Za-z0-9]{4}$/).required(),
   deviceId: deviceId.required(),
-  code: Joi.string().pattern(/^\d{6}$/).required(),
+  deviceModel: Joi.string().trim().max(100),
 });
 
 const refreshSchema = Joi.object({
@@ -29,7 +32,7 @@ const refreshSchema = Joi.object({
 });
 
 router.post('/login', validate({ body: loginSchema }), authController.login);
-router.post('/otp/verify', validate({ body: otpSchema }), authController.verifyOtp);
+router.post('/activate', validate({ body: activateSchema }), authController.activate);
 router.post('/refresh', validate({ body: refreshSchema }), authController.refresh);
 router.post('/logout', validate({ body: refreshSchema }), authController.logout);
 

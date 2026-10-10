@@ -26,10 +26,12 @@ module.exports = {
     maxFailures: int(process.env.LOGIN_MAX_FAILURES, 5),
     windowMinutes: int(process.env.LOGIN_WINDOW_MINUTES, 15),
   },
-  // M1 FE-2, decision 0002: admin-issued one-time codes for a new phone.
-  otp: {
-    ttlHours: int(process.env.OTP_TTL_HOURS, 24),
-    maxAttempts: int(process.env.OTP_MAX_ATTEMPTS, 5),
+  // M1 FE-2: one-time activation codes for the first sign-in on a phone, and
+  // the key that the phones' PIN-reset secrets come from (optional: derived
+  // from JWT_ACCESS_SECRET when unset).
+  activation: {
+    codeTtlHours: int(process.env.ACTIVATION_CODE_TTL_HOURS, 48),
+    pinResetSecret: process.env.PIN_RESET_SECRET || null,
   },
   // M1 FE-2: HTTPS only. On by default in production; behind a reverse proxy,
   // set TRUST_PROXY (for example 1) so the API sees the original https scheme.

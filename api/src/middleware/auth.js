@@ -6,7 +6,7 @@ const { rolesFor } = require('../auth/permissions');
 
 // M1 FE-2: requires a valid JWT access token (Authorization: Bearer <token>) and
 // an active account. Sets req.user = { id, role, fullName, deviceId }; deviceId
-// is the approved phone the token was issued to, or null for portal sign-ins.
+// is the activated phone the token was issued to, or null for portal sign-ins.
 // A deactivated account gets 403 ACCOUNT_INACTIVE, so the app can say why
 // (M1 FE-3: deactivated accounts are refused at their next sync).
 async function authenticate(req, res, next) {

@@ -26,8 +26,6 @@ const SYNCED_TABLES = [
 const SERVER_ONLY_TABLES = [
   'districts', 'tehsils', 'union_councils', 'areas',
   'users', 'lhw_profiles', 'supervisor_areas', 'devices', 'activation_codes', 'refresh_tokens',
-  // otp_codes: the earlier phone-approval code, kept until the Phase 1 sign-in moves to activation codes.
-  'otp_codes',
   'audit_log', 'sync_conflicts', 'report_jobs', 'clinical_rules_versions',
   'epi_schedule',
   'leave_and_campaign_weeks',
