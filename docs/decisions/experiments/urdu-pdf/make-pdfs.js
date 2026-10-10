@@ -1,4 +1,4 @@
-// P0-11 experiment: print the same one-page Urdu report two ways, so the team
+// P0-12 experiment: print the same one-page Urdu report two ways, so the team
 // can see which method shapes Nastaliq and orders right-to-left text correctly
 // (roadmap, Risks: "Urdu text in PDF reports").
 //

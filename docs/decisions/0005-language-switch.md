@@ -1,10 +1,12 @@
 # 0005. Urdu/English language switch, with voice guidance in Urdu only
 
-- **Status:** Accepted (scope amendment A1)
+- **Status:** Accepted, and now part of the updated final scope (M3 FE-3, LI-6). Its voice guidance rule no longer applies
 - **Date:** 2026-10-04
 - **Approved by:** Ma'am Sajida Kalsoom (supervisor), as reported by the team on 2026-10-04
 - **Scope:** new M1 FE-4; amends M3 FE-3, LI-6 and the Tools table
 - **Roadmap:** amendment A1 (Phase 1 task under Module 1, conventions, exit gate, testing, definition of done)
+
+> **Update, 2026-10-10 (updated final scope and roadmap of 10 Oct 2026).** The language switch is now in the scope itself: "a Language option in Settings lets the LHW switch the whole app between Urdu and English at any time … Her choice is saved on the device and kept across logins, and Urdu is the default" (M3 FE-3; it was M1 FE-4 under amendment A1). Voice guidance has been removed from the scope (LI-6), so point 4 below and every voice rule here are void. The scope places the switch in Settings; whether the sign-in screen keeps its language button is a question for the Phase 1 revision. shared_preferences stays the store for the choice; with the Keystore-wrapped database key (M3 FE-2) the reason given below about the password key no longer applies, but the language must still be known before sign-in.
 
 ## Decision
 

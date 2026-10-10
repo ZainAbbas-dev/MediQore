@@ -1,9 +1,11 @@
 # 0004. Source of the Urdu voice
 
-- **Status:** Proposed, waiting for the phone results below
+- **Status:** Withdrawn: voice guidance is no longer in the scope (LI-6: "The app has no audio guidance")
 - **Date:** 2026-10-03
 - **Scope:** M3 FE-3 (voice guidance reads Urdu field labels), LI-6; Tools table: flutter_tts
 - **Roadmap:** Risks and decisions, row 4: "Check the test phones; if missing, record short Urdu clips for the fixed field labels and play those instead"; "Urdu and voice": "check whether the test phones have an Urdu text-to-speech voice in Phase 0"
+
+> **Update, 2026-10-10 (updated final scope and roadmap of 10 Oct 2026).** The updated scope removes voice guidance; the roadmap lists "Urdu voice on the phone" as *Removed from scope*. Nothing in this record is needed any more. The app still contains the Module 3 voice guidance (flutter_tts), its settings and the voice check screen described below; they are removed in the Phase 1 revision, which rebuilds Module 3 to the updated scope. The record is kept as history.
 
 ## Context
 

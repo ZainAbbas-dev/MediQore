@@ -1,17 +1,16 @@
-# ml/: model training and analytics worker
+# ml/: model training
 
-Python pipeline for the Module 4 risk model (training, SHAP Urdu lookup, ONNX export) and the Module 6 analytics worker. Follow the root `CLAUDE.md` first; this file only adds what is specific to `ml/`.
+Python pipeline for the Module 4 risk models (training, SHAP explanation lookup, ONNX export). Module 6 trends run on the phone in Dart (M6 FE-3), so there is no server analytics worker. Follow the root `CLAUDE.md` first; this file only adds what is specific to `ml/`.
 
 ## Stack (scope Tools table)
 
 | Tool | Version | Purpose |
 |---|---|---|
-| Python | 3.11 | Training and analytics runtime |
+| Python | 3.11 | Training runtime |
 | scikit-learn | 1.4 | Logistic Regression, Random Forest, Gradient Boosting |
 | imbalanced-learn (SMOTE) | Latest | Class balancing |
 | SHAP | Latest | Feature-threshold-to-risk-class mappings, exported as a JSON lookup for the app |
-| sklearn2onnx | Latest | Export of the chosen model to ONNX for on-device inference |
-| numpy + scipy | Latest | Analytics worker: linear-regression trends and Z-score anomalies (M6 FE-3) |
+| skl2onnx | Latest | Export of the chosen models to ONNX for on-device inference |
 
 Supporting tools, not in the scope Tools table (exact versions pinned in `requirements*.txt`):
 
@@ -23,7 +22,7 @@ Supporting tools, not in the scope Tools table (exact versions pinned in `requir
 | nbclient + nbformat | 0.10 / 5.10 | The test that runs each notebook end to end |
 | ruff | 0.6 | Lint and format (CI) |
 
-Phase 2 adds scikit-learn, imbalanced-learn, SHAP and sklearn2onnx to `requirements.txt` when training starts.
+Phase 2 adds scikit-learn, imbalanced-learn, SHAP and skl2onnx to `requirements.txt` when training starts.
 
 Data sources:
 
@@ -39,9 +38,10 @@ From the roadmap: tests use pytest, including saved metrics.
 
 - Remove duplicate rows. Keep a stratified 20% hold-out set untouched until the end.
 - Apply SMOTE inside each training fold only, never before the split.
-- Select the model by high-risk recall of at least 90% first, then by F1-macro (BO-2).
+- Train two input sets and validate and report them separately (M4 FE-1, BO-2): the default five-feature model (SystolicBP, DiastolicBP, BodyTemp, HeartRate, Age) and the six-feature model that adds BloodSugar, used only with a same-visit blood sugar reading.
+- Select each model by high-risk recall of at least 90% first, then by F1-macro (BO-2); if neither reaches the target, report the shortfall.
 - Export to ONNX with plain probability output (no ZipMap). Keep a parity test showing that Python and ONNX agree on every test row.
-- Version every exported model; the app stores the model version on each risk assessment.
+- Version every exported model; the app stores the model version and input set on each risk assessment, with the Clinical Rules Table version.
 - Read the dataset only through `mediqore_ml.uci.load_uci()`: it checks the columns, types and labels. UCI body temperature is in °F and blood sugar in mmol/L (`UNITS`).
 - Test notebooks and scripts on `tests/fixtures/uci_sample.csv` (made-up rows), never on the real file, so CI needs no download.
 - Commit notebooks with their outputs, so supervisors can read them on GitHub. Outputs may show summaries of the public UCI data, never MediQore patient data.

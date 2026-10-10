@@ -1,9 +1,11 @@
 # 0006. Library for the encrypted local database
 
-- **Status:** Proposed. Built in Module 3 on the project owner's go-ahead ("implement module 3"), so the work could continue; team sign-off and the supervisor's agreement are still needed, because the scope's Tools table names another library.
+- **Status:** Accepted for the library: the updated scope's Tools table names "SQLite3MultipleCiphers via Drift NativeDatabase (sqlite3 package)". Superseded for the key: see the update below
 - **Date:** 2026-10-04
 - **Scope:** M3 FE-2 ("encrypted SQLite (Drift + sqflite_sqlcipher) with AES-256"), LI-8; Tools table: sqflite_sqlcipher
 - **Roadmap:** Module 3, "AES-256 encrypted local storage with Drift + sqflite_sqlcipher"; Module 1, "derive the SQLCipher key from the password … a correct password unlocks the local database"
+
+> **Update, 2026-10-10 (updated final scope and roadmap of 10 Oct 2026).** The updated scope (M3 FE-2, LI-8, Tools table) adopts this record's library choice: Drift's native database with SQLite3MultipleCiphers and its SQLCipher-compatible AES-256 cipher. The key changes: it is now a **random 256-bit key generated on the phone, stored wrapped by a non-exportable Android Keystore key** (flutter_secure_storage) and unwrapped in memory when the database opens, **never derived from the password or PIN**. The password-derived key described below is replaced in the Phase 1 revision; a password reset then no longer deletes and re-downloads the local data.
 
 ## Context
 

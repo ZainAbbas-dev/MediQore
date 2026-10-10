@@ -1,4 +1,4 @@
-# Urdu PDF experiment (P0-11)
+# Urdu PDF experiment (P0-12)
 
 This experiment prints the same one-page Urdu report with **pdfkit** and with **HTML + headless Chrome** (puppeteer-core). The roadmap asks for this test in Phase 0 (Risks and decisions, "Urdu text in PDF reports"). The results and the proposed decision are in [`../../0003-urdu-pdf-method.md`](../../0003-urdu-pdf-method.md).
 

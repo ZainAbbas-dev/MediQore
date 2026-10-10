@@ -1,6 +1,8 @@
 # api/: REST API
 
-Node.js + Express REST API: auth, sync endpoints, conflict detection, alerts, reports and audit log. Follow the root `CLAUDE.md` first; this file only adds what is specific to `api/`.
+Node.js + Express REST API: auth and activation codes, sync endpoints, conflict detection, alerts and server-side escalation, reports and audit log. Follow the root `CLAUDE.md` first; this file only adds what is specific to `api/`.
+
+> **Phase 1 revision pending.** Sign-in was built against the earlier scope (a portal-issued phone approval code, `otp_codes`). The updated scope replaces it with the admin activation code (`activation_codes`: about 8 characters, 48 hours, single use, hashed) and adds the supervisor's PIN-reset reply codes (M1 FE-2). The sign-in section below describes the code as it is.
 
 ## Stack (scope Tools table)
 
@@ -62,7 +64,7 @@ From the roadmap:
 - Sync accepts only a phone approved by code, and only the phone named in the token (`DEVICE_NOT_ALLOWED`).
 - `src/sync/tables.js`: the tables devices may push and pull, with their fields. Add a table here when its module is built. `services/sync.service.js` implements `/sync/push` and `/sync/pull`.
   - Synced so far: `households` (M2 FE-3), `women`, `pregnancies` (M2 FE-1), `obstetric_history` (M2 FE-2) and `visits` (M3 FE-1).
-  - Vital bounds in `tables.js` refuse only impossible values; the app confirms implausible ones from its range config.
+  - Vital bounds in `tables.js` are the `allowed` ranges of the Clinical Rules Table (`clinical-rules/clinical-rules.json`, `visit_entry_checks`), the same table the app bundles. They refuse only impossible values; the app confirms implausible ones.
   - A table with `sameDay` (visits): a new record for the same parent on the same day, Pakistan time, as a stored one is not stored. It is held in `sync_conflicts` (status `conflict` with `conflictId` to the device, audit action `sync_conflict`); a resend returns the same conflict (M3 FE-2, LI-7).
   - A table with a `parent` (a woman's household, a pregnancy's woman) needs that parent on the server and in the same area, or the record is refused with `MISSING_PARENT` or `OUT_OF_AREA`.
   - Each pushed record runs in a savepoint: a record that breaks a database rule is refused with a reason (`DUPLICATE_PATIENT_ID`, `ACTIVE_PREGNANCY_EXISTS`, `DUPLICATE_RECORD`) and the rest of the batch still applies.

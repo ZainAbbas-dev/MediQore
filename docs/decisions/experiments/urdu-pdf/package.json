@@ -2,7 +2,7 @@
   "name": "mediqore-urdu-pdf-experiment",
   "version": "1.0.0",
   "private": true,
-  "description": "P0-11: can pdfkit print Urdu Nastaliq, or do reports need HTML + headless Chrome?",
+  "description": "P0-12: can pdfkit print Urdu Nastaliq, or do reports need HTML + headless Chrome?",
   "scripts": {
     "start": "node make-pdfs.js"
   },

@@ -1,9 +1,11 @@
 # 0001. Model inputs
 
-- **Status:** Proposed
+- **Status:** Accepted: decided by the updated final scope (M3 FE-1, M4 FE-1, BO-2) and the roadmap of 10 Oct 2026 ("Model inputs missing from the visit form: Decided in scope")
 - **Date:** 2026-10-03
 - **Scope:** M4 FE-1, M3 FE-1, BO-2, LI-2
 - **Roadmap:** Risks and decisions, row 1 ("Model inputs missing from the visit form"); Phase 2 task "Run inference with onnxruntime after each visit … handle a missing blood sugar value as decided in P0-11"
+
+> **Update, 2026-10-10 (updated final scope and roadmap of 10 Oct 2026).** The scope now fixes option 3: pulse is required, blood sugar is optional, and two input sets are trained, validated and reported separately: a default five-feature model (SystolicBP, DiastolicBP, BodyTemp, HeartRate, Age) and a six-feature model used only when a same-visit blood sugar reading exists (configurable window). The input set is stored on every result in `risk_assessments.input_set` (`five_feature`, `six_feature`), added by the `final-scope-data-model` migration, so point 2 below no longer relies on the model version name alone. Blood sugar is stored with its unit, date and source (glucometer or verified lab report). Points 4 and "To decide in Phase 2" stay open for Phase 2.
 
 ## Context
 

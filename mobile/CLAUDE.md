@@ -1,30 +1,40 @@
 # mobile/: LHW Android app
 
-Flutter app with Modules 1–9, fully offline, in Urdu by default with an English option (M1 FE-4), plus the supervisor alert role. Follow the root `CLAUDE.md` first; this file only adds what is specific to `mobile/`.
+Flutter app with Modules 1–9, fully offline, in Urdu by default with an English option (M3 FE-3). Supervisors get emergency alerts through the portal's web push, SMS and calls; there is no separate supervisor app (M5 FE-2). Follow the root `CLAUDE.md` first; this file only adds what is specific to `mobile/`.
 
-## Stack (scope Tools table)
+> **Phase 1 revision pending.** Modules 1–3 were built against the earlier scope. The updated scope changes them, and the revision is next: activation code instead of the phone-approval code, offline six-digit PIN with progressive delays and supervisor reply-code reset, lock-screen emergency call, a random database key wrapped by the Android Keystore instead of the password key, the visit form's pulse counter, blood sugar unit/date/source and danger-sign checklist, the final screen design, and removing voice guidance (LI-6: no audio guidance). Until then the Layout section below describes the code as it is.
+
+## Stack (updated scope Tools table)
 
 | Tool | Version | Purpose |
 |---|---|---|
-| Flutter | 3.x; this project needs 3.47 or newer (`pubspec.yaml`) | Android app with Urdu UI (English selectable), voice guidance and offline support (Android only, LI-1) |
+| Flutter | 3.x; this project needs 3.47 or newer (`pubspec.yaml`) | Android app with Urdu and English UI and offline support (Android only, LI-1) |
 | SQLite via Drift | Latest | Offline local storage |
-| sqflite_sqlcipher | Latest | AES-256 encryption of the local database. Built instead with the SQLite3 Multiple Ciphers build of `package:sqlite3` (SQLCipher format, AES-256), because sqflite_sqlcipher cannot back Drift: proposed decision 0006 |
-| flutter_localizations + intl | Latest | RTL locale, Urdu support, bidirectional text; English left to right (A1) |
-| shared_preferences | Latest | Keeps the chosen interface language (scope amendment A1), the installation ID and the saved account for offline sign-in, all readable before login; never patient data |
-| crypto (dart.dev) | Latest | HMAC-SHA256 for the PBKDF2 password key behind offline sign-in (roadmap M1 FE-2, LI-8) |
+| SQLite3MultipleCiphers via Drift NativeDatabase (`sqlite3` package) | Latest | AES-256 encryption (SQLCipher-compatible cipher) of the local database (M3 FE-2, decision 0006) |
+| flutter_secure_storage (Android Keystore) | Latest | Keeps the random database key and the activation secret wrapped by a non-exportable Keystore key; the database key is never derived from the password or PIN (M1 FE-2, M3 FE-2, LI-8). Added in the Phase 1 revision |
+| flutter_localizations + intl | Latest | Urdu and English ARB files, the language switch in Settings, RTL for Urdu and LTR for English, bidirectional text |
 | Jameel Noori Nastaleeq (bundled asset) | N/A | Urdu Nastaliq font for all Urdu text |
 | Flutter Directionality widget | N/A | RTL context for Urdu, with numeric vitals left to right |
-| flutter_tts | Latest | Urdu voice guidance for field labels |
-| onnxruntime | Latest | On-device inference of the exported risk model |
-| JSON lookup table (asset) | N/A | SHAP-derived Urdu explanations, bundled at build time |
+| onnxruntime | Latest | On-device inference of the five- and six-feature risk models |
+| JSON lookup table (asset) | N/A | SHAP-derived explanations in Urdu and English, bundled at build time |
 | fl_chart | Latest | Vital trend graphs |
-| google_mlkit_text_recognition | Latest | Offline OCR of hospital reports |
+| Dart (on-device) | - | Trend slope of each vital over the last three visits against the Clinical Rules Table (M6 FE-3) |
+| google_mlkit_text_recognition | Latest | Offline OCR of printed Latin-script hospital reports (LI-9) |
 | camera + image_picker | Latest | Report capture from camera or gallery |
 | image | Latest | Grayscale and contrast preprocessing before OCR |
 | Custom Dart regex engine | - | Clinical value extraction from OCR text |
-| Firebase Cloud Messaging + flutter_local_notifications | Latest | Layer 1 emergency push and local notifications |
-| another_telephony + flutter_phone_direct_caller + permission_handler | Latest | Layer 2 SMS and Layer 3 call, without internet |
+| flutter_local_notifications | Latest | Local emergency notifications on the LHW app (Layer 1 web push belongs to the portal) |
+| another_telephony + flutter_phone_direct_caller + permission_handler + url_launcher | Latest | Layer 2 SMS and Layer 3 call without internet; url_launcher opens the SMS app pre-filled if the SMS permission is denied (LI-4) |
 | connectivity_plus + workmanager | Latest | Emergency alert record sync in the background |
+
+In the app but not in the Tools table:
+
+| Tool | Purpose |
+|---|---|
+| shared_preferences | Device settings readable before sign-in: the language (decision 0005), the installation ID and the saved account; never patient data |
+| geolocator | Household GPS (roadmap M2 FE-3) |
+| crypto (dart.dev) | HMAC-SHA256 for the PBKDF2 password key of today's offline sign-in; the Phase 1 revision replaces the password key with the Keystore-wrapped key and a PIN slow hash |
+| flutter_tts | Today's voice guidance; out of scope (LI-6), removed in the Phase 1 revision |
 
 From the roadmap:
 

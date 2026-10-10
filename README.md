@@ -13,48 +13,23 @@ MediQore replaces the LHW's paper registers with an Android app, in Urdu by defa
 
 The app syncs with a central server whenever a connection is available. Supervisors and admins use a web portal for a live dashboard and map, alerts, PDF/Excel reports and administration.
 
-> **Status:** Phase 0 (Foundation) is built; Phase 1 has Modules 1 and 2 built (below). Phase 0 work:
-> - the Flutter app shell with its Urdu widget kit and font (P0-2);
-> - the API skeleton (P0-3);
-> - database schema v1 (P0-4);
-> - the portal skeleton (P0-5);
-> - the offline sync skeleton (P0-6);
-> - the Phase 1 screen spec and wireframes (P0-7);
+> **Status:** Phase 0 (Design and foundation, roadmap of 10 Oct 2026) is built on `dev`:
+> - monorepo with GitHub Actions lint and tests for every part (P0-1);
+> - the Flutter app with Urdu and English, the bundled Jameel Noori Nastaleeq font, right to left and left to right layouts, and a widget kit in the final Clinical Teal design (P0-2);
+> - the Express 5 API skeleton on Node.js 24 LTS with Joi validation, a central error handler, request logging and the OpenAPI file (P0-3);
+> - database schema v1 for all ten modules, including activation codes, Clinical Rules Table versions, pregnancy outcomes and the child register (P0-4);
+> - the portal skeleton as an installable web app with a service worker ready for web push (P0-5);
+> - the offline sync skeleton, proven end to end: a record made on the phone offline is synced, stored in PostgreSQL and shown on the portal (P0-6);
+> - the Phase 1 screens in the final design (P0-7, [docs/design/phase1-screens.md](docs/design/phase1-screens.md));
 > - the synthetic data generator (P0-8);
+> - the IEC application draft, ready for the team to submit (P0-9);
 > - the start of the ML track: UCI dataset download and exploratory notebook (P0-10);
-> - proposed decisions with evidence for the P0-11 open items, including an Urdu PDF test and a voice check screen in the app;
-> - the IEC application draft (P0-9), ready for the team to submit;
-> - an Urdu/English language switch in the app (scope amendment A1, M1 FE-4), with voice guidance only in Urdu.
+> - the Clinical Rules Table v0 with WHO-referenced defaults, marked "pending clinical review" ([clinical-rules/](clinical-rules/README.md), P0-11);
+> - the Urdu PDF check: pdfkit runs Urdu lines left to right, so reports use HTML printed to PDF ([decision 0003](docs/decisions/0003-urdu-pdf-method.md), P0-12).
 >
-> One test record now runs end to end: created on the phone, synced, stored in PostgreSQL and shown on the portal.
+> Still with people: branch protection on `main` (P0-1), submitting the IEC application (P0-9), a Clinical Advisor for the rules table (P0-11), and the review of schema v1 and OpenAPI v1 by both members.
 >
-> **Phase 1, Module 1 (user management and authentication), built on `dev` and waiting for review and real-phone testing:**
-> - admins create LHW accounts on the portal (system-issued LHW ID and password), edit, reassign, deactivate and reset passwords with a "sync before reset" warning (FE-1, FE-3); records a phone made before a reassignment keep their old area when they sync;
-> - the app's first sign-in on a phone needs a one-time code issued on the portal's **Phone approvals** page (FE-2, proposed decision 0002), then downloads the LHW's area;
-> - later sign-ins work offline with a PBKDF2 password key (LI-8); the app locks after 5 minutes without use;
-> - short-lived access tokens with rotating refresh tokens, login rate limiting, HTTPS enforcement outside development; a deactivated account is refused at its next sync (FE-2, FE-3);
-> - the language switch on the sign-in screen (FE-4).
->
-> **Phase 1, Module 2 (expecting woman registration), built on `dev` and waiting for review and real-phone testing:**
-> - the app registers a pregnant woman without the internet: name, age, husband, contact, pregnancy month, village, address and obstetric history on one form, saved in one step (FE-1, FE-2);
-> - each woman gets a patient ID that is unique offline, the LHW code plus the phone's counter (for example `LHW-00001-0007`), and a pregnancy file;
-> - the home's GPS position with the geolocator package, or later from her file; a second woman can share a registered woman's home (FE-3);
-> - the patient list searches by name, ID or village and is grouped by village (FE-3);
-> - the portal's **Registered women** page and a dashboard count show what the phones have synced.
->
-> **Phase 1, Module 3 (field visit and vitals), built on `dev` and waiting for review and real-phone testing:**
-> - the visit form from the woman's file, offline: BP, weight, temperature, pulse, optional blood sugar, fetal movement, swelling, bleeding, fever, anaemia signs and urine symptoms (FE-1);
-> - impossible values are refused, and values outside the usual range (for example systolic BP outside 60–250) are saved only after the LHW confirms them; the ranges are in a versioned config file for clinical advisor review;
-> - the phone's database is encrypted with AES-256 and opens only with the LHW's password (FE-2, proposed decision 0006);
-> - records sync on their own while the app is open and online; a second visit to the same pregnancy on the same day is held for the supervisor instead of being stored, and the portal's **Sync conflicts** page decides (FE-2, LI-7);
-> - in Urdu, each field's label is read aloud when it gets focus, with a mute switch; off in English (FE-3);
-> - the dashboard shows visits this week and the conflicts waiting for review.
->
-> **Phase 1, Module 10 base (supervisor portal and admin panel), built on `dev` and waiting for review:**
-> - dashboard: registered women, visits this week, conflicts to review and households; each LHW's visits, registrations, last sync and last sign-in; the household map filtered by district, Union Council, LHW and period, refreshing every 5 minutes (FE-1);
-> - admin panel: the district, tehsil, Union Council and area structure; LHW, supervisor and admin accounts; hospitals and referral centres; the roles and what each may do (FE-3);
-> - audit log viewer: every create, edit, delete, sign-in and sync conflict with who and when, filtered by user, action, record and date (FE-3);
-> - supervisors see only their areas everywhere; administration is for admins only.
+> **Phase 1 (Modules 1, 2, 3 and the Module 10 base)** was built on `dev` against the earlier scope and is next revised to the updated one. What exists now: LHW, supervisor and admin accounts and the admin panel; sign-in with a portal-issued phone approval code and a password-based offline sign-in; registration of pregnant women with GPS and the patient list; the encrypted visit form with range checks and automatic sync with the supervisor conflict queue; the dashboard, household map and audit log. The revision brings the activation code, offline PIN with progressive delays and PIN reset, the Keystore-wrapped database key, the visit form's pulse counter, blood sugar details and danger-sign checklist, the final screen design, and removes voice guidance (out of scope, LI-6).
 >
 > **Data notice:** MediQore is developed and demonstrated on synthetic data only. No real patient data is used before IEC approval (LI-10). AI results are decision support, not a clinical diagnosis (LI-5).
 
@@ -62,34 +37,37 @@ The app syncs with a central server whenever a connection is available. Supervis
 
 | Part | Folder | Stack | Status |
 |---|---|---|---|
-| LHW Android app (Modules 1–9) | [`mobile/`](mobile/) | Flutter 3.x, Drift + SQLCipher, ONNX Runtime | Urdu shell and widget kit (P0-2); local database, outbox and sync (P0-6); sign-in, phone approval, offline sign-in and auto-lock (M1); registration, patient list and pregnancy file (M2); encrypted database, visit form, automatic sync and voice guidance (M3) |
+| LHW Android app (Modules 1–9) | [`mobile/`](mobile/) | Flutter 3.x, Drift + SQLite3MultipleCiphers, ONNX Runtime | Urdu and English shell, widget kit in the final design (P0-2); local database, outbox and sync (P0-6); sign-in, phone approval, offline sign-in and auto-lock (M1); registration, patient list and pregnancy file (M2); encrypted database, visit form, automatic sync and voice guidance (M3) |
 | REST API | [`api/`](api/) | Node.js 24 LTS + Express 5, JWT, Joi | Skeleton (P0-3); `/sync` push/pull (P0-6); login with phone approval, refresh tokens, LHW accounts, phone approvals (M1); registrations through `/sync` and `GET /women` (M2); visits through `/sync`, the same-day conflict queue and the dashboard summary (M3); role permissions, admin panel, audit log, LHW activity and map filters (M10 base) |
-| Database | [`db/`](db/) | PostgreSQL 15 migrations and synthetic seed scripts | Schema v1 for all ten modules (P0-4); demo seed; synthetic data generator (P0-8); LHW ID numbering and the previous area after a reassignment (M1); held conflicts and hospitals in the synthetic data (M3, M10) |
-| Supervisor and admin portal (Module 10) | [`web/`](web/) | React 18 + Leaflet.js | Login, auth guard, sidebar layout, map dashboard (P0-5); LHW accounts and phone approvals (M1); registered women (M2); sync conflict review queue, visits on the dashboard (M3); LHW activity, map filters and auto-refresh, admin panel and audit log (M10 base) |
-| ML pipeline and analytics worker | [`ml/`](ml/) | Python 3.11, scikit-learn, SHAP, sklearn2onnx | Dataset download and exploratory notebook (P0-10); training in Phase 2 |
+| Database | [`db/`](db/) | PostgreSQL 15 migrations and synthetic seed scripts | Schema v1 for all ten modules, brought up to the final scope (P0-4); Clinical Rules Table loader (P0-11); demo seed; synthetic data generator (P0-8); LHW ID numbering and the previous area after a reassignment (M1); held conflicts and hospitals in the synthetic data (M3, M10) |
+| Supervisor and admin portal (Module 10) | [`web/`](web/) | React 18 + Leaflet.js, installable web app | Login, auth guard, sidebar layout, map dashboard, manifest and service worker ready for web push (P0-5); LHW accounts and phone approvals (M1); registered women (M2); sync conflict review queue, visits on the dashboard (M3); LHW activity, map filters and auto-refresh, admin panel and audit log (M10 base) |
+| ML training | [`ml/`](ml/) | Python 3.11, scikit-learn, imbalanced-learn, SHAP, skl2onnx | Dataset download and exploratory notebook (P0-10); training of the five- and six-feature models in Phase 2 |
+| Clinical Rules Table | [`clinical-rules/`](clinical-rules/) | Versioned JSON, read by the app and the API | v0 with WHO-referenced defaults, pending clinical review (P0-11) |
 
 ## Repository layout
 
 ```
 mediqore/
-├── mobile/   Flutter app (LHW role + supervisor alert role)
-├── api/      Node.js + Express REST API
-├── web/      React supervisor and admin portal
-├── ml/       Python training, SHAP lookup, ONNX export, analytics worker
-├── db/       PostgreSQL migrations and synthetic seed scripts
-├── docs/     Scope, roadmap; later the OpenAPI contract, ERD and test reports
-└── .github/  CI workflow, issue and pull request templates, labels
+├── mobile/          Flutter app (LHW)
+├── api/             Node.js + Express REST API
+├── web/             React supervisor and admin portal (installable web app)
+├── ml/              Python training, SHAP lookup, ONNX export
+├── clinical-rules/  Versioned Clinical Rules Table (JSON), shared by app and API
+├── db/              PostgreSQL migrations and synthetic seed scripts
+├── docs/            Scope, roadmap, OpenAPI contract; later the ERD and test reports
+└── .github/         CI workflow, issue and pull request templates, labels
 ```
 
 ## Documentation
 
-- [Scope](docs/scope.md): approved scope with modules M1–M10, features (FE-n) and limitations LI-1 to LI-12, plus the amendments approved since (for example A1, the language switch).
-- [Implementation roadmap](docs/roadmap.md): phases, tasks, architecture rules and definition of done. The original is [roadmap.pdf](docs/roadmap.pdf).
+- [Scope](docs/scope.md): the updated final scope with modules M1–M10, features (FE-n) and limitations LI-1 to LI-12.
+- [Implementation roadmap](docs/roadmap.md) (10 Oct 2026): phases, tasks, architecture rules, data model and definition of done. The original is [roadmap.pdf](docs/roadmap.pdf).
+- [Clinical Rules Table](clinical-rules/README.md): every clinical rule, pending clinical review, and how the Clinical Advisor signs it (P0-11).
 - [Schema v1](docs/schema-v1.md): the database, how sync works in it, and the decisions to review.
 - [API contract](docs/openapi.yaml): OpenAPI 3.1.
-- [Phase 1 screens](docs/design/phase1-screens.md): screen spec and Figma-ready wireframes (P0-7).
+- [Phase 1 screens](docs/design/phase1-screens.md): the final screen design (Clinical Teal) and screen spec (P0-7).
 - [IEC application draft](docs/iec/README.md): the ethics application for the usability evaluation with LHWs (P0-9), ready to copy into the committee's form.
-- [Decision records](docs/decisions/README.md): the P0-11 open items (model inputs, OTP channel, Urdu PDF method, Urdu voice), with evidence; awaiting team sign-off.
+- [Decision records](docs/decisions/README.md): the earlier roadmap's open items (model inputs, OTP channel, Urdu PDF method, Urdu voice, language switch, encryption library), with evidence and how the updated scope settled each.
 - [CLAUDE.md](CLAUDE.md): permanent project rules for contributors and AI coding sessions.
 
 ## Getting started (Windows)
@@ -102,7 +80,7 @@ Both team members develop on Windows. Install:
 |---|---|---|
 | Git for Windows | latest | everything |
 | VS Code + EditorConfig extension | latest | everything |
-| Node.js | 20 LTS | `api/`, `web/` |
+| Node.js | 24 LTS | `api/`, `web/`, `db/`, `clinical-rules/` |
 | PostgreSQL | 15 | `db/`, `api/` |
 | Python | 3.11 | `ml/` |
 | Flutter SDK (stable) + Android Studio / Android SDK | 3.47 or newer | `mobile/` |
@@ -178,8 +156,8 @@ The Phase 0 exit gate says: "One test record created on the phone offline, synce
      ```powershell
      cd mobile; flutter run --dart-define=API_BASE_URL=http://<laptop-ip>:3000/api/v1
      ```
-   - Sign in as `lhw.demo`. The first sign-in on a phone asks for a one-time code (M1 FE-2, decision 0002): in the portal (step 4), sign in as `supervisor.demo`, open **Phone approvals**, click **Issue code** and type the code in the app.
-   - On the home screen open **فیز 0 کی جانچ** (Phase 0 checks), then **ڈیٹا سنک کی جانچ** (Sync test).
+   - Sign in as `lhw.demo`. Until the Phase 1 revision brings the activation code, the first sign-in on a phone asks for a one-time code (decision 0002): in the portal (step 4), sign in as `supervisor.demo`, open **Phone approvals**, click **Issue code** and type the code in the app.
+   - Open **سیٹنگز** (Settings, the gear icon at the top of the home screen), then **فیز 0 کی جانچ** (Phase 0 checks, shown in debug builds and the test APK) and **ڈیٹا سنک کی جانچ** (Sync test).
    - Turn on airplane mode and tap **ٹیسٹ گھرانہ بنائیں** (create test household).
    - Turn airplane mode off and tap **ابھی سنک کریں** (sync now).
 4. **Portal:**
@@ -196,7 +174,7 @@ Without a phone, `flutter test test/e2e/sync_e2e_test.dart --dart-define=E2E_API
 
 | Branch | Purpose |
 |---|---|
-| `main` | Always demo-ready and protected. Updated only by merging `dev` after review. |
+| `main` | Always demo-ready and protected. Updated only by merging `dev` after review (by Muhammad Zain Abbas). |
 | `dev` | Integration branch; all work lands here first. |
 | `feature/m<module>-fe<n>-<slug>` | One branch per scope feature, e.g. `feature/m3-fe1-visit-form`, branched from `dev` and merged back into `dev` by pull request. |
 
@@ -204,6 +182,15 @@ Without a phone, `flutter test test/e2e/sync_e2e_test.dart --dart-define=E2E_API
 - Every pull request is reviewed by the other team member and must pass CI.
 - CI runs lint and tests for each part that exists.
 - Use the [feature issue template](.github/ISSUE_TEMPLATE/feature.yml) for new work.
+
+### Protecting `main` (P0-1, repository owner only)
+
+Branch protection is a GitHub setting, not a file, so the repository owner turns it on once: **Settings → Branches → Add branch ruleset** (or **Add classic branch protection rule**) for `main`:
+
+1. **Require a pull request before merging**, with **1 approval** (the other team member).
+2. **Require status checks to pass**, and pick the CI jobs: `web (Node.js 24)`, `api (Node.js 24 + PostgreSQL 15)`, `db (PostgreSQL 15 migrations)`, `clinical-rules (Node.js 24)`, `ml (Python 3.11)` and `mobile (Flutter stable)`. GitHub lists them after they have run once.
+3. **Block force pushes** and **restrict deletions**.
+4. Save. `dev` can stay unprotected so work can land, but every merge into `main` then goes through review and green CI.
 
 ## Team
 
