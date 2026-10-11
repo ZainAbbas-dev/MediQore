@@ -34,15 +34,16 @@ void main() {
     }));
     addTearDown(db.close);
 
-    final [household] = await HouseholdRepository(db).all();
-    expect(household.village, 'Old village');
-    expect(household.areaId, isNull);
-    expect(await db.pendingCount(), 1);
-    expect(await db.readState('last_server_seq'), '12');
-    expect(await PatientRepository(db).list(), isEmpty, reason: 'the Module 2 tables exist');
-    expect(await VisitRepository(db).forPregnancy('any'), isEmpty, reason: 'the Module 3 table exists');
-    expect(db.schemaVersion, 3);
-  });
+      final [household] = await HouseholdRepository(db).all();
+      expect(household.village, 'Old village');
+      expect(household.areaId, isNull);
+      expect(await db.pendingCount(), 1);
+      expect(await db.readState('last_server_seq'), '12');
+      expect(await PatientRepository(db).list(), isEmpty, reason: 'the Module 2 tables exist');
+      expect(await VisitRepository(db).forPregnancy('any'), isEmpty, reason: 'the Module 3 table exists');
+      expect(db.schemaVersion, 4);
+    },
+  );
 
   test('a phone with the version 2 database (M2) gets the visits table and keeps its registrations', () async {
     final folder = await Directory.systemTemp.createTemp('mediqore-migration');
@@ -73,5 +74,71 @@ void main() {
       by: lhw,
     );
     expect((await VisitRepository(db).forPregnancy(summary.pregnancy!.id)).single.visit.id, visit.id);
+  });
+
+  test('a phone with the version 3 database (M3) gets the blood sugar details and the danger-sign checklist, keeping its visits', () async {
+    final folder = await Directory.systemTemp.createTemp('mediqore-migration');
+    addTearDown(() => folder.delete(recursive: true));
+    final file = File('${folder.path}/v3.sqlite');
+    const lhw = SessionUser(
+      id: 'user-1',
+      username: 'lhw.demo',
+      role: 'lhw',
+      fullName: 'Demo LHW',
+      lhwCode: 'LHW-1',
+      areaId: 'area-1',
+    );
+
+    final current = AppDatabase(NativeDatabase(file));
+    final woman = await PatientRepository(current).register(
+      const RegistrationInput(name: 'Synthetic Woman', age: 25, pregnancyMonth: 3, village: 'Test village'),
+      by: lhw,
+    );
+    final pregnancy = (await PatientRepository(current).file(woman.id))!.pregnancy!;
+    final old = await VisitRepository(current)
+        .record(VisitInput(pregnancyId: pregnancy.id, systolicBpMmhg: 120, diastolicBpMmhg: 80, pulseBpm: 80), by: lhw);
+    await current.close();
+    // The version 3 visits table had none of the new columns.
+    final raw = sqlite3.open(file.path);
+    for (final column in [
+      'blood_sugar_entered_unit',
+      'blood_sugar_measured_on',
+      'blood_sugar_source',
+      'convulsions',
+      'severe_headache',
+      'blurred_vision',
+      'severe_abdominal_pain',
+      'fast_breathing',
+      'fever_with_weakness',
+    ]) {
+      raw.execute('ALTER TABLE visits DROP COLUMN $column');
+    }
+    raw.execute('PRAGMA user_version = 3');
+    raw.close();
+
+    final db = AppDatabase(NativeDatabase(file));
+    addTearDown(db.close);
+    final [kept] = await VisitRepository(db).forPregnancy(pregnancy.id);
+    expect(kept.visit.id, old.id);
+    expect(kept.visit.convulsions, isNull, reason: 'not asked before the checklist existed');
+
+    await VisitRepository(db).record(
+      VisitInput(
+        pregnancyId: pregnancy.id,
+        systolicBpMmhg: 118,
+        diastolicBpMmhg: 76,
+        pulseBpm: 82,
+        bloodSugarMmolL: 5.2,
+        bloodSugarEnteredUnit: 'mmol_l',
+        bloodSugarMeasuredOn: '2026-10-10',
+        bloodSugarSource: 'glucometer',
+        convulsions: false,
+        severeHeadache: true,
+      ),
+      by: lhw,
+    );
+    final visits = await VisitRepository(db).forPregnancy(pregnancy.id);
+    expect(visits.first.visit.severeHeadache, isTrue);
+    expect(visits.first.visit.bloodSugarSource, 'glucometer');
   });
 }

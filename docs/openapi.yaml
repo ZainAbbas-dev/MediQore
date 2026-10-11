@@ -2149,8 +2149,10 @@ components:
       type: object
       description: |
         One home visit (M3 FE-1). Units are in the names and never converted in storage. The bounds
-        only refuse impossible values; the app asks for confirmation of implausible ones.
-      required: [pregnancyId, visitedAt]
+        only refuse impossible values; the app asks for confirmation of implausible ones. Pulse is
+        required. A blood sugar value needs its entered unit, date and source; without a value they must
+        be null.
+      required: [pregnancyId, visitedAt, pulseBpm]
       properties:
         pregnancyId:
           type: string
@@ -2176,13 +2178,25 @@ components:
           minimum: 25
           maximum: 45
         pulseBpm:
-          type: [integer, 'null']
+          type: integer
           minimum: 20
           maximum: 250
+          description: Read from the BP device, or counted for 30 seconds and doubled in the app.
         bloodSugarMmolL:
           type: [number, 'null']
           minimum: 0.5
           maximum: 50
+          description: Always mmol/L; the app converts a value typed in mg/dL (factor from the Clinical Rules Table).
+        bloodSugarEnteredUnit:
+          type: [string, 'null']
+          enum: [mmol_l, mg_dl, null]
+          description: The unit the LHW typed, kept for traceability.
+        bloodSugarMeasuredOn:
+          type: [string, 'null']
+          format: date
+        bloodSugarSource:
+          type: [string, 'null']
+          enum: [glucometer, lab_report, null]
         fetalMovement:
           type: [string, 'null']
           enum: [normal, reduced, absent, null]
@@ -2202,6 +2216,21 @@ components:
         urineSymptoms:
           type: boolean
           default: false
+        convulsions:
+          type: [boolean, 'null']
+          description: Danger-sign checklist (M3 FE-1, M4 FE-4). Null means not asked (visits recorded before the checklist).
+        severeHeadache:
+          type: [boolean, 'null']
+        blurredVision:
+          type: [boolean, 'null']
+        severeAbdominalPain:
+          type: [boolean, 'null']
+          description: Severe or upper abdominal pain.
+        fastBreathing:
+          type: [boolean, 'null']
+          description: Fast or difficult breathing.
+        feverWithWeakness:
+          type: [boolean, 'null']
 
     Conflict:
       type: object

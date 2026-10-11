@@ -10,6 +10,7 @@ class StepScaffold extends StatelessWidget {
   const StepScaffold({
     super.key,
     required this.title,
+    this.subtitle,
     required this.step,
     required this.total,
     required this.stepName,
@@ -22,6 +23,9 @@ class StepScaffold extends StatelessWidget {
   });
 
   final String title;
+
+  /// For example the woman's name and patient ID.
+  final String? subtitle;
 
   /// 1-based.
   final int step;
@@ -48,7 +52,20 @@ class StepScaffold extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: subtitle == null
+            ? Text(title)
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title),
+                  Text(
+                    subtitle!,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.9)),
+                  ),
+                ],
+              ),
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -113,6 +130,69 @@ class StepScaffold extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Large buttons for one choice among a few (final design screens 15–18), for
+/// example yes / no or normal / markedly reduced / absent. The chosen one is
+/// filled; [danger] fills a chosen value in red (a "yes" danger sign).
+class ChoiceButtons<T> extends StatelessWidget {
+  const ChoiceButtons({
+    super.key,
+    required this.options,
+    required this.selected,
+    required this.onSelected,
+    this.danger = const {},
+  });
+
+  final List<(T, String)> options;
+  final T? selected;
+  final ValueChanged<T> onSelected;
+
+  /// Values shown in red when chosen.
+  final Set<T> danger;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (final (index, (value, label)) in options.indexed) ...[
+          if (index > 0) const SizedBox(width: 8),
+          Expanded(
+            child: Semantics(
+              selected: value == selected,
+              button: true,
+              child: OutlinedButton(
+                onPressed: () => onSelected(value),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 52),
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  backgroundColor: value != selected
+                      ? AppColors.surface
+                      : danger.contains(value)
+                      ? AppColors.statusProblem
+                      : AppColors.primarySoft,
+                  foregroundColor: value != selected
+                      ? AppColors.text
+                      : danger.contains(value)
+                      ? Colors.white
+                      : AppColors.primaryDark,
+                  side: BorderSide(
+                    color: value != selected
+                        ? AppColors.fieldBorder
+                        : danger.contains(value)
+                        ? AppColors.statusProblem
+                        : AppColors.primary,
+                    width: value == selected ? 2 : 1,
+                  ),
+                ),
+                child: Text(label, textAlign: TextAlign.center),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

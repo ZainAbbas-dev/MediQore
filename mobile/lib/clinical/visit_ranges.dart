@@ -38,17 +38,28 @@ class VitalRange {
 /// The ranges of every vital on the visit form, by the field name the server
 /// uses (docs/openapi.yaml, VisitData).
 class VisitRanges {
-  const VisitRanges({required this.version, required this.vitals});
+  const VisitRanges({
+    required this.version,
+    required this.vitals,
+    this.pulseCountSeconds = 30,
+    this.pulseMultiplier = 2,
+    this.mgDlPerMmolL = 18.0,
+  });
 
   /// Reads the visit_entry_checks section of the whole Clinical Rules Table.
   factory VisitRanges.fromJson(Map<String, dynamic> json) {
     final checks = json['visit_entry_checks'] as Map<String, dynamic>;
+    final counter = checks['pulse_counter'] as Map<String, dynamic>;
+    final conversion = checks['blood_sugar_conversion'] as Map<String, dynamic>;
     return VisitRanges(
       version: json['version'] as String,
       vitals: {
         for (final MapEntry(:key, :value) in (checks['vitals'] as Map<String, dynamic>).entries)
           key: VitalRange.fromJson(value as Map<String, dynamic>),
       },
+      pulseCountSeconds: counter['count_seconds'] as int,
+      pulseMultiplier: counter['multiplier'] as int,
+      mgDlPerMmolL: (conversion['mg_dl_per_mmol_l'] as num).toDouble(),
     );
   }
 
@@ -62,5 +73,16 @@ class VisitRanges {
   final String version;
   final Map<String, VitalRange> vitals;
 
-  VitalRange operator [](String field) => vitals[field] ?? (throw ArgumentError.value(field, 'field', 'no range in $asset'));
+  /// The pulse counter (M3 FE-1): count for this many seconds, multiply by this.
+  final int pulseCountSeconds;
+  final int pulseMultiplier;
+
+  /// A blood sugar typed in mg/dL is stored as mg/dL ÷ this, in mmol/L.
+  final double mgDlPerMmolL;
+
+  /// [mgDl] in mmol/L, with one decimal, as it is stored.
+  double mmolLFromMgDl(num mgDl) => (mgDl / mgDlPerMmolL * 10).round() / 10;
+
+  VitalRange operator [](String field) =>
+      vitals[field] ?? (throw ArgumentError.value(field, 'field', 'no range in $asset'));
 }

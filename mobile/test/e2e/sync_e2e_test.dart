@@ -262,7 +262,24 @@ void main() {
       );
       final pregnancyId = (await phone1.patients.file(woman.id))!.pregnancy!.id;
       await phone1.visits.record(
-        VisitInput(pregnancyId: pregnancyId, systolicBpMmhg: 118, diastolicBpMmhg: 76, weightKg: 58.5, temperatureC: 36.8, pulseBpm: 82),
+        VisitInput(
+          pregnancyId: pregnancyId,
+          systolicBpMmhg: 118,
+          diastolicBpMmhg: 76,
+          weightKg: 58.5,
+          temperatureC: 36.8,
+          pulseBpm: 82,
+          bloodSugarMmolL: 5.0,
+          bloodSugarEnteredUnit: 'mg_dl',
+          bloodSugarMeasuredOn: '2026-10-01',
+          bloodSugarSource: 'glucometer',
+          convulsions: false,
+          severeHeadache: false,
+          blurredVision: false,
+          severeAbdominalPain: false,
+          fastBreathing: false,
+          feverWithWeakness: false,
+        ),
         by: phone1.session.user!,
       );
       final first = await phone1.session.sync();

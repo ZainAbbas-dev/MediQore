@@ -33,9 +33,18 @@ void main() {
         temperatureC: 37.2,
         pulseBpm: 88,
         bloodSugarMmolL: 5.4,
+        bloodSugarEnteredUnit: 'mg_dl',
+        bloodSugarMeasuredOn: '2026-10-03',
+        bloodSugarSource: 'lab_report',
         fetalMovement: 'reduced',
         swelling: true,
         anaemiaSigns: 'severe',
+        convulsions: false,
+        severeHeadache: true,
+        blurredVision: false,
+        severeAbdominalPain: false,
+        fastBreathing: false,
+        feverWithWeakness: false,
       ),
       by: lhw,
     );
@@ -53,12 +62,21 @@ void main() {
       'temperatureC': 37.2,
       'pulseBpm': 88,
       'bloodSugarMmolL': 5.4,
+      'bloodSugarEnteredUnit': 'mg_dl',
+      'bloodSugarMeasuredOn': '2026-10-03',
+      'bloodSugarSource': 'lab_report',
       'fetalMovement': 'reduced',
       'swelling': true,
       'bleeding': false,
       'fever': false,
       'anaemiaSigns': 'severe',
       'urineSymptoms': false,
+      'convulsions': false,
+      'severeHeadache': true,
+      'blurredVision': false,
+      'severeAbdominalPain': false,
+      'fastBreathing': false,
+      'feverWithWeakness': false,
     });
     expect(visit.createdBy, 'user-1');
     expect(visit.visitedAt, DateTime.utc(2026, 10, 4, 9, 15, 30), reason: 'whole seconds, as it reads back');
@@ -71,6 +89,22 @@ void main() {
     expect(data['bloodSugarMmolL'], isNull);
     expect(data['fetalMovement'], isNull);
     expect(data['anaemiaSigns'], 'none');
+    expect(data['convulsions'], isNull, reason: 'a question not asked');
+  });
+
+  test('blood sugar details are dropped without a blood sugar value', () async {
+    await visits.record(
+      const VisitInput(
+        pregnancyId: 'pregnancy-1',
+        bloodSugarEnteredUnit: 'mmol_l',
+        bloodSugarMeasuredOn: '2026-10-03',
+        bloodSugarSource: 'glucometer',
+      ),
+      by: lhw,
+    );
+
+    final data = (jsonDecode((await db.select(db.outbox).getSingle()).payload) as Map<String, dynamic>)['data'] as Map;
+    expect([data['bloodSugarEnteredUnit'], data['bloodSugarMeasuredOn'], data['bloodSugarSource']], [null, null, null]);
   });
 
   test('lists the latest visit first by server number, never by the phone clock (LI-7), with each sync state', () async {

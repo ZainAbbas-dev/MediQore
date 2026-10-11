@@ -101,7 +101,7 @@ Run the task **MediQore: run all tests (db, api, web)**. You should see the same
 | `api` | lint clean, 169 passed |
 | `web` | lint clean, 53 passed, build succeeds |
 
-After step 7, the task **mobile: analyze and test** should show "No issues found" and 156 tests passed, with four skipped (the opt-in end-to-end tests).
+After step 7, the task **mobile: analyze and test** should show "No issues found" and 189 tests passed, with four skipped (the opt-in end-to-end tests).
 
 ## 7. The app on a real phone
 
@@ -132,16 +132,20 @@ This tries Module 1 (activation code, PIN, offline unlock, wrong-PIN wait, PIN r
    - **Auto-lock:** leave the app untouched for 5 minutes. It locks and asks for the PIN.
    - **Password reset:** in the portal, as `admin.demo`, reset the password of `LHW-DEMO-001`. On the phone, sync: the app asks to sign in again; type the new password. The records and the PIN stay.
    - **Deactivation:** in the portal, as `admin.demo`, open **LHW accounts** and deactivate `LHW-DEMO-001`. On the phone, tap **ابھی سنک کریں** (sync now): the app locks, says the account is deactivated and refuses the PIN. Activate it again in the portal, then tap **دوبارہ سائن ان کریں** (sign in again) on the phone.
-   - **Register a pregnant woman offline (M2):** unlock the app, turn on **airplane mode** and tap **حاملہ خاتون کا اندراج** (register a pregnant woman).
-     1. Fill in a made-up name, age, pregnancy month and village; use synthetic values only, never a real person (LI-10).
-     2. Outdoors, tap **گھر کا مقام محفوظ کریں** (record home location). The first fix without mobile data can take a minute; indoors it may fail, and the form can be saved without it.
-     3. Tap **اندراج محفوظ کریں** (save registration). The app shows the patient ID, for example `LHW-DEMO-001-0001`.
+   - **Register a pregnant woman offline (M2):** unlock the app, turn on **airplane mode** and tap **نیا اندراج** (new registration).
+     1. Step 1: a made-up name and age; use synthetic values only, never a real person (LI-10). Tap **اگلا قدم** (next step). Step 2: tap the pregnancy month.
+     2. Step 3: the village. Outdoors, tap **مقام محفوظ کریں** (record location). The first fix without mobile data can take a minute; indoors it may fail, and the form can be saved without it.
+     3. Step 4: the earlier pregnancies with the − and + buttons, for example 5 earlier pregnancies. Tap **اندراج محفوظ کریں** (save registration). The app shows the patient ID, for example `LHW-DEMO-001-0001`; her file lists the risk factors from her history (here, five or more earlier pregnancies).
      4. Open **رجسٹرڈ خواتین** (registered women): she is listed under her village, marked "not sent yet". Search for part of her name.
      5. Turn airplane mode off and sync. In the portal, as `supervisor.demo`, open **Registered women**: she is there with her history, and the dashboard count goes up.
    - **Record a visit offline (M3):** with **airplane mode** on, open her file from **رجسٹرڈ خواتین** and tap **نیا وزٹ** (new visit).
-     1. Leave every field empty and tap **وزٹ محفوظ کریں** (save visit): each required field says so. Type `98.6` as the temperature: it is refused, because the app takes °C.
-     2. Type a systolic BP of `255` with the other values normal and save: a dialog asks you to check it. **درست کریں** goes back; **جی ہاں، محفوظ کریں** saves it.
-     3. The file shows the visit, marked "not sent yet".
+     1. Step 1 (measurements): leave every field empty and tap **اگلا قدم: علامات** (next step: signs): each required field says so. Type `98.6` as the temperature: it is refused, because the app takes °C.
+     2. Tap **30 سیکنڈ گنیں** (count for 30 seconds) and press **دھڑکن** (beat) once per beat: after 30 seconds the app doubles the count; **یہ نبض لگائیں** (use this pulse) fills the pulse.
+     3. Choose **mg/dL** and type a blood sugar of `140`, then **گلوکومیٹر** (glucometer); the date is today unless you change it. It is stored as 7.8 mmol/L.
+     4. Type a systolic BP of `255` with the other values normal and go on: a dialog asks you to check it. **درست کریں** goes back; **جی ہاں، محفوظ کریں** goes on.
+     5. Step 2 (signs): answer the questions, then **اگلا قدم: خطرے کی علامات** (next step: danger signs).
+     6. Step 3 (danger signs): tap **وزٹ محفوظ کریں** (save visit) without answering: each card asks for yes or no. Answer **ہاں** (yes) to one: its card turns red. Answer the rest and save.
+     7. The file shows the visit, marked "not sent yet", with the blood sugar's source and date and the danger sign answered yes.
    - **Automatic sync and the conflict queue (M3):** turn airplane mode off, wait a few seconds and go back to the home screen: the status bar says everything is synced, without tapping sync. Then record a **second visit for the same woman** and wait again.
      1. Her file marks the second visit "waiting for the supervisor": the server held it because she already had a visit that day.
      2. In the portal, as `supervisor.demo`, open **Sync conflicts**: both visits are side by side. Choose one of the three decisions.

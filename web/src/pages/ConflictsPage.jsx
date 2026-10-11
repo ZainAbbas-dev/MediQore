@@ -7,6 +7,9 @@ import { useAuth } from '../auth/context';
 
 const formatTime = (value) => (value ? new Date(value).toLocaleString() : '–');
 const yesNo = (value) => (value ? 'Yes' : 'No');
+// A danger-sign checklist answer: null means the question was not asked (an older visit).
+const answer = (value) => (value === null || value === undefined ? 'Not asked' : yesNo(value));
+const orDash = (labels) => (value) => (value === null || value === undefined ? '–' : (labels[value] ?? value));
 const withUnit = (unit) => (value) => (value === null || value === undefined ? '–' : `${value} ${unit}`);
 
 // The visit's fields as the phone sends them (docs/openapi.yaml, VisitData).
@@ -18,12 +21,21 @@ const VISIT_FIELDS = [
   ['temperatureC', 'Temperature', withUnit('°C')],
   ['pulseBpm', 'Pulse', withUnit('/min')],
   ['bloodSugarMmolL', 'Blood sugar', withUnit('mmol/L')],
+  ['bloodSugarEnteredUnit', 'Blood sugar typed in', orDash({ mmol_l: 'mmol/L', mg_dl: 'mg/dL' })],
+  ['bloodSugarMeasuredOn', 'Blood sugar measured on', orDash({})],
+  ['bloodSugarSource', 'Blood sugar source', orDash({ glucometer: 'Glucometer', lab_report: 'Lab report' })],
   ['fetalMovement', 'Fetal movement', (value) => value ?? 'Not assessed'],
   ['swelling', 'Swelling', yesNo],
   ['bleeding', 'Bleeding', yesNo],
   ['fever', 'Fever', yesNo],
   ['anaemiaSigns', 'Anaemia signs', (value) => value ?? 'none'],
   ['urineSymptoms', 'Urine symptoms', yesNo],
+  ['convulsions', 'Convulsions or fits', answer],
+  ['severeHeadache', 'Severe headache', answer],
+  ['blurredVision', 'Blurred vision', answer],
+  ['severeAbdominalPain', 'Severe or upper abdominal pain', answer],
+  ['fastBreathing', 'Fast or difficult breathing', answer],
+  ['feverWithWeakness', 'Fever with weakness', answer],
 ];
 
 // What each decision does, in the words shown on its button and after it.

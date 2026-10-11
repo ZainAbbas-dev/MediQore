@@ -346,7 +346,16 @@ class _VisitCard extends StatelessWidget {
       if (v.weightKg != null) (l10n.fieldWeight, '${number(v.weightKg!)} ${l10n.unitKg}'),
       if (v.temperatureC != null) (l10n.fieldTemperature, '${number(v.temperatureC!)} ${l10n.unitCelsius}'),
       if (v.pulseBpm != null) (l10n.fieldPulse, '${v.pulseBpm} ${l10n.unitPerMinute}'),
-      if (v.bloodSugarMmolL != null) (l10n.fieldBloodSugar, '${number(v.bloodSugarMmolL!)} ${l10n.unitMmolL}'),
+      if (v.bloodSugarMmolL != null)
+        (
+          l10n.fieldBloodSugar,
+          [
+            '${number(v.bloodSugarMmolL!)} ${l10n.unitMmolL}',
+            if (v.bloodSugarSource == 'lab_report') l10n.sugarSourceLab,
+            if (v.bloodSugarSource == 'glucometer') l10n.sugarSourceGlucometer,
+            ?v.bloodSugarMeasuredOn,
+          ].join(' · '),
+        ),
     ];
     final signs = [
       if (v.fetalMovement case final movement?)
@@ -361,6 +370,18 @@ class _VisitCard extends StatelessWidget {
       if (v.urineSymptoms) l10n.fieldUrineSymptoms,
       if (v.anaemiaSigns != 'none')
         '${l10n.fieldAnaemia}: ${v.anaemiaSigns == 'severe' ? l10n.anaemiaSevere : l10n.anaemiaPresent}',
+    ];
+    // The danger signs answered "yes" (M3 FE-1).
+    final danger = [
+      for (final (sign, answer) in [
+        ('convulsions', v.convulsions),
+        ('severeHeadache', v.severeHeadache),
+        ('blurredVision', v.blurredVision),
+        ('severeAbdominalPain', v.severeAbdominalPain),
+        ('fastBreathing', v.fastBreathing),
+        ('feverWithWeakness', v.feverWithWeakness),
+      ])
+        if (answer == true) dangerSignLabel(l10n, sign).$1,
     ];
 
     return DecoratedBox(
@@ -389,6 +410,16 @@ class _VisitCard extends StatelessWidget {
               '${l10n.visitSigns}: ${signs.isEmpty ? l10n.visitNoSigns : signs.join(l10n.listSeparator)}',
               style: theme.textTheme.bodyMedium,
             ),
+            if (danger.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                '${l10n.visitStepDanger}: ${danger.join(l10n.listSeparator)}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.statusProblem,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ],
         ),
       ),

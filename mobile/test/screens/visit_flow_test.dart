@@ -6,7 +6,9 @@ import 'package:mediqore/data/app_database.dart';
 import 'package:mediqore/data/patient_repository.dart';
 import 'package:mediqore/l10n/app_localizations.dart';
 import 'package:mediqore/screens/patient_file_screen.dart';
+import 'package:mediqore/screens/pulse_counter_screen.dart';
 import 'package:mediqore/screens/visit_screen.dart';
+import 'package:mediqore/theme/app_colors.dart';
 import 'package:mediqore/settings/app_settings.dart';
 import 'package:mediqore/widgets/form_fields.dart';
 
@@ -91,75 +93,160 @@ void main() {
   Future<List<LocalVisit>> savedVisits(WidgetTester tester) async =>
       (await tester.runAsync(() => services.db.select(services.db.visits).get()))!;
 
-  testWidgets('records a visit offline from the woman\'s file and lists it as not sent yet (M3 FE-1, FE-2)', (tester) async {
-    await openVisitForm(tester);
-    await fillVitals(tester, ur);
-    final fetal = find.byWidgetPredicate((w) => w is DropdownField<String> && w.label == ur.fieldFetalMovement);
-    await tester.ensureVisible(fetal);
-    await tester.tap(fetal);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(ur.fetalMovementReduced).last);
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text(ur.fieldSwelling));
-    await tester.tap(find.text(ur.fieldSwelling));
-    await tester.pumpAndSettle();
+  Future<void> next(WidgetTester tester, String label) => tapAndWait(tester, find.text(label));
 
+  // Step 3: answers every danger sign "no", or "yes" for those in [yes].
+  Future<void> answerDangerSigns(WidgetTester tester, {Set<String> yes = const {}}) async {
+    for (final sign in dangerSigns) {
+      final (label, _) = dangerSignLabel(ur, sign);
+      final card = find.ancestor(of: find.text(label), matching: find.byType(Card)).first;
+      final button = find.descendant(of: card, matching: find.text(yes.contains(sign) ? ur.answerYes : ur.answerNo));
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+    }
+  }
+
+  // A whole visit with normal values: step 1, step 2 as it is, step 3 all "no".
+  Future<void> recordNormalVisit(WidgetTester tester) async {
+    await fillVitals(tester, ur);
+    await next(tester, ur.visitNextSigns);
+    await next(tester, ur.visitNextDanger);
+    await answerDangerSigns(tester);
+    await tapAndWait(tester, find.text(ur.visitSaveButton));
+  }
+
+  testWidgets('records a visit offline in three steps and lists it as not sent yet (M3 FE-1, FE-2)', (tester) async {
+    await openVisitForm(tester);
+    expect(find.text(ur.stepOf(1, 3, ur.visitVitalsSection)), findsOneWidget);
+    await fillVitals(tester, ur);
+    // A blood sugar typed in mg/dL, from a lab report.
+    await tester.tap(find.widgetWithText(OutlinedButton, ur.unitMgDl));
+    await tester.pumpAndSettle();
+    await enter(tester, ur.fieldBloodSugar, '140');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(ur.sugarSourceLab));
+    await tester.pumpAndSettle();
+    await next(tester, ur.visitNextSigns);
+
+    expect(find.text(ur.stepOf(2, 3, ur.visitSymptomsSection)), findsOneWidget);
+    await tester.tap(find.text(ur.fetalMovementReduced));
+    await tester.pumpAndSettle();
+    final swelling = find.ancestor(of: find.text(ur.fieldSwelling), matching: find.byType(Card)).first;
+    await tester.tap(find.descendant(of: swelling, matching: find.text(ur.answerYes)));
+    await tester.pumpAndSettle();
+    await next(tester, ur.visitNextDanger);
+
+    expect(find.text(ur.stepOf(3, 3, ur.visitStepDanger)), findsOneWidget);
+    expect(find.text(ur.decisionSupportNote), findsOneWidget, reason: 'LI-5');
+    await answerDangerSigns(tester, yes: {'severeHeadache'});
     await tapAndWait(tester, find.text(ur.visitSaveButton));
 
     expect(find.byType(PatientFileScreen), findsOneWidget);
     expect(find.text(ur.visitSaved), findsOneWidget);
     expect(find.text('118/76 ${ur.unitMmHg}'), findsOneWidget);
-    expect(find.text('61.5 ${ur.unitKg}'), findsOneWidget);
     expect(find.textContaining(ur.fieldSwelling), findsOneWidget);
+    expect(find.textContaining(ur.dangerSevereHeadache), findsOneWidget);
     expect(find.text(ur.syncWaiting), findsWidgets);
     final [visit] = await savedVisits(tester);
-    expect((visit.systolicBpMmhg, visit.diastolicBpMmhg, visit.weightKg, visit.temperatureC, visit.pulseBpm), (118, 76, 61.5, 36.9, 84));
-    expect((visit.bloodSugarMmolL, visit.fetalMovement, visit.swelling, visit.bleeding), (null, 'reduced', true, false));
+    expect(
+      (visit.systolicBpMmhg, visit.diastolicBpMmhg, visit.weightKg, visit.temperatureC, visit.pulseBpm),
+      (118, 76, 61.5, 36.9, 84),
+    );
+    expect(
+      (visit.bloodSugarMmolL, visit.bloodSugarEnteredUnit, visit.bloodSugarSource, visit.bloodSugarMeasuredOn),
+      (7.8, 'mg_dl', 'lab_report', PatientRepository.calendarDate(DateTime.now())),
+      reason: '140 mg/dL is stored as 7.8 mmol/L with the unit typed',
+    );
+    expect((visit.fetalMovement, visit.swelling, visit.bleeding), ('reduced', true, false));
+    expect((visit.convulsions, visit.severeHeadache, visit.feverWithWeakness), (false, true, false));
     expect(await tester.runAsync(services.db.pendingCount), 5, reason: 'the registration and the visit wait for sync');
   });
 
-  testWidgets('missing and impossible values are refused with the reason, and nothing is saved', (tester) async {
+  testWidgets('step 1 refuses missing and impossible values with the reason, and does not move on', (tester) async {
     await openVisitForm(tester);
 
-    await tapAndWait(tester, find.text(ur.visitSaveButton));
-    expect(find.text(ur.regErrorRequired), findsNWidgets(5), reason: 'every vital but blood sugar is required');
-    expect(find.text(ur.regErrorFix), findsOneWidget);
+    await next(tester, ur.visitNextSigns);
+    expect(find.text(ur.regErrorRequired), findsNWidgets(5), reason: 'every vital, pulse included, but blood sugar');
 
     await fillVitals(tester, ur);
     await enter(tester, ur.fieldTemperature, '98.6'); // Fahrenheit: impossible in °C
     await enter(tester, ur.fieldDiastolicBp, '130');
-    await tapAndWait(tester, find.text(ur.visitSaveButton));
+    await enter(tester, ur.fieldBloodSugar, '6.1');
+    await tester.pumpAndSettle();
+    await next(tester, ur.visitNextSigns);
 
     expect(find.text(ur.visitErrorNotPossible('25', '45')), findsOneWidget);
     expect(find.text(ur.visitErrorDiastolic), findsOneWidget);
-    expect(find.byType(VisitScreen), findsOneWidget);
+    expect(find.text(ur.sugarErrorSource), findsOneWidget, reason: 'a blood sugar needs its source');
+    expect(find.text(ur.stepOf(1, 3, ur.visitVitalsSection)), findsOneWidget);
     expect(await savedVisits(tester), isEmpty);
   });
 
-  testWidgets('a value outside the usual range asks for confirmation: correct it, or confirm and save (M3 FE-1)', (tester) async {
+  testWidgets('step 3 needs an answer to every danger sign; a yes turns its card red', (tester) async {
+    await openVisitForm(tester);
+    await fillVitals(tester, ur);
+    await next(tester, ur.visitNextSigns);
+    await next(tester, ur.visitNextDanger);
+
+    await tapAndWait(tester, find.text(ur.visitSaveButton));
+    expect(find.text(ur.dangerUnanswered), findsNWidgets(6));
+    expect(await savedVisits(tester), isEmpty);
+
+    final card = find.ancestor(of: find.text(ur.dangerConvulsions), matching: find.byType(Card)).first;
+    await tester.tap(find.descendant(of: card, matching: find.text(ur.answerYes)));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Card>(card).color, AppColors.statusProblemBackground);
+    expect(find.text(ur.dangerUnanswered), findsNWidgets(5));
+  });
+
+  testWidgets('the 30-second counter fills in the pulse (M3 FE-1)', (tester) async {
+    await openVisitForm(tester);
+    await tester.tap(find.text(ur.pulseCountButton(30)));
+    await tester.pumpAndSettle();
+    expect(find.byType(PulseCounterScreen), findsOneWidget);
+    expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, ur.pulseUse)).onPressed, isNull);
+
+    for (var i = 0; i < 41; i++) {
+      await tester.tap(find.text(ur.pulseTapButton));
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+    await tester.pump(const Duration(seconds: 15));
+    expect(find.text(ur.pulseDone(30)), findsOneWidget);
+    expect(find.text('41 × 2 = 82 ${ur.unitPerMinute}'), findsOneWidget);
+
+    await tester.tap(find.text(ur.pulseUse));
+    await tester.pumpAndSettle();
+    expect(find.byType(VisitScreen), findsOneWidget);
+    expect(tester.widget<TextFormField>(vital(ur.fieldPulse)).controller!.text, '82');
+  });
+
+  testWidgets('a value outside the usual range asks for confirmation: correct it, or confirm and go on (M3 FE-1)', (
+    tester,
+  ) async {
     await openVisitForm(tester);
     await fillVitals(tester, ur, systolic: '255');
 
-    await tapAndWait(tester, find.text(ur.visitSaveButton));
+    await next(tester, ur.visitNextSigns);
     expect(find.text(ur.rangeCheckTitle), findsOneWidget);
     expect(find.text('255 ${ur.unitMmHg}'), findsOneWidget);
     expect(find.text('60–250 ${ur.unitMmHg}'), findsOneWidget, reason: 'the roadmap example: systolic BP 60–250');
-    expect(find.text(ur.fieldWeight), findsOneWidget, reason: 'only the unusual value is listed, not weight');
 
     await tapAndWait(tester, find.text(ur.rangeCheckCorrect));
-    expect(find.byType(VisitScreen), findsOneWidget);
-    expect(await savedVisits(tester), isEmpty);
+    expect(find.text(ur.stepOf(1, 3, ur.visitVitalsSection)), findsOneWidget);
 
-    await tapAndWait(tester, find.text(ur.visitSaveButton));
+    await next(tester, ur.visitNextSigns);
     await tapAndWait(tester, find.text(ur.rangeCheckConfirm));
+    await next(tester, ur.visitNextDanger);
+    await answerDangerSigns(tester);
+    await tapAndWait(tester, find.text(ur.visitSaveButton));
     expect(find.byType(PatientFileScreen), findsOneWidget);
     expect((await savedVisits(tester)).single.systolicBpMmhg, 255);
   });
 
   testWidgets('a visit the server holds for the supervisor says so in the file (M3 FE-2)', (tester) async {
     await openVisitForm(tester);
-    await fillVitals(tester, ur);
-    await tapAndWait(tester, find.text(ur.visitSaveButton));
+    await recordNormalVisit(tester);
     final [visit] = await savedVisits(tester);
     server
       ..offline = false

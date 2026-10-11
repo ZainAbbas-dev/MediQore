@@ -9,7 +9,9 @@ import 'app_database.dart';
 import 'patient_repository.dart';
 
 /// What the visit form collects (M3 FE-1). Units: BP in mmHg, weight in kg,
-/// temperature in °C, pulse in beats per minute, blood sugar in mmol/L.
+/// temperature in °C, pulse in beats per minute, blood sugar in mmol/L (with
+/// the unit typed, the day measured and the source). The danger-sign checklist
+/// answers are null only for a visit where they were not asked.
 class VisitInput {
   const VisitInput({
     required this.pregnancyId,
@@ -19,12 +21,21 @@ class VisitInput {
     this.temperatureC,
     this.pulseBpm,
     this.bloodSugarMmolL,
+    this.bloodSugarEnteredUnit,
+    this.bloodSugarMeasuredOn,
+    this.bloodSugarSource,
     this.fetalMovement,
     this.swelling = false,
     this.bleeding = false,
     this.fever = false,
     this.anaemiaSigns = 'none',
     this.urineSymptoms = false,
+    this.convulsions,
+    this.severeHeadache,
+    this.blurredVision,
+    this.severeAbdominalPain,
+    this.fastBreathing,
+    this.feverWithWeakness,
   });
 
   final String pregnancyId;
@@ -35,6 +46,15 @@ class VisitInput {
   final int? pulseBpm;
   final double? bloodSugarMmolL;
 
+  /// mmol_l or mg_dl.
+  final String? bloodSugarEnteredUnit;
+
+  /// YYYY-MM-DD.
+  final String? bloodSugarMeasuredOn;
+
+  /// glucometer or lab_report.
+  final String? bloodSugarSource;
+
   /// normal, reduced or absent; null when not assessed.
   final String? fetalMovement;
   final bool swelling;
@@ -44,6 +64,13 @@ class VisitInput {
   /// none, present or severe.
   final String anaemiaSigns;
   final bool urineSymptoms;
+
+  final bool? convulsions;
+  final bool? severeHeadache;
+  final bool? blurredVision;
+  final bool? severeAbdominalPain;
+  final bool? fastBreathing;
+  final bool? feverWithWeakness;
 }
 
 /// A visit with whether it has reached the server.
@@ -90,12 +117,21 @@ class VisitRepository {
       temperatureC: input.temperatureC,
       pulseBpm: input.pulseBpm,
       bloodSugarMmolL: input.bloodSugarMmolL,
+      bloodSugarEnteredUnit: input.bloodSugarMmolL == null ? null : input.bloodSugarEnteredUnit,
+      bloodSugarMeasuredOn: input.bloodSugarMmolL == null ? null : input.bloodSugarMeasuredOn,
+      bloodSugarSource: input.bloodSugarMmolL == null ? null : input.bloodSugarSource,
       fetalMovement: input.fetalMovement,
       swelling: input.swelling,
       bleeding: input.bleeding,
       fever: input.fever,
       anaemiaSigns: input.anaemiaSigns,
       urineSymptoms: input.urineSymptoms,
+      convulsions: input.convulsions,
+      severeHeadache: input.severeHeadache,
+      blurredVision: input.blurredVision,
+      severeAbdominalPain: input.severeAbdominalPain,
+      fastBreathing: input.fastBreathing,
+      feverWithWeakness: input.feverWithWeakness,
     );
     return _db.transaction(() async {
       await _db.into(_db.visits).insert(visit);
@@ -167,26 +203,35 @@ class VisitRepository {
 
   /// The visit as `/sync/push` takes it (docs/openapi.yaml, VisitData).
   static Map<String, Object?> payloadOf(LocalVisit v) => syncPayload(
-        table: table,
-        id: v.id,
-        areaId: v.areaId,
-        createdOnDevice: v.createdOnDevice,
-        deletedAt: v.deletedAt,
-        data: {
-          'pregnancyId': v.pregnancyId,
-          'visitedAt': v.visitedAt.toUtc().toIso8601String(),
-          'systolicBpMmhg': v.systolicBpMmhg,
-          'diastolicBpMmhg': v.diastolicBpMmhg,
-          'weightKg': v.weightKg,
-          'temperatureC': v.temperatureC,
-          'pulseBpm': v.pulseBpm,
-          'bloodSugarMmolL': v.bloodSugarMmolL,
-          'fetalMovement': v.fetalMovement,
-          'swelling': v.swelling,
-          'bleeding': v.bleeding,
-          'fever': v.fever,
-          'anaemiaSigns': v.anaemiaSigns,
-          'urineSymptoms': v.urineSymptoms,
-        },
-      );
+    table: table,
+    id: v.id,
+    areaId: v.areaId,
+    createdOnDevice: v.createdOnDevice,
+    deletedAt: v.deletedAt,
+    data: {
+      'pregnancyId': v.pregnancyId,
+      'visitedAt': v.visitedAt.toUtc().toIso8601String(),
+      'systolicBpMmhg': v.systolicBpMmhg,
+      'diastolicBpMmhg': v.diastolicBpMmhg,
+      'weightKg': v.weightKg,
+      'temperatureC': v.temperatureC,
+      'pulseBpm': v.pulseBpm,
+      'bloodSugarMmolL': v.bloodSugarMmolL,
+      'bloodSugarEnteredUnit': v.bloodSugarEnteredUnit,
+      'bloodSugarMeasuredOn': v.bloodSugarMeasuredOn,
+      'bloodSugarSource': v.bloodSugarSource,
+      'fetalMovement': v.fetalMovement,
+      'swelling': v.swelling,
+      'bleeding': v.bleeding,
+      'fever': v.fever,
+      'anaemiaSigns': v.anaemiaSigns,
+      'urineSymptoms': v.urineSymptoms,
+      'convulsions': v.convulsions,
+      'severeHeadache': v.severeHeadache,
+      'blurredVision': v.blurredVision,
+      'severeAbdominalPain': v.severeAbdominalPain,
+      'fastBreathing': v.fastBreathing,
+      'feverWithWeakness': v.feverWithWeakness,
+    },
+  );
 }

@@ -25,8 +25,10 @@ function visit(pregnancyId, visitedAt = '2026-10-04T05:00:00.000Z', data = {}) {
     table: 'visits', id: randomUUID(), createdOnDevice: visitedAt,
     data: {
       pregnancyId, visitedAt, systolicBpMmhg: 118, diastolicBpMmhg: 76, weightKg: 58.4, temperatureC: 37.1,
-      pulseBpm: 84, bloodSugarMmolL: 5.2, fetalMovement: 'normal', swelling: false, bleeding: false, fever: false,
-      anaemiaSigns: 'none', urineSymptoms: false, ...data,
+      pulseBpm: 84, bloodSugarMmolL: 5.2, bloodSugarEnteredUnit: 'mg_dl', bloodSugarMeasuredOn: '2026-10-03',
+      bloodSugarSource: 'glucometer', fetalMovement: 'normal', swelling: false, bleeding: false, fever: false,
+      anaemiaSigns: 'none', urineSymptoms: false, convulsions: false, severeHeadache: true, blurredVision: false,
+      severeAbdominalPain: false, fastBreathing: false, feverWithWeakness: false, ...data,
     },
   };
 }
@@ -74,10 +76,27 @@ describeDb('Module 3: visits, same-day conflicts and the review queue', () => {
 
       expect(outcomes(res)).toEqual(['created']);
       const { rows: [row] } = await query('SELECT * FROM visits WHERE id = $1', [v.id]);
-      expect(row).toMatchObject({ area_id: ids.areaA, systolic_bp_mmhg: 118, weight_kg: '58.40', temperature_c: '37.1' });
+      expect(row).toMatchObject({
+        area_id: ids.areaA, systolic_bp_mmhg: 118, weight_kg: '58.40', temperature_c: '37.1', pulse_bpm: 84,
+        blood_sugar_mmol_l: '5.2', blood_sugar_entered_unit: 'mg_dl', blood_sugar_measured_on: '2026-10-03',
+        blood_sugar_source: 'glucometer', convulsions: false, severe_headache: true,
+      });
       const pulled = await get(lhwA, '/sync/pull');
       expect(pulled.body.records.find((r) => r.id === v.id).data).toEqual(v.data);
       expect(outcomes(await pushA([v]))).toEqual(['unchanged']);
+    });
+
+    it('stores no blood sugar details without a value, and unanswered checklist questions as null', async () => {
+      const v = visit(pregnancyA, undefined, {
+        bloodSugarMmolL: null, bloodSugarEnteredUnit: null, bloodSugarMeasuredOn: null, bloodSugarSource: null,
+      });
+      for (const question of ['convulsions', 'severeHeadache', 'blurredVision', 'severeAbdominalPain', 'fastBreathing', 'feverWithWeakness']) {
+        delete v.data[question];
+      }
+
+      expect(outcomes(await pushA([v]))).toEqual(['created']);
+      const { rows: [row] } = await query('SELECT * FROM visits WHERE id = $1', [v.id]);
+      expect(row).toMatchObject({ blood_sugar_mmol_l: null, blood_sugar_source: null, convulsions: null, fever_with_weakness: null });
     });
 
     it('refuses a visit for a pregnancy the server does not have', async () => {
@@ -90,6 +109,14 @@ describeDb('Module 3: visits, same-day conflicts and the review queue', () => {
       ['an unknown fetal movement value', { fetalMovement: 'fast' }],
       ['an unknown anaemia value', { anaemiaSigns: 'mild' }],
       ['a visit time that is not a date', { visitedAt: 'yesterday' }],
+      ['a visit without a pulse (M3 FE-1)', { pulseBpm: null }],
+      ['a blood sugar without its source', { bloodSugarSource: null }],
+      ['a blood sugar without its date', { bloodSugarMeasuredOn: null }],
+      ['blood sugar details without a value', { bloodSugarMmolL: null }],
+      ['an unknown blood sugar unit', { bloodSugarEnteredUnit: 'mg' }],
+      ['an unknown blood sugar source', { bloodSugarSource: 'guess' }],
+      ['a blood sugar date that is not a date', { bloodSugarMeasuredOn: '2026-02-30' }],
+      ['a checklist answer that is not yes or no', { convulsions: 'maybe' }],
     ])('rejects %s with 400', async (_, change) => {
       const res = await pushA([visit(pregnancyA, undefined, change)]);
 

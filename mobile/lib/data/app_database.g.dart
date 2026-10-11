@@ -2940,6 +2940,39 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, LocalVisit> {
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _bloodSugarEnteredUnitMeta =
+      const VerificationMeta('bloodSugarEnteredUnit');
+  @override
+  late final GeneratedColumn<String> bloodSugarEnteredUnit =
+      GeneratedColumn<String>(
+        'blood_sugar_entered_unit',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _bloodSugarMeasuredOnMeta =
+      const VerificationMeta('bloodSugarMeasuredOn');
+  @override
+  late final GeneratedColumn<String> bloodSugarMeasuredOn =
+      GeneratedColumn<String>(
+        'blood_sugar_measured_on',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _bloodSugarSourceMeta = const VerificationMeta(
+    'bloodSugarSource',
+  );
+  @override
+  late final GeneratedColumn<String> bloodSugarSource = GeneratedColumn<String>(
+    'blood_sugar_source',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _fetalMovementMeta = const VerificationMeta(
     'fetalMovement',
   );
@@ -3021,6 +3054,89 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, LocalVisit> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _convulsionsMeta = const VerificationMeta(
+    'convulsions',
+  );
+  @override
+  late final GeneratedColumn<bool> convulsions = GeneratedColumn<bool>(
+    'convulsions',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("convulsions" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _severeHeadacheMeta = const VerificationMeta(
+    'severeHeadache',
+  );
+  @override
+  late final GeneratedColumn<bool> severeHeadache = GeneratedColumn<bool>(
+    'severe_headache',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("severe_headache" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _blurredVisionMeta = const VerificationMeta(
+    'blurredVision',
+  );
+  @override
+  late final GeneratedColumn<bool> blurredVision = GeneratedColumn<bool>(
+    'blurred_vision',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("blurred_vision" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _severeAbdominalPainMeta =
+      const VerificationMeta('severeAbdominalPain');
+  @override
+  late final GeneratedColumn<bool> severeAbdominalPain = GeneratedColumn<bool>(
+    'severe_abdominal_pain',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("severe_abdominal_pain" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _fastBreathingMeta = const VerificationMeta(
+    'fastBreathing',
+  );
+  @override
+  late final GeneratedColumn<bool> fastBreathing = GeneratedColumn<bool>(
+    'fast_breathing',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("fast_breathing" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _feverWithWeaknessMeta = const VerificationMeta(
+    'feverWithWeakness',
+  );
+  @override
+  late final GeneratedColumn<bool> feverWithWeakness = GeneratedColumn<bool>(
+    'fever_with_weakness',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("fever_with_weakness" IN (0, 1))',
+    ),
+  );
   static const VerificationMeta _conflictIdMeta = const VerificationMeta(
     'conflictId',
   );
@@ -3048,12 +3164,21 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, LocalVisit> {
     temperatureC,
     pulseBpm,
     bloodSugarMmolL,
+    bloodSugarEnteredUnit,
+    bloodSugarMeasuredOn,
+    bloodSugarSource,
     fetalMovement,
     swelling,
     bleeding,
     fever,
     anaemiaSigns,
     urineSymptoms,
+    convulsions,
+    severeHeadache,
+    blurredVision,
+    severeAbdominalPain,
+    fastBreathing,
+    feverWithWeakness,
     conflictId,
   ];
   @override
@@ -3175,6 +3300,33 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, LocalVisit> {
         ),
       );
     }
+    if (data.containsKey('blood_sugar_entered_unit')) {
+      context.handle(
+        _bloodSugarEnteredUnitMeta,
+        bloodSugarEnteredUnit.isAcceptableOrUnknown(
+          data['blood_sugar_entered_unit']!,
+          _bloodSugarEnteredUnitMeta,
+        ),
+      );
+    }
+    if (data.containsKey('blood_sugar_measured_on')) {
+      context.handle(
+        _bloodSugarMeasuredOnMeta,
+        bloodSugarMeasuredOn.isAcceptableOrUnknown(
+          data['blood_sugar_measured_on']!,
+          _bloodSugarMeasuredOnMeta,
+        ),
+      );
+    }
+    if (data.containsKey('blood_sugar_source')) {
+      context.handle(
+        _bloodSugarSourceMeta,
+        bloodSugarSource.isAcceptableOrUnknown(
+          data['blood_sugar_source']!,
+          _bloodSugarSourceMeta,
+        ),
+      );
+    }
     if (data.containsKey('fetal_movement')) {
       context.handle(
         _fetalMovementMeta,
@@ -3217,6 +3369,60 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, LocalVisit> {
         urineSymptoms.isAcceptableOrUnknown(
           data['urine_symptoms']!,
           _urineSymptomsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('convulsions')) {
+      context.handle(
+        _convulsionsMeta,
+        convulsions.isAcceptableOrUnknown(
+          data['convulsions']!,
+          _convulsionsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('severe_headache')) {
+      context.handle(
+        _severeHeadacheMeta,
+        severeHeadache.isAcceptableOrUnknown(
+          data['severe_headache']!,
+          _severeHeadacheMeta,
+        ),
+      );
+    }
+    if (data.containsKey('blurred_vision')) {
+      context.handle(
+        _blurredVisionMeta,
+        blurredVision.isAcceptableOrUnknown(
+          data['blurred_vision']!,
+          _blurredVisionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('severe_abdominal_pain')) {
+      context.handle(
+        _severeAbdominalPainMeta,
+        severeAbdominalPain.isAcceptableOrUnknown(
+          data['severe_abdominal_pain']!,
+          _severeAbdominalPainMeta,
+        ),
+      );
+    }
+    if (data.containsKey('fast_breathing')) {
+      context.handle(
+        _fastBreathingMeta,
+        fastBreathing.isAcceptableOrUnknown(
+          data['fast_breathing']!,
+          _fastBreathingMeta,
+        ),
+      );
+    }
+    if (data.containsKey('fever_with_weakness')) {
+      context.handle(
+        _feverWithWeaknessMeta,
+        feverWithWeakness.isAcceptableOrUnknown(
+          data['fever_with_weakness']!,
+          _feverWithWeaknessMeta,
         ),
       );
     }
@@ -3291,6 +3497,18 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, LocalVisit> {
         DriftSqlType.double,
         data['${effectivePrefix}blood_sugar_mmol_l'],
       ),
+      bloodSugarEnteredUnit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}blood_sugar_entered_unit'],
+      ),
+      bloodSugarMeasuredOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}blood_sugar_measured_on'],
+      ),
+      bloodSugarSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}blood_sugar_source'],
+      ),
       fetalMovement: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}fetal_movement'],
@@ -3315,6 +3533,30 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, LocalVisit> {
         DriftSqlType.bool,
         data['${effectivePrefix}urine_symptoms'],
       )!,
+      convulsions: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}convulsions'],
+      ),
+      severeHeadache: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}severe_headache'],
+      ),
+      blurredVision: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}blurred_vision'],
+      ),
+      severeAbdominalPain: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}severe_abdominal_pain'],
+      ),
+      fastBreathing: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}fast_breathing'],
+      ),
+      feverWithWeakness: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}fever_with_weakness'],
+      ),
       conflictId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}conflict_id'],
@@ -3344,7 +3586,16 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
   final double? weightKg;
   final double? temperatureC;
   final int? pulseBpm;
+
+  /// Always mmol/L (one unit per value); the form converts a value typed in mg/dL.
   final double? bloodSugarMmolL;
+
+  /// The unit the LHW typed (mmol_l or mg_dl), the day it was measured
+  /// (YYYY-MM-DD) and its source (glucometer or lab_report); set only with a
+  /// blood sugar value (M3 FE-1, M4 FE-1).
+  final String? bloodSugarEnteredUnit;
+  final String? bloodSugarMeasuredOn;
+  final String? bloodSugarSource;
 
   /// normal, reduced or absent; null when not assessed.
   final String? fetalMovement;
@@ -3355,6 +3606,15 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
   /// none, present or severe.
   final String anaemiaSigns;
   final bool urineSymptoms;
+
+  /// The danger-sign checklist (M3 FE-1, M4 FE-4): yes or no; null means not
+  /// asked (visits recorded before the checklist existed).
+  final bool? convulsions;
+  final bool? severeHeadache;
+  final bool? blurredVision;
+  final bool? severeAbdominalPain;
+  final bool? fastBreathing;
+  final bool? feverWithWeakness;
 
   /// Set when the server held this visit for supervisor review, because the
   /// same pregnancy already had a visit that day (M3 FE-2). Cleared when the
@@ -3375,12 +3635,21 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     this.temperatureC,
     this.pulseBpm,
     this.bloodSugarMmolL,
+    this.bloodSugarEnteredUnit,
+    this.bloodSugarMeasuredOn,
+    this.bloodSugarSource,
     this.fetalMovement,
     required this.swelling,
     required this.bleeding,
     required this.fever,
     required this.anaemiaSigns,
     required this.urineSymptoms,
+    this.convulsions,
+    this.severeHeadache,
+    this.blurredVision,
+    this.severeAbdominalPain,
+    this.fastBreathing,
+    this.feverWithWeakness,
     this.conflictId,
   });
   @override
@@ -3420,6 +3689,15 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     if (!nullToAbsent || bloodSugarMmolL != null) {
       map['blood_sugar_mmol_l'] = Variable<double>(bloodSugarMmolL);
     }
+    if (!nullToAbsent || bloodSugarEnteredUnit != null) {
+      map['blood_sugar_entered_unit'] = Variable<String>(bloodSugarEnteredUnit);
+    }
+    if (!nullToAbsent || bloodSugarMeasuredOn != null) {
+      map['blood_sugar_measured_on'] = Variable<String>(bloodSugarMeasuredOn);
+    }
+    if (!nullToAbsent || bloodSugarSource != null) {
+      map['blood_sugar_source'] = Variable<String>(bloodSugarSource);
+    }
     if (!nullToAbsent || fetalMovement != null) {
       map['fetal_movement'] = Variable<String>(fetalMovement);
     }
@@ -3428,6 +3706,24 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     map['fever'] = Variable<bool>(fever);
     map['anaemia_signs'] = Variable<String>(anaemiaSigns);
     map['urine_symptoms'] = Variable<bool>(urineSymptoms);
+    if (!nullToAbsent || convulsions != null) {
+      map['convulsions'] = Variable<bool>(convulsions);
+    }
+    if (!nullToAbsent || severeHeadache != null) {
+      map['severe_headache'] = Variable<bool>(severeHeadache);
+    }
+    if (!nullToAbsent || blurredVision != null) {
+      map['blurred_vision'] = Variable<bool>(blurredVision);
+    }
+    if (!nullToAbsent || severeAbdominalPain != null) {
+      map['severe_abdominal_pain'] = Variable<bool>(severeAbdominalPain);
+    }
+    if (!nullToAbsent || fastBreathing != null) {
+      map['fast_breathing'] = Variable<bool>(fastBreathing);
+    }
+    if (!nullToAbsent || feverWithWeakness != null) {
+      map['fever_with_weakness'] = Variable<bool>(feverWithWeakness);
+    }
     if (!nullToAbsent || conflictId != null) {
       map['conflict_id'] = Variable<String>(conflictId);
     }
@@ -3470,6 +3766,15 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
       bloodSugarMmolL: bloodSugarMmolL == null && nullToAbsent
           ? const Value.absent()
           : Value(bloodSugarMmolL),
+      bloodSugarEnteredUnit: bloodSugarEnteredUnit == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bloodSugarEnteredUnit),
+      bloodSugarMeasuredOn: bloodSugarMeasuredOn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bloodSugarMeasuredOn),
+      bloodSugarSource: bloodSugarSource == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bloodSugarSource),
       fetalMovement: fetalMovement == null && nullToAbsent
           ? const Value.absent()
           : Value(fetalMovement),
@@ -3478,6 +3783,24 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
       fever: Value(fever),
       anaemiaSigns: Value(anaemiaSigns),
       urineSymptoms: Value(urineSymptoms),
+      convulsions: convulsions == null && nullToAbsent
+          ? const Value.absent()
+          : Value(convulsions),
+      severeHeadache: severeHeadache == null && nullToAbsent
+          ? const Value.absent()
+          : Value(severeHeadache),
+      blurredVision: blurredVision == null && nullToAbsent
+          ? const Value.absent()
+          : Value(blurredVision),
+      severeAbdominalPain: severeAbdominalPain == null && nullToAbsent
+          ? const Value.absent()
+          : Value(severeAbdominalPain),
+      fastBreathing: fastBreathing == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fastBreathing),
+      feverWithWeakness: feverWithWeakness == null && nullToAbsent
+          ? const Value.absent()
+          : Value(feverWithWeakness),
       conflictId: conflictId == null && nullToAbsent
           ? const Value.absent()
           : Value(conflictId),
@@ -3504,12 +3827,27 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
       temperatureC: serializer.fromJson<double?>(json['temperatureC']),
       pulseBpm: serializer.fromJson<int?>(json['pulseBpm']),
       bloodSugarMmolL: serializer.fromJson<double?>(json['bloodSugarMmolL']),
+      bloodSugarEnteredUnit: serializer.fromJson<String?>(
+        json['bloodSugarEnteredUnit'],
+      ),
+      bloodSugarMeasuredOn: serializer.fromJson<String?>(
+        json['bloodSugarMeasuredOn'],
+      ),
+      bloodSugarSource: serializer.fromJson<String?>(json['bloodSugarSource']),
       fetalMovement: serializer.fromJson<String?>(json['fetalMovement']),
       swelling: serializer.fromJson<bool>(json['swelling']),
       bleeding: serializer.fromJson<bool>(json['bleeding']),
       fever: serializer.fromJson<bool>(json['fever']),
       anaemiaSigns: serializer.fromJson<String>(json['anaemiaSigns']),
       urineSymptoms: serializer.fromJson<bool>(json['urineSymptoms']),
+      convulsions: serializer.fromJson<bool?>(json['convulsions']),
+      severeHeadache: serializer.fromJson<bool?>(json['severeHeadache']),
+      blurredVision: serializer.fromJson<bool?>(json['blurredVision']),
+      severeAbdominalPain: serializer.fromJson<bool?>(
+        json['severeAbdominalPain'],
+      ),
+      fastBreathing: serializer.fromJson<bool?>(json['fastBreathing']),
+      feverWithWeakness: serializer.fromJson<bool?>(json['feverWithWeakness']),
       conflictId: serializer.fromJson<String?>(json['conflictId']),
     );
   }
@@ -3531,12 +3869,23 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
       'temperatureC': serializer.toJson<double?>(temperatureC),
       'pulseBpm': serializer.toJson<int?>(pulseBpm),
       'bloodSugarMmolL': serializer.toJson<double?>(bloodSugarMmolL),
+      'bloodSugarEnteredUnit': serializer.toJson<String?>(
+        bloodSugarEnteredUnit,
+      ),
+      'bloodSugarMeasuredOn': serializer.toJson<String?>(bloodSugarMeasuredOn),
+      'bloodSugarSource': serializer.toJson<String?>(bloodSugarSource),
       'fetalMovement': serializer.toJson<String?>(fetalMovement),
       'swelling': serializer.toJson<bool>(swelling),
       'bleeding': serializer.toJson<bool>(bleeding),
       'fever': serializer.toJson<bool>(fever),
       'anaemiaSigns': serializer.toJson<String>(anaemiaSigns),
       'urineSymptoms': serializer.toJson<bool>(urineSymptoms),
+      'convulsions': serializer.toJson<bool?>(convulsions),
+      'severeHeadache': serializer.toJson<bool?>(severeHeadache),
+      'blurredVision': serializer.toJson<bool?>(blurredVision),
+      'severeAbdominalPain': serializer.toJson<bool?>(severeAbdominalPain),
+      'fastBreathing': serializer.toJson<bool?>(fastBreathing),
+      'feverWithWeakness': serializer.toJson<bool?>(feverWithWeakness),
       'conflictId': serializer.toJson<String?>(conflictId),
     };
   }
@@ -3556,12 +3905,21 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     Value<double?> temperatureC = const Value.absent(),
     Value<int?> pulseBpm = const Value.absent(),
     Value<double?> bloodSugarMmolL = const Value.absent(),
+    Value<String?> bloodSugarEnteredUnit = const Value.absent(),
+    Value<String?> bloodSugarMeasuredOn = const Value.absent(),
+    Value<String?> bloodSugarSource = const Value.absent(),
     Value<String?> fetalMovement = const Value.absent(),
     bool? swelling,
     bool? bleeding,
     bool? fever,
     String? anaemiaSigns,
     bool? urineSymptoms,
+    Value<bool?> convulsions = const Value.absent(),
+    Value<bool?> severeHeadache = const Value.absent(),
+    Value<bool?> blurredVision = const Value.absent(),
+    Value<bool?> severeAbdominalPain = const Value.absent(),
+    Value<bool?> fastBreathing = const Value.absent(),
+    Value<bool?> feverWithWeakness = const Value.absent(),
     Value<String?> conflictId = const Value.absent(),
   }) => LocalVisit(
     id: id ?? this.id,
@@ -3584,6 +3942,15 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     bloodSugarMmolL: bloodSugarMmolL.present
         ? bloodSugarMmolL.value
         : this.bloodSugarMmolL,
+    bloodSugarEnteredUnit: bloodSugarEnteredUnit.present
+        ? bloodSugarEnteredUnit.value
+        : this.bloodSugarEnteredUnit,
+    bloodSugarMeasuredOn: bloodSugarMeasuredOn.present
+        ? bloodSugarMeasuredOn.value
+        : this.bloodSugarMeasuredOn,
+    bloodSugarSource: bloodSugarSource.present
+        ? bloodSugarSource.value
+        : this.bloodSugarSource,
     fetalMovement: fetalMovement.present
         ? fetalMovement.value
         : this.fetalMovement,
@@ -3592,6 +3959,22 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     fever: fever ?? this.fever,
     anaemiaSigns: anaemiaSigns ?? this.anaemiaSigns,
     urineSymptoms: urineSymptoms ?? this.urineSymptoms,
+    convulsions: convulsions.present ? convulsions.value : this.convulsions,
+    severeHeadache: severeHeadache.present
+        ? severeHeadache.value
+        : this.severeHeadache,
+    blurredVision: blurredVision.present
+        ? blurredVision.value
+        : this.blurredVision,
+    severeAbdominalPain: severeAbdominalPain.present
+        ? severeAbdominalPain.value
+        : this.severeAbdominalPain,
+    fastBreathing: fastBreathing.present
+        ? fastBreathing.value
+        : this.fastBreathing,
+    feverWithWeakness: feverWithWeakness.present
+        ? feverWithWeakness.value
+        : this.feverWithWeakness,
     conflictId: conflictId.present ? conflictId.value : this.conflictId,
   );
   LocalVisit copyWithCompanion(VisitsCompanion data) {
@@ -3622,6 +4005,15 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
       bloodSugarMmolL: data.bloodSugarMmolL.present
           ? data.bloodSugarMmolL.value
           : this.bloodSugarMmolL,
+      bloodSugarEnteredUnit: data.bloodSugarEnteredUnit.present
+          ? data.bloodSugarEnteredUnit.value
+          : this.bloodSugarEnteredUnit,
+      bloodSugarMeasuredOn: data.bloodSugarMeasuredOn.present
+          ? data.bloodSugarMeasuredOn.value
+          : this.bloodSugarMeasuredOn,
+      bloodSugarSource: data.bloodSugarSource.present
+          ? data.bloodSugarSource.value
+          : this.bloodSugarSource,
       fetalMovement: data.fetalMovement.present
           ? data.fetalMovement.value
           : this.fetalMovement,
@@ -3634,6 +4026,24 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
       urineSymptoms: data.urineSymptoms.present
           ? data.urineSymptoms.value
           : this.urineSymptoms,
+      convulsions: data.convulsions.present
+          ? data.convulsions.value
+          : this.convulsions,
+      severeHeadache: data.severeHeadache.present
+          ? data.severeHeadache.value
+          : this.severeHeadache,
+      blurredVision: data.blurredVision.present
+          ? data.blurredVision.value
+          : this.blurredVision,
+      severeAbdominalPain: data.severeAbdominalPain.present
+          ? data.severeAbdominalPain.value
+          : this.severeAbdominalPain,
+      fastBreathing: data.fastBreathing.present
+          ? data.fastBreathing.value
+          : this.fastBreathing,
+      feverWithWeakness: data.feverWithWeakness.present
+          ? data.feverWithWeakness.value
+          : this.feverWithWeakness,
       conflictId: data.conflictId.present
           ? data.conflictId.value
           : this.conflictId,
@@ -3657,12 +4067,21 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
           ..write('temperatureC: $temperatureC, ')
           ..write('pulseBpm: $pulseBpm, ')
           ..write('bloodSugarMmolL: $bloodSugarMmolL, ')
+          ..write('bloodSugarEnteredUnit: $bloodSugarEnteredUnit, ')
+          ..write('bloodSugarMeasuredOn: $bloodSugarMeasuredOn, ')
+          ..write('bloodSugarSource: $bloodSugarSource, ')
           ..write('fetalMovement: $fetalMovement, ')
           ..write('swelling: $swelling, ')
           ..write('bleeding: $bleeding, ')
           ..write('fever: $fever, ')
           ..write('anaemiaSigns: $anaemiaSigns, ')
           ..write('urineSymptoms: $urineSymptoms, ')
+          ..write('convulsions: $convulsions, ')
+          ..write('severeHeadache: $severeHeadache, ')
+          ..write('blurredVision: $blurredVision, ')
+          ..write('severeAbdominalPain: $severeAbdominalPain, ')
+          ..write('fastBreathing: $fastBreathing, ')
+          ..write('feverWithWeakness: $feverWithWeakness, ')
           ..write('conflictId: $conflictId')
           ..write(')'))
         .toString();
@@ -3684,12 +4103,21 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     temperatureC,
     pulseBpm,
     bloodSugarMmolL,
+    bloodSugarEnteredUnit,
+    bloodSugarMeasuredOn,
+    bloodSugarSource,
     fetalMovement,
     swelling,
     bleeding,
     fever,
     anaemiaSigns,
     urineSymptoms,
+    convulsions,
+    severeHeadache,
+    blurredVision,
+    severeAbdominalPain,
+    fastBreathing,
+    feverWithWeakness,
     conflictId,
   ]);
   @override
@@ -3710,12 +4138,21 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
           other.temperatureC == this.temperatureC &&
           other.pulseBpm == this.pulseBpm &&
           other.bloodSugarMmolL == this.bloodSugarMmolL &&
+          other.bloodSugarEnteredUnit == this.bloodSugarEnteredUnit &&
+          other.bloodSugarMeasuredOn == this.bloodSugarMeasuredOn &&
+          other.bloodSugarSource == this.bloodSugarSource &&
           other.fetalMovement == this.fetalMovement &&
           other.swelling == this.swelling &&
           other.bleeding == this.bleeding &&
           other.fever == this.fever &&
           other.anaemiaSigns == this.anaemiaSigns &&
           other.urineSymptoms == this.urineSymptoms &&
+          other.convulsions == this.convulsions &&
+          other.severeHeadache == this.severeHeadache &&
+          other.blurredVision == this.blurredVision &&
+          other.severeAbdominalPain == this.severeAbdominalPain &&
+          other.fastBreathing == this.fastBreathing &&
+          other.feverWithWeakness == this.feverWithWeakness &&
           other.conflictId == this.conflictId);
 }
 
@@ -3734,12 +4171,21 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
   final Value<double?> temperatureC;
   final Value<int?> pulseBpm;
   final Value<double?> bloodSugarMmolL;
+  final Value<String?> bloodSugarEnteredUnit;
+  final Value<String?> bloodSugarMeasuredOn;
+  final Value<String?> bloodSugarSource;
   final Value<String?> fetalMovement;
   final Value<bool> swelling;
   final Value<bool> bleeding;
   final Value<bool> fever;
   final Value<String> anaemiaSigns;
   final Value<bool> urineSymptoms;
+  final Value<bool?> convulsions;
+  final Value<bool?> severeHeadache;
+  final Value<bool?> blurredVision;
+  final Value<bool?> severeAbdominalPain;
+  final Value<bool?> fastBreathing;
+  final Value<bool?> feverWithWeakness;
   final Value<String?> conflictId;
   final Value<int> rowid;
   const VisitsCompanion({
@@ -3757,12 +4203,21 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
     this.temperatureC = const Value.absent(),
     this.pulseBpm = const Value.absent(),
     this.bloodSugarMmolL = const Value.absent(),
+    this.bloodSugarEnteredUnit = const Value.absent(),
+    this.bloodSugarMeasuredOn = const Value.absent(),
+    this.bloodSugarSource = const Value.absent(),
     this.fetalMovement = const Value.absent(),
     this.swelling = const Value.absent(),
     this.bleeding = const Value.absent(),
     this.fever = const Value.absent(),
     this.anaemiaSigns = const Value.absent(),
     this.urineSymptoms = const Value.absent(),
+    this.convulsions = const Value.absent(),
+    this.severeHeadache = const Value.absent(),
+    this.blurredVision = const Value.absent(),
+    this.severeAbdominalPain = const Value.absent(),
+    this.fastBreathing = const Value.absent(),
+    this.feverWithWeakness = const Value.absent(),
     this.conflictId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -3781,12 +4236,21 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
     this.temperatureC = const Value.absent(),
     this.pulseBpm = const Value.absent(),
     this.bloodSugarMmolL = const Value.absent(),
+    this.bloodSugarEnteredUnit = const Value.absent(),
+    this.bloodSugarMeasuredOn = const Value.absent(),
+    this.bloodSugarSource = const Value.absent(),
     this.fetalMovement = const Value.absent(),
     this.swelling = const Value.absent(),
     this.bleeding = const Value.absent(),
     this.fever = const Value.absent(),
     this.anaemiaSigns = const Value.absent(),
     this.urineSymptoms = const Value.absent(),
+    this.convulsions = const Value.absent(),
+    this.severeHeadache = const Value.absent(),
+    this.blurredVision = const Value.absent(),
+    this.severeAbdominalPain = const Value.absent(),
+    this.fastBreathing = const Value.absent(),
+    this.feverWithWeakness = const Value.absent(),
     this.conflictId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -3808,12 +4272,21 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
     Expression<double>? temperatureC,
     Expression<int>? pulseBpm,
     Expression<double>? bloodSugarMmolL,
+    Expression<String>? bloodSugarEnteredUnit,
+    Expression<String>? bloodSugarMeasuredOn,
+    Expression<String>? bloodSugarSource,
     Expression<String>? fetalMovement,
     Expression<bool>? swelling,
     Expression<bool>? bleeding,
     Expression<bool>? fever,
     Expression<String>? anaemiaSigns,
     Expression<bool>? urineSymptoms,
+    Expression<bool>? convulsions,
+    Expression<bool>? severeHeadache,
+    Expression<bool>? blurredVision,
+    Expression<bool>? severeAbdominalPain,
+    Expression<bool>? fastBreathing,
+    Expression<bool>? feverWithWeakness,
     Expression<String>? conflictId,
     Expression<int>? rowid,
   }) {
@@ -3832,12 +4305,24 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
       if (temperatureC != null) 'temperature_c': temperatureC,
       if (pulseBpm != null) 'pulse_bpm': pulseBpm,
       if (bloodSugarMmolL != null) 'blood_sugar_mmol_l': bloodSugarMmolL,
+      if (bloodSugarEnteredUnit != null)
+        'blood_sugar_entered_unit': bloodSugarEnteredUnit,
+      if (bloodSugarMeasuredOn != null)
+        'blood_sugar_measured_on': bloodSugarMeasuredOn,
+      if (bloodSugarSource != null) 'blood_sugar_source': bloodSugarSource,
       if (fetalMovement != null) 'fetal_movement': fetalMovement,
       if (swelling != null) 'swelling': swelling,
       if (bleeding != null) 'bleeding': bleeding,
       if (fever != null) 'fever': fever,
       if (anaemiaSigns != null) 'anaemia_signs': anaemiaSigns,
       if (urineSymptoms != null) 'urine_symptoms': urineSymptoms,
+      if (convulsions != null) 'convulsions': convulsions,
+      if (severeHeadache != null) 'severe_headache': severeHeadache,
+      if (blurredVision != null) 'blurred_vision': blurredVision,
+      if (severeAbdominalPain != null)
+        'severe_abdominal_pain': severeAbdominalPain,
+      if (fastBreathing != null) 'fast_breathing': fastBreathing,
+      if (feverWithWeakness != null) 'fever_with_weakness': feverWithWeakness,
       if (conflictId != null) 'conflict_id': conflictId,
       if (rowid != null) 'rowid': rowid,
     });
@@ -3858,12 +4343,21 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
     Value<double?>? temperatureC,
     Value<int?>? pulseBpm,
     Value<double?>? bloodSugarMmolL,
+    Value<String?>? bloodSugarEnteredUnit,
+    Value<String?>? bloodSugarMeasuredOn,
+    Value<String?>? bloodSugarSource,
     Value<String?>? fetalMovement,
     Value<bool>? swelling,
     Value<bool>? bleeding,
     Value<bool>? fever,
     Value<String>? anaemiaSigns,
     Value<bool>? urineSymptoms,
+    Value<bool?>? convulsions,
+    Value<bool?>? severeHeadache,
+    Value<bool?>? blurredVision,
+    Value<bool?>? severeAbdominalPain,
+    Value<bool?>? fastBreathing,
+    Value<bool?>? feverWithWeakness,
     Value<String?>? conflictId,
     Value<int>? rowid,
   }) {
@@ -3882,12 +4376,22 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
       temperatureC: temperatureC ?? this.temperatureC,
       pulseBpm: pulseBpm ?? this.pulseBpm,
       bloodSugarMmolL: bloodSugarMmolL ?? this.bloodSugarMmolL,
+      bloodSugarEnteredUnit:
+          bloodSugarEnteredUnit ?? this.bloodSugarEnteredUnit,
+      bloodSugarMeasuredOn: bloodSugarMeasuredOn ?? this.bloodSugarMeasuredOn,
+      bloodSugarSource: bloodSugarSource ?? this.bloodSugarSource,
       fetalMovement: fetalMovement ?? this.fetalMovement,
       swelling: swelling ?? this.swelling,
       bleeding: bleeding ?? this.bleeding,
       fever: fever ?? this.fever,
       anaemiaSigns: anaemiaSigns ?? this.anaemiaSigns,
       urineSymptoms: urineSymptoms ?? this.urineSymptoms,
+      convulsions: convulsions ?? this.convulsions,
+      severeHeadache: severeHeadache ?? this.severeHeadache,
+      blurredVision: blurredVision ?? this.blurredVision,
+      severeAbdominalPain: severeAbdominalPain ?? this.severeAbdominalPain,
+      fastBreathing: fastBreathing ?? this.fastBreathing,
+      feverWithWeakness: feverWithWeakness ?? this.feverWithWeakness,
       conflictId: conflictId ?? this.conflictId,
       rowid: rowid ?? this.rowid,
     );
@@ -3938,6 +4442,19 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
     if (bloodSugarMmolL.present) {
       map['blood_sugar_mmol_l'] = Variable<double>(bloodSugarMmolL.value);
     }
+    if (bloodSugarEnteredUnit.present) {
+      map['blood_sugar_entered_unit'] = Variable<String>(
+        bloodSugarEnteredUnit.value,
+      );
+    }
+    if (bloodSugarMeasuredOn.present) {
+      map['blood_sugar_measured_on'] = Variable<String>(
+        bloodSugarMeasuredOn.value,
+      );
+    }
+    if (bloodSugarSource.present) {
+      map['blood_sugar_source'] = Variable<String>(bloodSugarSource.value);
+    }
     if (fetalMovement.present) {
       map['fetal_movement'] = Variable<String>(fetalMovement.value);
     }
@@ -3955,6 +4472,24 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
     }
     if (urineSymptoms.present) {
       map['urine_symptoms'] = Variable<bool>(urineSymptoms.value);
+    }
+    if (convulsions.present) {
+      map['convulsions'] = Variable<bool>(convulsions.value);
+    }
+    if (severeHeadache.present) {
+      map['severe_headache'] = Variable<bool>(severeHeadache.value);
+    }
+    if (blurredVision.present) {
+      map['blurred_vision'] = Variable<bool>(blurredVision.value);
+    }
+    if (severeAbdominalPain.present) {
+      map['severe_abdominal_pain'] = Variable<bool>(severeAbdominalPain.value);
+    }
+    if (fastBreathing.present) {
+      map['fast_breathing'] = Variable<bool>(fastBreathing.value);
+    }
+    if (feverWithWeakness.present) {
+      map['fever_with_weakness'] = Variable<bool>(feverWithWeakness.value);
     }
     if (conflictId.present) {
       map['conflict_id'] = Variable<String>(conflictId.value);
@@ -3982,12 +4517,21 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
           ..write('temperatureC: $temperatureC, ')
           ..write('pulseBpm: $pulseBpm, ')
           ..write('bloodSugarMmolL: $bloodSugarMmolL, ')
+          ..write('bloodSugarEnteredUnit: $bloodSugarEnteredUnit, ')
+          ..write('bloodSugarMeasuredOn: $bloodSugarMeasuredOn, ')
+          ..write('bloodSugarSource: $bloodSugarSource, ')
           ..write('fetalMovement: $fetalMovement, ')
           ..write('swelling: $swelling, ')
           ..write('bleeding: $bleeding, ')
           ..write('fever: $fever, ')
           ..write('anaemiaSigns: $anaemiaSigns, ')
           ..write('urineSymptoms: $urineSymptoms, ')
+          ..write('convulsions: $convulsions, ')
+          ..write('severeHeadache: $severeHeadache, ')
+          ..write('blurredVision: $blurredVision, ')
+          ..write('severeAbdominalPain: $severeAbdominalPain, ')
+          ..write('fastBreathing: $fastBreathing, ')
+          ..write('feverWithWeakness: $feverWithWeakness, ')
           ..write('conflictId: $conflictId, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -6102,12 +6646,21 @@ typedef $$VisitsTableCreateCompanionBuilder = VisitsCompanion Function({
   Value<double?> temperatureC,
   Value<int?> pulseBpm,
   Value<double?> bloodSugarMmolL,
+  Value<String?> bloodSugarEnteredUnit,
+  Value<String?> bloodSugarMeasuredOn,
+  Value<String?> bloodSugarSource,
   Value<String?> fetalMovement,
   Value<bool> swelling,
   Value<bool> bleeding,
   Value<bool> fever,
   Value<String> anaemiaSigns,
   Value<bool> urineSymptoms,
+  Value<bool?> convulsions,
+  Value<bool?> severeHeadache,
+  Value<bool?> blurredVision,
+  Value<bool?> severeAbdominalPain,
+  Value<bool?> fastBreathing,
+  Value<bool?> feverWithWeakness,
   Value<String?> conflictId,
   Value<int> rowid,
 });
@@ -6126,12 +6679,21 @@ typedef $$VisitsTableUpdateCompanionBuilder = VisitsCompanion Function({
   Value<double?> temperatureC,
   Value<int?> pulseBpm,
   Value<double?> bloodSugarMmolL,
+  Value<String?> bloodSugarEnteredUnit,
+  Value<String?> bloodSugarMeasuredOn,
+  Value<String?> bloodSugarSource,
   Value<String?> fetalMovement,
   Value<bool> swelling,
   Value<bool> bleeding,
   Value<bool> fever,
   Value<String> anaemiaSigns,
   Value<bool> urineSymptoms,
+  Value<bool?> convulsions,
+  Value<bool?> severeHeadache,
+  Value<bool?> blurredVision,
+  Value<bool?> severeAbdominalPain,
+  Value<bool?> fastBreathing,
+  Value<bool?> feverWithWeakness,
   Value<String?> conflictId,
   Value<int> rowid,
 });
@@ -6215,6 +6777,21 @@ class $$VisitsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get bloodSugarEnteredUnit => $composableBuilder(
+    column: $table.bloodSugarEnteredUnit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bloodSugarMeasuredOn => $composableBuilder(
+    column: $table.bloodSugarMeasuredOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bloodSugarSource => $composableBuilder(
+    column: $table.bloodSugarSource,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get fetalMovement => $composableBuilder(
     column: $table.fetalMovement,
     builder: (column) => ColumnFilters(column),
@@ -6242,6 +6819,36 @@ class $$VisitsTableFilterComposer
 
   ColumnFilters<bool> get urineSymptoms => $composableBuilder(
     column: $table.urineSymptoms,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get convulsions => $composableBuilder(
+    column: $table.convulsions,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get severeHeadache => $composableBuilder(
+    column: $table.severeHeadache,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get blurredVision => $composableBuilder(
+    column: $table.blurredVision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get severeAbdominalPain => $composableBuilder(
+    column: $table.severeAbdominalPain,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get fastBreathing => $composableBuilder(
+    column: $table.fastBreathing,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get feverWithWeakness => $composableBuilder(
+    column: $table.feverWithWeakness,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6330,6 +6937,21 @@ class $$VisitsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get bloodSugarEnteredUnit => $composableBuilder(
+    column: $table.bloodSugarEnteredUnit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get bloodSugarMeasuredOn => $composableBuilder(
+    column: $table.bloodSugarMeasuredOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get bloodSugarSource => $composableBuilder(
+    column: $table.bloodSugarSource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get fetalMovement => $composableBuilder(
     column: $table.fetalMovement,
     builder: (column) => ColumnOrderings(column),
@@ -6357,6 +6979,36 @@ class $$VisitsTableOrderingComposer
 
   ColumnOrderings<bool> get urineSymptoms => $composableBuilder(
     column: $table.urineSymptoms,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get convulsions => $composableBuilder(
+    column: $table.convulsions,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get severeHeadache => $composableBuilder(
+    column: $table.severeHeadache,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get blurredVision => $composableBuilder(
+    column: $table.blurredVision,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get severeAbdominalPain => $composableBuilder(
+    column: $table.severeAbdominalPain,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get fastBreathing => $composableBuilder(
+    column: $table.fastBreathing,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get feverWithWeakness => $composableBuilder(
+    column: $table.feverWithWeakness,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -6429,6 +7081,21 @@ class $$VisitsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get bloodSugarEnteredUnit => $composableBuilder(
+    column: $table.bloodSugarEnteredUnit,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get bloodSugarMeasuredOn => $composableBuilder(
+    column: $table.bloodSugarMeasuredOn,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get bloodSugarSource => $composableBuilder(
+    column: $table.bloodSugarSource,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get fetalMovement => $composableBuilder(
     column: $table.fetalMovement,
     builder: (column) => column,
@@ -6450,6 +7117,36 @@ class $$VisitsTableAnnotationComposer
 
   GeneratedColumn<bool> get urineSymptoms => $composableBuilder(
     column: $table.urineSymptoms,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get convulsions => $composableBuilder(
+    column: $table.convulsions,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get severeHeadache => $composableBuilder(
+    column: $table.severeHeadache,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get blurredVision => $composableBuilder(
+    column: $table.blurredVision,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get severeAbdominalPain => $composableBuilder(
+    column: $table.severeAbdominalPain,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get fastBreathing => $composableBuilder(
+    column: $table.fastBreathing,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get feverWithWeakness => $composableBuilder(
+    column: $table.feverWithWeakness,
     builder: (column) => column,
   );
 
@@ -6501,12 +7198,21 @@ class $$VisitsTableTableManager
                 Value<double?> temperatureC = const Value.absent(),
                 Value<int?> pulseBpm = const Value.absent(),
                 Value<double?> bloodSugarMmolL = const Value.absent(),
+                Value<String?> bloodSugarEnteredUnit = const Value.absent(),
+                Value<String?> bloodSugarMeasuredOn = const Value.absent(),
+                Value<String?> bloodSugarSource = const Value.absent(),
                 Value<String?> fetalMovement = const Value.absent(),
                 Value<bool> swelling = const Value.absent(),
                 Value<bool> bleeding = const Value.absent(),
                 Value<bool> fever = const Value.absent(),
                 Value<String> anaemiaSigns = const Value.absent(),
                 Value<bool> urineSymptoms = const Value.absent(),
+                Value<bool?> convulsions = const Value.absent(),
+                Value<bool?> severeHeadache = const Value.absent(),
+                Value<bool?> blurredVision = const Value.absent(),
+                Value<bool?> severeAbdominalPain = const Value.absent(),
+                Value<bool?> fastBreathing = const Value.absent(),
+                Value<bool?> feverWithWeakness = const Value.absent(),
                 Value<String?> conflictId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => VisitsCompanion(
@@ -6524,12 +7230,21 @@ class $$VisitsTableTableManager
                 temperatureC: temperatureC,
                 pulseBpm: pulseBpm,
                 bloodSugarMmolL: bloodSugarMmolL,
+                bloodSugarEnteredUnit: bloodSugarEnteredUnit,
+                bloodSugarMeasuredOn: bloodSugarMeasuredOn,
+                bloodSugarSource: bloodSugarSource,
                 fetalMovement: fetalMovement,
                 swelling: swelling,
                 bleeding: bleeding,
                 fever: fever,
                 anaemiaSigns: anaemiaSigns,
                 urineSymptoms: urineSymptoms,
+                convulsions: convulsions,
+                severeHeadache: severeHeadache,
+                blurredVision: blurredVision,
+                severeAbdominalPain: severeAbdominalPain,
+                fastBreathing: fastBreathing,
+                feverWithWeakness: feverWithWeakness,
                 conflictId: conflictId,
                 rowid: rowid,
               ),
@@ -6549,12 +7264,21 @@ class $$VisitsTableTableManager
                 Value<double?> temperatureC = const Value.absent(),
                 Value<int?> pulseBpm = const Value.absent(),
                 Value<double?> bloodSugarMmolL = const Value.absent(),
+                Value<String?> bloodSugarEnteredUnit = const Value.absent(),
+                Value<String?> bloodSugarMeasuredOn = const Value.absent(),
+                Value<String?> bloodSugarSource = const Value.absent(),
                 Value<String?> fetalMovement = const Value.absent(),
                 Value<bool> swelling = const Value.absent(),
                 Value<bool> bleeding = const Value.absent(),
                 Value<bool> fever = const Value.absent(),
                 Value<String> anaemiaSigns = const Value.absent(),
                 Value<bool> urineSymptoms = const Value.absent(),
+                Value<bool?> convulsions = const Value.absent(),
+                Value<bool?> severeHeadache = const Value.absent(),
+                Value<bool?> blurredVision = const Value.absent(),
+                Value<bool?> severeAbdominalPain = const Value.absent(),
+                Value<bool?> fastBreathing = const Value.absent(),
+                Value<bool?> feverWithWeakness = const Value.absent(),
                 Value<String?> conflictId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => VisitsCompanion.insert(
@@ -6572,12 +7296,21 @@ class $$VisitsTableTableManager
                 temperatureC: temperatureC,
                 pulseBpm: pulseBpm,
                 bloodSugarMmolL: bloodSugarMmolL,
+                bloodSugarEnteredUnit: bloodSugarEnteredUnit,
+                bloodSugarMeasuredOn: bloodSugarMeasuredOn,
+                bloodSugarSource: bloodSugarSource,
                 fetalMovement: fetalMovement,
                 swelling: swelling,
                 bleeding: bleeding,
                 fever: fever,
                 anaemiaSigns: anaemiaSigns,
                 urineSymptoms: urineSymptoms,
+                convulsions: convulsions,
+                severeHeadache: severeHeadache,
+                blurredVision: blurredVision,
+                severeAbdominalPain: severeAbdominalPain,
+                fastBreathing: fastBreathing,
+                feverWithWeakness: feverWithWeakness,
                 conflictId: conflictId,
                 rowid: rowid,
               ),

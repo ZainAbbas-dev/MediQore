@@ -114,7 +114,16 @@ class Visits extends Table {
   RealColumn get weightKg => real().nullable()();
   RealColumn get temperatureC => real().nullable()();
   IntColumn get pulseBpm => integer().nullable()();
+
+  /// Always mmol/L (one unit per value); the form converts a value typed in mg/dL.
   RealColumn get bloodSugarMmolL => real().nullable()();
+
+  /// The unit the LHW typed (mmol_l or mg_dl), the day it was measured
+  /// (YYYY-MM-DD) and its source (glucometer or lab_report); set only with a
+  /// blood sugar value (M3 FE-1, M4 FE-1).
+  TextColumn get bloodSugarEnteredUnit => text().nullable()();
+  TextColumn get bloodSugarMeasuredOn => text().nullable()();
+  TextColumn get bloodSugarSource => text().nullable()();
 
   /// normal, reduced or absent; null when not assessed.
   TextColumn get fetalMovement => text().nullable()();
@@ -125,6 +134,15 @@ class Visits extends Table {
   /// none, present or severe.
   TextColumn get anaemiaSigns => text().withDefault(const Constant('none'))();
   BoolColumn get urineSymptoms => boolean().withDefault(const Constant(false))();
+
+  /// The danger-sign checklist (M3 FE-1, M4 FE-4): yes or no; null means not
+  /// asked (visits recorded before the checklist existed).
+  BoolColumn get convulsions => boolean().nullable()();
+  BoolColumn get severeHeadache => boolean().nullable()();
+  BoolColumn get blurredVision => boolean().nullable()();
+  BoolColumn get severeAbdominalPain => boolean().nullable()();
+  BoolColumn get fastBreathing => boolean().nullable()();
+  BoolColumn get feverWithWeakness => boolean().nullable()();
 
   /// Set when the server held this visit for supervisor review, because the
   /// same pregnancy already had a visit that day (M3 FE-2). Cleared when the
@@ -203,23 +221,37 @@ class AppDatabase extends _$AppDatabase {
   /// 1: households (P0-6). 2: women, pregnancies, obstetric history (M2) and the
   /// area and creator of every record (M1 FE-3). 3: visits (M3).
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onUpgrade: (m, from, to) async {
-          if (from < 2) {
-            await m.addColumn(households, households.areaId);
-            await m.addColumn(households, households.createdBy);
-            await m.createTable(women);
-            await m.createTable(pregnancies);
-            await m.createTable(obstetricHistory);
-          }
-          if (from < 3) {
-            await m.createTable(visits);
-          }
-        },
-      );
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(households, households.areaId);
+        await m.addColumn(households, households.createdBy);
+        await m.createTable(women);
+        await m.createTable(pregnancies);
+        await m.createTable(obstetricHistory);
+      }
+      if (from < 3) {
+        await m.createTable(visits); // with every column of the current version
+      } else if (from < 4) {
+        for (final column in [
+          visits.bloodSugarEnteredUnit,
+          visits.bloodSugarMeasuredOn,
+          visits.bloodSugarSource,
+          visits.convulsions,
+          visits.severeHeadache,
+          visits.blurredVision,
+          visits.severeAbdominalPain,
+          visits.fastBreathing,
+          visits.feverWithWeakness,
+        ]) {
+          await m.addColumn(visits, column);
+        }
+      }
+    },
+  );
 
   /// The synced tables by server name, parents before children: the order the
   /// outbox fills when a whole registration is saved at once.

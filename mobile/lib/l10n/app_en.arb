@@ -82,7 +82,7 @@
   "@fetalMovementNormal": {
     "description": "Fetal movement option."
   },
-  "fetalMovementReduced": "Reduced",
+  "fetalMovementReduced": "Markedly reduced",
   "@fetalMovementReduced": {
     "description": "Fetal movement option."
   },
@@ -895,11 +895,11 @@
   "@fieldTemperature": {
     "description": "Visit field: body temperature."
   },
-  "fieldPulse": "Pulse",
+  "fieldPulse": "Pulse (required)",
   "@fieldPulse": {
     "description": "Visit field: pulse (heart rate)."
   },
-  "fieldBloodSugar": "Blood sugar (if tested)",
+  "fieldBloodSugar": "Blood sugar (optional)",
   "@fieldBloodSugar": {
     "description": "Visit field: blood sugar, optional."
   },
@@ -919,7 +919,7 @@
   "@anaemiaNone": {
     "description": "Anaemia signs option."
   },
-  "anaemiaPresent": "Present",
+  "anaemiaPresent": "Some",
   "@anaemiaPresent": {
     "description": "Anaemia signs option."
   },
@@ -990,6 +990,154 @@
   "rangeCheckConfirm": "Yes, save",
   "@rangeCheckConfirm": {
     "description": "Range check dialog: the values are right, save the visit."
+  },
+  "unitMgDl": "mg/dL",
+  "@unitMgDl": {
+    "description": "Blood sugar unit."
+  },
+  "sugarSourceGlucometer": "Glucometer",
+  "@sugarSourceGlucometer": {
+    "description": "Blood sugar measured with a glucometer."
+  },
+  "sugarSourceLab": "Lab report",
+  "@sugarSourceLab": {
+    "description": "Blood sugar from a verified lab report."
+  },
+  "sugarMeasuredOn": "Measured on",
+  "@sugarMeasuredOn": {
+    "description": "The day the blood sugar was measured."
+  },
+  "sugarErrorSource": "Choose glucometer or lab report",
+  "@sugarErrorSource": {
+    "description": "Blood sugar given without its source."
+  },
+  "visitStepDanger": "Danger signs",
+  "@visitStepDanger": {
+    "description": "Step 3 of the visit (final design screen 18)."
+  },
+  "visitNextSigns": "Next step: signs",
+  "@visitNextSigns": {
+    "description": "Button at the end of visit step 1."
+  },
+  "visitNextDanger": "Next step: danger signs",
+  "@visitNextDanger": {
+    "description": "Button at the end of visit step 2."
+  },
+  "answerYes": "Yes",
+  "@answerYes": {
+    "description": "Yes answer."
+  },
+  "answerNo": "No",
+  "@answerNo": {
+    "description": "No answer."
+  },
+  "dangerConvulsions": "Convulsions or fits",
+  "@dangerConvulsions": {
+    "description": "Danger sign (M3 FE-1)."
+  },
+  "dangerSevereHeadache": "Severe headache",
+  "@dangerSevereHeadache": {
+    "description": "Danger sign."
+  },
+  "dangerBlurredVision": "Blurred vision",
+  "@dangerBlurredVision": {
+    "description": "Danger sign."
+  },
+  "dangerAbdominalPain": "Severe or upper abdominal pain",
+  "@dangerAbdominalPain": {
+    "description": "Danger sign."
+  },
+  "dangerBreathing": "Fast or difficult breathing",
+  "@dangerBreathing": {
+    "description": "Danger sign."
+  },
+  "dangerFeverWeakness": "Fever with weakness",
+  "@dangerFeverWeakness": {
+    "description": "Danger sign."
+  },
+  "dangerAnswerAll": "Answer every question",
+  "@dangerAnswerAll": {
+    "description": "Instruction on the danger-sign step."
+  },
+  "dangerUnanswered": "Answer yes or no",
+  "@dangerUnanswered": {
+    "description": "A danger sign left unanswered."
+  },
+  "decisionSupportNote": "The result is guidance only, not a doctor's diagnosis.",
+  "@decisionSupportNote": {
+    "description": "Decision-support note (LI-5)."
+  },
+  "pulseTitle": "Count the pulse",
+  "@pulseTitle": {
+    "description": "Title of the pulse counter (final design screen 16)."
+  },
+  "pulseIntro": "Feel the pulse at the wrist. Press the big button once for every beat.",
+  "@pulseIntro": {
+    "description": "How to use the pulse counter."
+  },
+  "pulseTapButton": "Beat",
+  "@pulseTapButton": {
+    "description": "The big button pressed once per beat."
+  },
+  "pulseRestart": "Start again",
+  "@pulseRestart": {
+    "description": "Restart the pulse counter."
+  },
+  "pulseUse": "Use this pulse",
+  "@pulseUse": {
+    "description": "Put the counted pulse in the visit form."
+  },
+  "sugarToday": "Today · {date}",
+  "@sugarToday": {
+    "description": "The measured-on date when it is today.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "pulseCountButton": "Count for {seconds} seconds",
+  "@pulseCountButton": {
+    "description": "Opens the pulse counter.",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "pulseMultiplyNote": "After {seconds} seconds the app multiplies the count by {multiplier}.",
+  "@pulseMultiplyNote": {
+    "description": "Explains the counter.",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      },
+      "multiplier": {
+        "type": "int"
+      }
+    }
+  },
+  "pulseTapToStart": "The time starts at the first press.",
+  "@pulseTapToStart": {
+    "description": "Before the first beat."
+  },
+  "pulseDone": "{seconds} seconds are up",
+  "@pulseDone": {
+    "description": "The counting time ended.",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "pulseBeats": "{count, plural, =1{1 beat counted} other{{count} beats counted}}",
+  "@pulseBeats": {
+    "description": "Beats counted.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "fileVisitsSection": "Visits",
   "@fileVisitsSection": {

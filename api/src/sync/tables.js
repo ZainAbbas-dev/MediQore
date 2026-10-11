@@ -25,6 +25,10 @@ const reference = () => Joi.string().guid({ version: 'uuidv4' }).required();
 const count = () => Joi.number().integer().min(0).max(30).default(0);
 const flag = () => Joi.boolean().default(false);
 
+// A danger-sign checklist answer (M3 FE-1, M4 FE-4): yes or no; null means the
+// question was not asked (visits recorded before the checklist existed).
+const answer = () => Joi.boolean().allow(null).default(null);
+
 // A vital sign in its stored unit. Its bounds are the "allowed" range in the
 // Clinical Rules Table (clinical-rules/, P0-11), the same table the app reads, so
 // a visit saved offline is never refused at sync. They only refuse impossible
@@ -129,8 +133,20 @@ const TABLES = {
       diastolicBpMmhg: { column: 'diastolic_bp_mmhg', type: 'number', schema: vital('diastolicBpMmhg') },
       weightKg: { column: 'weight_kg', type: 'number', schema: vital('weightKg', 2) },
       temperatureC: { column: 'temperature_c', type: 'number', schema: vital('temperatureC', 1) },
-      pulseBpm: { column: 'pulse_bpm', type: 'number', schema: vital('pulseBpm') },
+      // Pulse is required (M3 FE-1): read from the BP device or counted for 30 seconds.
+      pulseBpm: { column: 'pulse_bpm', type: 'number', schema: vital('pulseBpm').invalid(null).required() },
+      // Optional blood sugar, always in mmol/L, with the unit the LHW typed, the
+      // date it was measured and its source (M3 FE-1, M4 FE-1).
       bloodSugarMmolL: { column: 'blood_sugar_mmol_l', type: 'number', schema: vital('bloodSugarMmolL', 1) },
+      bloodSugarEnteredUnit: {
+        column: 'blood_sugar_entered_unit',
+        schema: Joi.string().valid('mmol_l', 'mg_dl').allow(null).default(null),
+      },
+      bloodSugarMeasuredOn: { column: 'blood_sugar_measured_on', schema: calendarDate().allow(null).default(null) },
+      bloodSugarSource: {
+        column: 'blood_sugar_source',
+        schema: Joi.string().valid('glucometer', 'lab_report').allow(null).default(null),
+      },
       fetalMovement: {
         column: 'fetal_movement',
         schema: Joi.string().valid('normal', 'reduced', 'absent').allow(null).default(null),
@@ -140,6 +156,19 @@ const TABLES = {
       fever: { column: 'fever', schema: flag() },
       anaemiaSigns: { column: 'anaemia_signs', schema: Joi.string().valid('none', 'present', 'severe').default('none') },
       urineSymptoms: { column: 'urine_symptoms', schema: flag() },
+      convulsions: { column: 'convulsions', schema: answer() },
+      severeHeadache: { column: 'severe_headache', schema: answer() },
+      blurredVision: { column: 'blurred_vision', schema: answer() },
+      severeAbdominalPain: { column: 'severe_abdominal_pain', schema: answer() },
+      fastBreathing: { column: 'fast_breathing', schema: answer() },
+      feverWithWeakness: { column: 'fever_with_weakness', schema: answer() },
+    },
+    check(data) {
+      const details = [data.bloodSugarEnteredUnit, data.bloodSugarMeasuredOn, data.bloodSugarSource];
+      if (data.bloodSugarMmolL === null) {
+        return details.every((d) => d === null) ? null : 'blood sugar details need a blood sugar value';
+      }
+      return details.every((d) => d !== null) ? null : 'a blood sugar value needs its unit, date and source';
     },
   },
 };

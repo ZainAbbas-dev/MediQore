@@ -30,7 +30,22 @@ void main() {
     final ranges = VisitRanges.fromJson(table);
     expect(ranges.version, table['version']);
     expect(ranges['systolicBpMmhg'].plausible, (60, 250));
-    expect(ranges.vitals.keys, containsAll(<String>['systolicBpMmhg', 'diastolicBpMmhg', 'weightKg', 'temperatureC', 'pulseBpm', 'bloodSugarMmolL']));
+    expect(ranges.pulseCountSeconds, 30);
+    expect(ranges.pulseMultiplier, 2);
+    expect(ranges.mgDlPerMmolL, 18.0);
+    expect(ranges.mmolLFromMgDl(140), 7.8);
+    expect(ranges.mmolLFromMgDl(90), 5.0);
+    expect(
+      ranges.vitals.keys,
+      containsAll(<String>[
+        'systolicBpMmhg',
+        'diastolicBpMmhg',
+        'weightKg',
+        'temperatureC',
+        'pulseBpm',
+        'bloodSugarMmolL',
+      ]),
+    );
   });
 
   group('the condition language, against the shared cases (clinical-rules/test-cases.json)', () {

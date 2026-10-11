@@ -20,6 +20,12 @@ const visit = {
   fever: false,
   anaemiaSigns: 'none',
   urineSymptoms: false,
+  convulsions: false,
+  severeHeadache: false,
+  blurredVision: null,
+  severeAbdominalPain: false,
+  fastBreathing: false,
+  feverWithWeakness: false,
 };
 
 const pending = {
@@ -36,7 +42,13 @@ const pending = {
   submittedBy: { lhwCode: 'LHW-00007', fullName: 'Sana Iqbal' },
   woman: { name: 'Synthetic Woman', patientCode: 'LHW-00007-0003' },
   existing: { id: 'e1', deleted: false, data: visit },
-  incoming: { id: 'i1', data: { ...visit, visitedAt: '2026-10-03T09:10:00.000Z', systolicBpMmhg: 165, bleeding: true } },
+  incoming: {
+    id: 'i1',
+    data: {
+      ...visit, visitedAt: '2026-10-03T09:10:00.000Z', systolicBpMmhg: 165, bleeding: true, severeHeadache: true,
+      bloodSugarMmolL: 7.8, bloodSugarEnteredUnit: 'mg_dl', bloodSugarMeasuredOn: '2026-10-02', bloodSugarSource: 'lab_report',
+    },
+  },
 };
 
 const resolved = {
@@ -64,7 +76,12 @@ describe('sync conflict queue (M3 FE-2, M10)', () => {
     expect(within(bleeding).getAllByText(/Yes|No/).map((cell) => cell.textContent)).toEqual(['No', 'Yes']);
     expect(bleeding).toHaveClass('differs');
     expect(within(card).getByRole('rowheader', { name: 'Weight' }).closest('tr')).not.toHaveClass('differs');
-    expect(within(card).getByRole('rowheader', { name: 'Blood sugar' }).closest('tr')).toHaveTextContent('–');
+    expect(within(card).getByRole('rowheader', { name: 'Blood sugar' }).closest('tr')).toHaveTextContent('–7.8 mmol/L');
+    expect(within(card).getByRole('rowheader', { name: 'Blood sugar typed in' }).closest('tr')).toHaveTextContent('mg/dL');
+    expect(within(card).getByRole('rowheader', { name: 'Blood sugar source' }).closest('tr')).toHaveTextContent('Lab report');
+    const headache = within(card).getByRole('rowheader', { name: 'Severe headache' }).closest('tr');
+    expect(headache).toHaveClass('differs');
+    expect(within(card).getByRole('rowheader', { name: 'Blurred vision' }).closest('tr')).toHaveTextContent('Not askedNot asked');
   });
 
   it('records the decision and reloads the queue', async () => {

@@ -14,6 +14,7 @@ import 'package:mediqore/screens/activation_screen.dart';
 import 'package:mediqore/screens/lock_screen.dart';
 import 'package:mediqore/screens/pin_create_screen.dart';
 import 'package:mediqore/screens/pin_reset_screen.dart';
+import 'package:mediqore/screens/pulse_counter_screen.dart';
 import 'package:mediqore/screens/sign_in_again_screen.dart';
 import 'package:mediqore/screens/patient_file_screen.dart';
 import 'package:mediqore/screens/patient_list_screen.dart';
@@ -357,13 +358,11 @@ void main() {
         await tester.pumpAndSettle();
 
         // The keyboard closed, so no field scrolls itself back into view.
-        Future<void> tapSave() async {
+        Future<void> tapButton(String label) async {
           await tester.pumpAndSettle();
           FocusManager.instance.primaryFocus?.unfocus();
           await tester.pumpAndSettle();
-          await tester.ensureVisible(find.text(l10n.visitSaveButton));
-          await tester.pumpAndSettle();
-          await tester.tap(find.text(l10n.visitSaveButton));
+          await tester.tap(find.text(label));
           await tester.pumpAndSettle();
         }
 
@@ -373,8 +372,9 @@ void main() {
           await tester.ensureVisible(field);
           await tester.enterText(field, text);
         }
-        await tapSave();
-        expect(find.text(l10n.regErrorFix), findsOneWidget);
+        await tapButton(l10n.visitNextSigns);
+        expect(find.text(l10n.sugarErrorSource), findsOneWidget);
+        await scrollToEnd(tester);
         expect(tester.takeException(), isNull);
 
         // Every vital unusual at once: the longest dialog.
@@ -383,11 +383,42 @@ void main() {
           await tester.ensureVisible(field);
           await tester.enterText(field, text);
         }
-        await tapSave();
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text(l10n.sugarSourceGlucometer));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(l10n.sugarSourceGlucometer));
+        await tapButton(l10n.visitNextSigns);
         expect(find.text(l10n.rangeCheckTitle), findsOneWidget);
         await tester.drag(find.byType(Scrollable).last, const Offset(0, -3000));
         await tester.pumpAndSettle();
         expect(find.text(l10n.rangeCheckConfirm), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tapButton(l10n.rangeCheckConfirm);
+
+        // Step 2, then step 3 with every question unanswered.
+        expect(find.text(l10n.stepOf(2, 3, l10n.visitSymptomsSection)), findsOneWidget);
+        await scrollToEnd(tester);
+        expect(tester.takeException(), isNull);
+        await tapButton(l10n.visitNextDanger);
+        await tapButton(l10n.visitSaveButton);
+        expect(find.text(l10n.dangerUnanswered), findsWidgets);
+        await scrollToEnd(tester);
+        expect(find.text(l10n.decisionSupportNote), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('the pulse counter fits, counting and done ($language)', (tester) async {
+        final l10n = lookupAppLocalizations(english ? AppSettings.english : AppSettings.urdu);
+        await pumpScreen(tester, const PulseCounterScreen(), english: english);
+        expect(tester.takeException(), isNull);
+        for (var i = 0; i < 40; i++) {
+          await tester.tap(find.text(l10n.pulseTapButton));
+          await tester.pump(const Duration(milliseconds: 400));
+        }
+        await tester.pump(const Duration(seconds: 30));
+        expect(find.text('40 × 2 = 80 ${l10n.unitPerMinute}'), findsOneWidget);
+        await scrollToEnd(tester);
         expect(tester.takeException(), isNull);
       });
 

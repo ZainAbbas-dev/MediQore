@@ -24,7 +24,7 @@ function registration(code, village) {
 
 const visit = (pregnancyId, visitedAt) => ({
   table: 'visits', id: randomUUID(), createdOnDevice: visitedAt,
-  data: { pregnancyId, visitedAt, systolicBpMmhg: 118, diastolicBpMmhg: 76 },
+  data: { pregnancyId, visitedAt, systolicBpMmhg: 118, diastolicBpMmhg: 76, pulseBpm: 84 },
 });
 
 describeDb('dashboard: LHW activity and map filters (M10 FE-1)', () => {
