@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:mediqore/app_services.dart';
 import 'package:mediqore/auth/secure_store.dart';
 import 'package:mediqore/auth/session.dart';
+import 'package:mediqore/clinical/clinical_rules.dart';
 import 'package:mediqore/clinical/visit_ranges.dart';
 import 'package:mediqore/data/app_database.dart';
 import 'package:mediqore/l10n/app_localizations.dart';
@@ -63,15 +64,17 @@ AppServices testServices([
     location: location ?? FakeLocationService(),
     dialer: dialer ?? FakeDialer(),
     autoSync: false,
-    visitRanges: visitRanges,
+    clinicalRules: clinicalRules,
   );
 }
 
-/// The visit form ranges from the bundled Clinical Rules Table, read
-/// without the asset bundle.
-final VisitRanges visitRanges = VisitRanges.fromJson(
-  jsonDecode(File(VisitRanges.asset).readAsStringSync()) as Map<String, dynamic>,
+/// The bundled Clinical Rules Table, read without the asset bundle.
+final ClinicalRules clinicalRules = ClinicalRules.fromJson(
+  jsonDecode(File(ClinicalRules.asset).readAsStringSync()) as Map<String, dynamic>,
 );
+
+/// The visit form ranges from it.
+final VisitRanges visitRanges = clinicalRules.visitRanges;
 
 /// The PIN tests create at activation.
 const String testPin = '135790';

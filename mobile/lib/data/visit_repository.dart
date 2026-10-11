@@ -54,6 +54,14 @@ class VisitSummary {
   final SyncStatus syncStatus;
 }
 
+/// A visit with the woman it belongs to (null if her record is not on the phone).
+class RecentVisit {
+  const RecentVisit({required this.summary, this.woman});
+
+  final VisitSummary summary;
+  final LocalWoman? woman;
+}
+
 class VisitRepository {
   VisitRepository(this._db, {this._uuid = const Uuid(), DateTime Function()? clock}) : _clock = clock ?? DateTime.now;
 
@@ -114,6 +122,40 @@ class VisitRepository {
     return [
       for (final visit in visits.reversed)
         VisitSummary(visit: visit, syncStatus: _statusOf(visit, queued[visit.id])),
+    ];
+  }
+
+  /// The latest visits on this phone, for the home screen: the ones not synced
+  /// yet, the last saved first, then the ones the server numbered last. Never
+  /// ordered by the phone's clock (LI-7).
+  Future<List<RecentVisit>> recent({int limit = 5}) async {
+    final visits = await (_db.select(_db.visits)
+          ..where((v) => v.deletedAt.isNull())
+          ..orderBy([
+            (v) => OrderingTerm.desc(v.serverSeq.isNull()),
+            (v) => OrderingTerm.desc(v.serverSeq),
+            (v) => OrderingTerm.desc(v.rowId),
+          ])
+          ..limit(limit))
+        .get();
+    if (visits.isEmpty) return const [];
+    final pregnancies = {
+      for (final p in await (_db.select(_db.pregnancies)..where((p) => p.id.isIn(visits.map((v) => v.pregnancyId)))).get())
+        p.id: p,
+    };
+    final women = {
+      for (final w in await (_db.select(_db.women)..where((w) => w.id.isIn(pregnancies.values.map((p) => p.womanId)))).get())
+        w.id: w,
+    };
+    final queued = {
+      for (final e in await (_db.select(_db.outbox)..where((o) => o.entityTable.equals(table))).get()) e.recordId: e,
+    };
+    return [
+      for (final visit in visits)
+        RecentVisit(
+          summary: VisitSummary(visit: visit, syncStatus: _statusOf(visit, queued[visit.id])),
+          woman: women[pregnancies[visit.pregnancyId]?.womanId],
+        ),
     ];
   }
 

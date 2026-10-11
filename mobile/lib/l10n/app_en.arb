@@ -484,15 +484,11 @@
   "@homeSignInAgainButton": {
     "description": "Button that returns to the login screen to sign in online."
   },
-  "homeRegisterButton": "Register a pregnant woman",
-  "@homeRegisterButton": {
-    "description": "Home screen button that opens the registration form (M2 FE-1)."
-  },
   "homePatientsButton": "Registered women",
   "@homePatientsButton": {
     "description": "Home screen button that opens the patient list (M2 FE-3)."
   },
-  "regTitle": "Register a pregnant woman",
+  "regTitle": "New registration",
   "@regTitle": {
     "description": "Title of the registration form (M2 FE-1)."
   },
@@ -512,7 +508,7 @@
   "@regHusbandName": {
     "description": "Registration field."
   },
-  "regContactNumber": "Contact number",
+  "regContactNumber": "Contact number (optional)",
   "@regContactNumber": {
     "description": "Registration field."
   },
@@ -537,7 +533,7 @@
   "@regHomeSection": {
     "description": "Registration form section: household and location (M2 FE-3)."
   },
-  "regSameHome": "Same home as a registered woman",
+  "regSameHome": "In the home of a woman already registered",
   "@regSameHome": {
     "description": "Checkbox: the woman lives in the home of a woman already registered."
   },
@@ -561,19 +557,19 @@
   "@regVillage": {
     "description": "Registration field."
   },
-  "regAddress": "Address",
+  "regAddress": "Address (optional)",
   "@regAddress": {
     "description": "Registration field."
   },
-  "regHistorySection": "Obstetric history",
+  "regHistorySection": "Earlier pregnancies",
   "@regHistorySection": {
     "description": "Registration form section (M2 FE-2), also used on the patient file."
   },
-  "regPreviousPregnancies": "Previous pregnancies",
+  "regPreviousPregnancies": "How many earlier pregnancies?",
   "@regPreviousPregnancies": {
     "description": "Obstetric history field."
   },
-  "regPreviousCSections": "Previous C-sections",
+  "regPreviousCSections": "Operations (C-section)",
   "@regPreviousCSections": {
     "description": "Obstetric history field."
   },
@@ -581,7 +577,7 @@
   "@regStillbirths": {
     "description": "Obstetric history field."
   },
-  "regKnownConditions": "Known medical conditions",
+  "regKnownConditions": "Known illness (optional)",
   "@regKnownConditions": {
     "description": "Obstetric history field (free text)."
   },
@@ -621,11 +617,71 @@
   "@regErrorFix": {
     "description": "Shown at the save button when the form has errors."
   },
+  "stepNext": "Next step",
+  "@stepNext": {
+    "description": "Wizard button to the next step."
+  },
+  "stepBack": "Back",
+  "@stepBack": {
+    "description": "Wizard button to the previous step."
+  },
+  "regWomanQuestion": "About the woman",
+  "@regWomanQuestion": {
+    "description": "Heading of registration step 1 (final design screen 8)."
+  },
+  "regMonthQuestion": "Which month of pregnancy is it?",
+  "@regMonthQuestion": {
+    "description": "Heading of registration step 2 (screen 9)."
+  },
+  "regMonthHint": "Choose a month",
+  "@regMonthHint": {
+    "description": "Under the heading of step 2."
+  },
+  "regHomeQuestion": "Where does the woman live?",
+  "@regHomeQuestion": {
+    "description": "Heading of registration step 3 (screen 10)."
+  },
+  "gpsHint": "Stand outside the home to record it",
+  "@gpsHint": {
+    "description": "Hint on the GPS card."
+  },
+  "stepperLess": "One less",
+  "@stepperLess": {
+    "description": "Tooltip of the minus button of a counter."
+  },
+  "stepperMore": "One more",
+  "@stepperMore": {
+    "description": "Tooltip of the plus button of a counter."
+  },
+  "stepOf": "Step {step} of {total} · {name}",
+  "@stepOf": {
+    "description": "The step line of a wizard.",
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "regMonthChosen": "Chosen: month {month} of pregnancy",
+  "@regMonthChosen": {
+    "description": "Shown when a month is chosen.",
+    "placeholders": {
+      "month": {
+        "type": "int"
+      }
+    }
+  },
   "gpsLabel": "Home location (GPS)",
   "@gpsLabel": {
     "description": "Label of the GPS capture (M2 FE-3)."
   },
-  "gpsCaptureButton": "Record home location",
+  "gpsCaptureButton": "Record location",
   "@gpsCaptureButton": {
     "description": "Button that captures the GPS position."
   },
@@ -722,6 +778,36 @@
         "type": "int"
       }
     }
+  },
+  "patientsVillages": "{count, plural, =1{1 village} other{{count} villages}}",
+  "@patientsVillages": {
+    "description": "How many villages the list covers.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "patientsSortVillage": "By village",
+  "@patientsSortVillage": {
+    "description": "Sort the list by village (M2 FE-3)."
+  },
+  "patientsSortNearest": "Nearest first",
+  "@patientsSortNearest": {
+    "description": "Sort the list by estimated distance from the LHW (M2 FE-3)."
+  },
+  "patientsDistance": "About {km} km away",
+  "@patientsDistance": {
+    "description": "Estimated straight-line distance to the home.",
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "patientsNoGps": "Home location not recorded",
+  "@patientsNoGps": {
+    "description": "A home without GPS in the distance list."
   },
   "patientAge": "{age} years",
   "@patientAge": {
@@ -917,6 +1003,68 @@
   "@fileNewVisitButton": {
     "description": "Button in the patient file that opens the visit form."
   },
+  "fileStatAge": "Age",
+  "@fileStatAge": {
+    "description": "Stat on the pregnancy file header (final design screen 14)."
+  },
+  "fileStatMonth": "Month",
+  "@fileStatMonth": {
+    "description": "Stat: pregnancy month at registration."
+  },
+  "fileStatVisits": "Visits",
+  "@fileStatVisits": {
+    "description": "Stat: number of visits."
+  },
+  "fileRiskFactors": "Risk factors from her history",
+  "@fileRiskFactors": {
+    "description": "Heading of the obstetric history flags (M2 FE-2)."
+  },
+  "fileNoRiskFactors": "None found",
+  "@fileNoRiskFactors": {
+    "description": "No obstetric history flag applies."
+  },
+  "fileRiskFactorsPending": "From the Clinical Rules Table {version}, still pending clinical review. They do not change the risk colour.",
+  "@fileRiskFactorsPending": {
+    "description": "Note under the flags while the table is unsigned (LI-12).",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "fileRiskFactorsSigned": "From the Clinical Rules Table {version}. They do not change the risk colour unless the table says so.",
+  "@fileRiskFactorsSigned": {
+    "description": "Note under the flags once the table is signed.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "flagPreviousCSection": "Previous C-section",
+  "@flagPreviousCSection": {
+    "description": "Obstetric flag previous_c_section."
+  },
+  "flagPreviousStillbirth": "Previous stillbirth",
+  "@flagPreviousStillbirth": {
+    "description": "Obstetric flag previous_stillbirth."
+  },
+  "flagGrandMultiparity": "Five or more earlier pregnancies",
+  "@flagGrandMultiparity": {
+    "description": "Obstetric flag grand_multiparity."
+  },
+  "flagKnownMedicalCondition": "Known illness",
+  "@flagKnownMedicalCondition": {
+    "description": "Obstetric flag known_medical_condition."
+  },
+  "flagAdolescentPregnancy": "Under 18 at registration",
+  "@flagAdolescentPregnancy": {
+    "description": "Obstetric flag adolescent_pregnancy."
+  },
+  "flagAdvancedMaternalAge": "35 or older at registration",
+  "@flagAdvancedMaternalAge": {
+    "description": "Obstetric flag advanced_maternal_age."
+  },
   "visitBloodPressure": "Blood pressure",
   "@visitBloodPressure": {
     "description": "Visit summary label: blood pressure (systolic/diastolic)."
@@ -950,10 +1098,6 @@
   "homeSettingsSection": "Settings",
   "@homeSettingsSection": {
     "description": "Heading of the settings on the home screen."
-  },
-  "homeVisitHint": "Open a woman's file to record a visit",
-  "@homeVisitHint": {
-    "description": "Home screen hint: how to record a visit."
   },
   "loginServerLabel": "Server (test build)",
   "@loginServerLabel": {
@@ -992,9 +1136,62 @@
   "@appTagline": {
     "description": "Sign-in screen: under the app name, who the app is for."
   },
-  "homeRegisterHint": "Start a new pregnancy file",
+  "homeRegisterHint": "Pregnant woman",
   "@homeRegisterHint": {
     "description": "Home: line under the Register a pregnant woman button."
+  },
+  "homeGreeting": "Assalam-o-Alaikum,",
+  "@homeGreeting": {
+    "description": "Greeting above the name on the home screen (final design screen 6)."
+  },
+  "homeOnline": "Online",
+  "@homeOnline": {
+    "description": "Sync card: the server was reached."
+  },
+  "homeOffline": "Offline",
+  "@homeOffline": {
+    "description": "Sync card: no connection."
+  },
+  "homeAllSent": "Everything is sent",
+  "@homeAllSent": {
+    "description": "Sync card: nothing waiting."
+  },
+  "homeTodayTasks": "Today's work",
+  "@homeTodayTasks": {
+    "description": "Heading of the task cards."
+  },
+  "homeRecentVisits": "Recent visits",
+  "@homeRecentVisits": {
+    "description": "Heading of the recent visits."
+  },
+  "dayToday": "Today",
+  "@dayToday": {
+    "description": "A visit made today."
+  },
+  "dayYesterday": "Yesterday",
+  "@dayYesterday": {
+    "description": "A visit made yesterday."
+  },
+  "homeWaiting": "{count, plural, =1{1 record waiting to be sent} other{{count} records waiting to be sent}}",
+  "@homeWaiting": {
+    "description": "Sync card: records in the outbox.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "visitLineBp": "{day} · BP {bp}",
+  "@visitLineBp": {
+    "description": "A recent visit: its day and blood pressure.",
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "bp": {
+        "type": "String"
+      }
+    }
   },
   "homeSyncSection": "Sync",
   "@homeSyncSection": {

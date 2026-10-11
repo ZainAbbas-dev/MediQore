@@ -266,17 +266,48 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('the registration form fits, errors shown ($language)', (tester) async {
+      testWidgets('every step of the registration fits, errors shown ($language)', (tester) async {
         await tester.runAsync(registerLongNames);
         await pumpScreen(tester, RegisterScreen(services: services), english: english);
         await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
         await tester.pumpAndSettle();
         final l10n = lookupAppLocalizations(english ? AppSettings.english : AppSettings.urdu);
-        expect(find.text(l10n.regSameHome), findsOneWidget, reason: 'women are registered, so the option shows');
+        Future<void> next() async {
+          await tester.tap(find.text(l10n.stepNext));
+          await tester.pumpAndSettle();
+        }
+
+        await next();
+        expect(find.text(l10n.regErrorAge), findsOneWidget);
         await scrollToEnd(tester);
-        await tester.tap(find.text(l10n.regSaveButton));
+        expect(tester.takeException(), isNull);
+        await tester.enterText(find.byType(TextFormField).at(0), 'سیدہ فاطمہ بی بی زوجہ محمد اسلم');
+        await tester.enterText(find.byType(TextFormField).at(1), '34');
+        await next();
+
+        await next();
+        expect(find.text(l10n.regErrorChooseMonth), findsOneWidget);
+        await tester.tap(find.widgetWithText(OutlinedButton, '7'));
         await tester.pumpAndSettle();
-        expect(find.text(l10n.regErrorFix), findsOneWidget);
+        expect(find.text(l10n.regMonthChosen(7)), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await next();
+
+        expect(find.text(l10n.regSameHome), findsOneWidget, reason: 'women are registered, so the option shows');
+        await next();
+        expect(find.text(l10n.regErrorRequired), findsOneWidget);
+        await scrollToEnd(tester);
+        expect(tester.takeException(), isNull);
+        await tester.enterText(find.byType(TextFormField).first, 'ڈھوک سیداں والی بستی نمبر دو');
+        await next();
+
+        for (var i = 0; i < 2; i++) {
+          await tester.tap(find.byTooltip(l10n.stepperMore).at(1));
+          await tester.pump();
+        }
+        await tester.pumpAndSettle();
+        expect(find.text(l10n.regErrorMoreThanPregnancies), findsOneWidget);
+        await scrollToEnd(tester);
         expect(tester.takeException(), isNull);
       });
 
@@ -292,7 +323,9 @@ void main() {
         await pumpScreen(tester, PatientListScreen(services: services), english: english);
         await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
         await tester.pumpAndSettle();
-        expect(find.textContaining('LHW-DEMO-001-000'), findsNWidgets(2));
+        expect(find.textContaining('LHW-DEMO-001-000'), findsWidgets);
+        await scrollToEnd(tester);
+        expect(find.textContaining('LHW-DEMO-001-000'), findsWidgets);
         expect(tester.takeException(), isNull);
       });
 

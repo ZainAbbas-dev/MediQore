@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'app_services.dart';
-import 'clinical/visit_ranges.dart';
+import 'clinical/clinical_rules.dart';
 import 'settings/app_settings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final settings = await AppSettings.load();
-  // M3 FE-1: the visit form's range checks, from the versioned config file.
-  final visitRanges = await VisitRanges.load();
-  runApp(MediQoreApp(services: AppServices.onDevice(settings: settings, visitRanges: visitRanges)));
+  // P0-11: the Clinical Rules Table (visit ranges, obstetric flags), from the versioned config file.
+  final clinicalRules = await ClinicalRules.load();
+  runApp(MediQoreApp(services: AppServices.onDevice(settings: settings, clinicalRules: clinicalRules)));
 }

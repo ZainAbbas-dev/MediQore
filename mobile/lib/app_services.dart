@@ -2,6 +2,7 @@ import 'auth/pin.dart';
 import 'auth/secure_store.dart';
 import 'auth/session.dart';
 import 'build_flags.dart';
+import 'clinical/clinical_rules.dart';
 import 'clinical/visit_ranges.dart';
 import 'data/app_database.dart';
 import 'data/database_opener.dart';
@@ -38,7 +39,7 @@ class AppServices {
     this.location = const GeolocatorLocationService(),
     this.dialer = const UrlLauncherDialer(),
     bool autoSync = true,
-    this.visitRanges,
+    this.clinicalRules,
   }) : settings = settings ?? AppSettings() {
     session = Session(
       opener: opener,
@@ -53,14 +54,14 @@ class AppServices {
   }
 
   /// Real services on the phone. [settings] come from [AppSettings.load] and
-  /// [visitRanges] from [VisitRanges.load]. A test build uses the server address
+  /// [clinicalRules] from [ClinicalRules.load]. A test build uses the server address
   /// saved on the activation screen, if any.
-  factory AppServices.onDevice({required AppSettings settings, required VisitRanges visitRanges}) => AppServices(
+  factory AppServices.onDevice({required AppSettings settings, required ClinicalRules clinicalRules}) => AppServices(
     opener: EncryptedDatabaseOpener(),
     api: SyncApi(baseUrl: (testBuild ? settings.serverAddress : null) ?? apiBaseUrl),
     secureStore: KeystoreSecureStore(),
     settings: settings,
-    visitRanges: visitRanges,
+    clinicalRules: clinicalRules,
   );
 
   final DatabaseOpener opener;
@@ -77,9 +78,12 @@ class AppServices {
   /// The phone's GPS, for the home location (M2 FE-3).
   final LocationService location;
 
-  /// The visit form's range checks, read from the app's config file at start
-  /// (M3 FE-1). The form reads the file itself when this is null.
-  final VisitRanges? visitRanges;
+  /// The Clinical Rules Table bundled with the app, read at start (P0-11). The
+  /// screens that use it read the file themselves when this is null.
+  final ClinicalRules? clinicalRules;
+
+  /// The visit form's range checks (M3 FE-1).
+  VisitRanges? get visitRanges => clinicalRules?.visitRanges;
 
   /// Activation, the PIN lock, the tokens for sync (M1 FE-2) and the open database.
   late final Session session;

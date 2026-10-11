@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../auth/local_account.dart';
+import '../location/distance.dart';
 import 'app_database.dart';
 import 'household_repository.dart';
 
@@ -61,7 +62,7 @@ enum SyncStatus {
 
 /// One line of the patient list.
 class PatientSummary {
-  const PatientSummary({required this.woman, this.household, this.pregnancy, required this.syncStatus});
+  const PatientSummary({required this.woman, this.household, this.pregnancy, required this.syncStatus, this.distanceKm});
 
   final LocalWoman woman;
   final LocalHousehold? household;
@@ -69,6 +70,10 @@ class PatientSummary {
   /// The active pregnancy, or the latest one.
   final LocalPregnancy? pregnancy;
   final SyncStatus syncStatus;
+
+  /// The straight-line distance from the LHW to the home, when the list was
+  /// sorted by distance and the home has a GPS position (M2 FE-3).
+  final double? distanceKm;
 
   String? get village => household?.village;
 }
@@ -166,7 +171,9 @@ class PatientRepository {
 
   /// The women on this phone, sorted by village and then by name (M2 FE-3).
   /// [search] matches part of a name, patient ID, husband's name or village.
-  Future<List<PatientSummary>> list({String search = ''}) async {
+  /// With [near] (the LHW's position), they are sorted by the estimated
+  /// distance to their home instead, nearest first; homes without GPS come last.
+  Future<List<PatientSummary>> list({String search = '', ({double latitude, double longitude})? near}) async {
     final women = await (_db.select(_db.women)..where((w) => w.deletedAt.isNull())).get();
     final households = {for (final h in await _db.select(_db.households).get()) h.id: h};
     final pregnancies = await (_db.select(_db.pregnancies)..where((p) => p.deletedAt.isNull())).get();
@@ -181,17 +188,29 @@ class PatientRepository {
               .any((text) => text != null && text.toLowerCase().contains(query))) {
         continue;
       }
+      final lat = household?.latitude;
+      final lon = household?.longitude;
       result.add(PatientSummary(
         woman: woman,
         household: household,
         pregnancy: _currentPregnancy(pregnancies.where((p) => p.womanId == woman.id)),
         syncStatus: statuses[woman.id] ?? SyncStatus.synced,
+        distanceKm: near == null || lat == null || lon == null ? null : distanceKm(near.latitude, near.longitude, lat, lon),
       ));
     }
-    result.sort((a, b) {
+    int byVillageAndName(PatientSummary a, PatientSummary b) {
       // Women with no village recorded come last.
       final byVillage = _compareVillages(a.village, b.village);
       return byVillage != 0 ? byVillage : a.woman.name.toLowerCase().compareTo(b.woman.name.toLowerCase());
+    }
+
+    result.sort((a, b) {
+      if (near == null) return byVillageAndName(a, b);
+      final x = a.distanceKm;
+      final y = b.distanceKm;
+      if (x == null || y == null) return x == y ? byVillageAndName(a, b) : (x == null ? 1 : -1);
+      final byDistance = x.compareTo(y);
+      return byDistance != 0 ? byDistance : byVillageAndName(a, b);
     });
     return result;
   }

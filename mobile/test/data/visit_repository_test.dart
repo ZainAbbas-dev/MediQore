@@ -104,4 +104,34 @@ void main() {
     expect(listed.map((s) => s.visit.id), [held.id, refused.id, waiting.id, 'pulled']);
     expect(listed.map((s) => s.syncStatus), [SyncStatus.held, SyncStatus.refused, SyncStatus.waiting, SyncStatus.synced]);
   });
+
+  test('recent() lists the latest visits on the phone with their woman, never by the phone clock (LI-7)', () async {
+    final patients = PatientRepository(db);
+    final woman = await patients.register(const RegistrationInput(name: 'Synthetic Woman', age: 26, pregnancyMonth: 3), by: lhw);
+    final pregnancy = (await patients.file(woman.id))!.pregnancy!;
+    LocalVisit pulled(String id, int seq) => LocalVisit(
+          id: id,
+          serverSeq: seq,
+          createdOnDevice: now,
+          pregnancyId: pregnancy.id,
+          visitedAt: now.add(Duration(days: seq)),
+          swelling: false,
+          bleeding: false,
+          fever: false,
+          anaemiaSigns: 'none',
+          urineSymptoms: false,
+        );
+    await db.into(db.visits).insert(pulled('older', 3));
+    await db.into(db.visits).insert(pulled('newer', 9));
+    final first = await visits.record(VisitInput(pregnancyId: pregnancy.id, systolicBpMmhg: 110, diastolicBpMmhg: 70), by: lhw);
+    now = now.subtract(const Duration(days: 5)); // the clock goes back
+    final second = await visits.record(VisitInput(pregnancyId: pregnancy.id, systolicBpMmhg: 112, diastolicBpMmhg: 70), by: lhw);
+
+    final recent = await visits.recent(limit: 3);
+
+    expect(recent.map((r) => r.summary.visit.id), [second.id, first.id, 'newer']);
+    expect(recent.map((r) => r.woman?.name).toSet(), {'Synthetic Woman'});
+    expect(recent.first.summary.syncStatus, SyncStatus.waiting);
+    expect(recent.last.summary.syncStatus, SyncStatus.synced);
+  });
 }

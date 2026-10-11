@@ -1,13 +1,16 @@
-// M2 FE-1, FE-2, FE-3: a woman's digital pregnancy file, from the phone. Her
-// details, her home and its location, the current pregnancy and the obstetric
-// history captured at registration. A home saved without GPS can get its
-// location here later.
+// M2 FE-1, FE-2, FE-3: a woman's digital pregnancy file, from the phone (final
+// design screen 14). Her details, her home and its location, the current
+// pregnancy and the obstetric history captured at registration, with the
+// risk-factor flags the Clinical Rules Table finds in it (they never change the
+// risk colour unless the signed table says so). A home saved without GPS can
+// get its location here later.
 // M3 FE-1: a new visit starts here, and the pregnancy's visits are listed with
 // whether each has reached the server or is held for the supervisor (FE-2).
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
 import '../app_services.dart';
+import '../clinical/clinical_rules.dart';
 import '../data/app_database.dart';
 import '../data/patient_repository.dart';
 import '../data/visit_repository.dart';
@@ -15,6 +18,7 @@ import '../l10n/app_localizations.dart';
 import '../location/location_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_cards.dart';
+import '../widgets/curved_header.dart';
 import '../widgets/gps_capture.dart';
 import '../widgets/large_button.dart';
 import 'visit_screen.dart';
@@ -29,9 +33,22 @@ class PatientFileScreen extends StatefulWidget {
   State<PatientFileScreen> createState() => _PatientFileScreenState();
 }
 
+/// The words for an obstetric history flag of the Clinical Rules Table; a flag
+/// added to the table later shows its ID until it gets its words.
+String obstetricFlagText(AppLocalizations l10n, String id) => switch (id) {
+  'previous_c_section' => l10n.flagPreviousCSection,
+  'previous_stillbirth' => l10n.flagPreviousStillbirth,
+  'grand_multiparity' => l10n.flagGrandMultiparity,
+  'known_medical_condition' => l10n.flagKnownMedicalCondition,
+  'adolescent_pregnancy' => l10n.flagAdolescentPregnancy,
+  'advanced_maternal_age' => l10n.flagAdvancedMaternalAge,
+  _ => id,
+};
+
 class _PatientFileScreenState extends State<PatientFileScreen> {
   PatientFile? _file;
   List<VisitSummary> _visits = const [];
+  ClinicalRules? _rules;
 
   @override
   void initState() {
@@ -40,6 +57,7 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
   }
 
   Future<void> _load() async {
+    _rules ??= widget.services.clinicalRules ?? await ClinicalRules.load();
     final file = await widget.services.patients.file(widget.womanId);
     final pregnancy = file?.pregnancy;
     final visits = pregnancy == null ? const <VisitSummary>[] : await widget.services.visits.forPregnancy(pregnancy.id);
@@ -95,97 +113,183 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
 
     const gap = SizedBox(height: 12);
 
+    final rules = _rules;
+    final flags = rules == null || history == null
+        ? const <String>[]
+        : rules.obstetricFlags({
+            'age': woman.age,
+            'previousPregnancies': history.previousPregnancies,
+            'previousCSections': history.previousCSections,
+            'stillbirths': history.stillbirths,
+            'knownConditions': history.knownConditions,
+          });
+    final white = theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.9));
+
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.fileTitle)),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.zero,
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  InitialAvatar(woman.name, radius: 28),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(woman.name, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
-                        Text(l10n.patientIdLabel, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.mutedText)),
-                        Text(woman.patientCode, textDirection: TextDirection.ltr, style: theme.textTheme.titleMedium),
-                        const SizedBox(height: 6),
-                        SyncStatusChip(file.syncStatus),
-                      ],
-                    ),
+          CurvedHeader(
+            title: l10n.fileTitle,
+            overlap: 40,
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppColors.primary,
+                  child: Text(
+                    woman.name.trim().isEmpty ? '?' : woman.name.trim().characters.first.toUpperCase(),
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, height: 1.2),
                   ),
-                ],
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        woman.name,
+                        style: theme.textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+                      ),
+                      Text(woman.patientCode, textDirection: TextDirection.ltr, style: white),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Transform.translate(
+            offset: const Offset(0, -32),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Row(
+                    children: [
+                      _Stat(woman.age?.toString() ?? '–', l10n.fileStatAge),
+                      _Stat(pregnancy == null ? '–' : '${pregnancy.pregnancyMonthAtRegistration}', l10n.fileStatMonth),
+                      _Stat('${_visits.length}', l10n.fileStatVisits),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-          if (pregnancy != null && pregnancy.status == 'active') ...[
-            gap,
-            LargeButton(label: l10n.fileNewVisitButton, icon: Icons.add, onPressed: () => _newVisit(file, l10n)),
-          ],
-          gap,
-          SectionCard(
-            title: l10n.regWomanSection,
-            icon: Icons.person,
-            children: [
-              InfoRow(l10n.regAge, woman.age?.toString(), ltr: true),
-              InfoRow(l10n.regHusbandName, woman.husbandName),
-              InfoRow(l10n.regContactNumber, woman.contactNumber, ltr: true),
-            ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Align(alignment: AlignmentDirectional.centerStart, child: SyncStatusChip(file.syncStatus)),
+                if (pregnancy != null && pregnancy.status == 'active') ...[
+                  gap,
+                  LargeButton(label: l10n.fileNewVisitButton, icon: Icons.add, onPressed: () => _newVisit(file, l10n)),
+                ],
+                if (history != null && rules != null) ...[
+                  gap,
+                  SectionCard(
+                    title: l10n.fileRiskFactors,
+                    icon: Icons.flag_outlined,
+                    children: [
+                      if (flags.isEmpty)
+                        Text(l10n.fileNoRiskFactors, style: theme.textTheme.bodyLarge)
+                      else
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final flag in flags)
+                              StatusPill(
+                                label: obstetricFlagText(l10n, flag),
+                                icon: Icons.flag,
+                                foreground: AppColors.statusPending,
+                                background: AppColors.statusPendingBackground,
+                              ),
+                          ],
+                        ),
+                      Text(
+                        rules.status == 'pending clinical review'
+                            ? l10n.fileRiskFactorsPending(rules.version)
+                            : l10n.fileRiskFactorsSigned(rules.version),
+                        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.mutedText),
+                      ),
+                    ],
+                  ),
+                ],
+                gap,
+                SectionCard(
+                  title: l10n.regWomanSection,
+                  icon: Icons.person,
+                  children: [
+                    InfoRow(l10n.regAge, woman.age?.toString(), ltr: true),
+                    InfoRow(l10n.regHusbandName, woman.husbandName),
+                    InfoRow(l10n.regContactNumber, woman.contactNumber, ltr: true),
+                  ],
+                ),
+                gap,
+                SectionCard(
+                  title: l10n.regHomeSection,
+                  icon: Icons.home,
+                  children: [
+                    InfoRow(l10n.regVillage, household?.village),
+                    InfoRow(l10n.regAddress, household?.address),
+                    if (household?.latitude != null && household?.longitude != null)
+                      InfoRow(
+                        l10n.gpsLabel,
+                        '${household!.latitude!.toStringAsFixed(6)}, ${household.longitude!.toStringAsFixed(6)}',
+                        ltr: true,
+                      )
+                    else if (household != null)
+                      GpsCapture(location: widget.services.location, onCaptured: (fix) => _saveLocation(fix, l10n)),
+                  ],
+                ),
+                if (pregnancy != null) ...[
+                  gap,
+                  SectionCard(
+                    title: l10n.regPregnancySection,
+                    icon: Icons.pregnant_woman,
+                    children: [
+                      InfoRow(l10n.fileRegisteredOn, _formatDate(dateFormat, pregnancy.registeredOn)),
+                      InfoRow(l10n.fileMonthAtRegistration, '${pregnancy.pregnancyMonthAtRegistration}', ltr: true),
+                      InfoRow(
+                        l10n.fileStatus,
+                        pregnancy.status == 'active' ? l10n.fileStatusActive : l10n.fileStatusClosed,
+                      ),
+                    ],
+                  ),
+                  gap,
+                  SectionCard(
+                    title: l10n.fileVisitsSection,
+                    icon: Icons.event_note,
+                    children: [
+                      if (_visits.isEmpty)
+                        Text(
+                          l10n.fileNoVisits,
+                          style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.outline),
+                        )
+                      else
+                        for (final visit in _visits) _VisitCard(visit),
+                    ],
+                  ),
+                ],
+                if (history != null) ...[
+                  gap,
+                  SectionCard(
+                    title: l10n.regHistorySection,
+                    icon: Icons.history,
+                    children: [
+                      InfoRow(l10n.regPreviousPregnancies, '${history.previousPregnancies}', ltr: true),
+                      InfoRow(l10n.regPreviousCSections, '${history.previousCSections}', ltr: true),
+                      InfoRow(l10n.regStillbirths, '${history.stillbirths}', ltr: true),
+                      InfoRow(l10n.regKnownConditions, history.knownConditions),
+                    ],
+                  ),
+                ],
+              ],
+            ),
           ),
-          gap,
-          SectionCard(
-            title: l10n.regHomeSection,
-            icon: Icons.home,
-            children: [
-              InfoRow(l10n.regVillage, household?.village),
-              InfoRow(l10n.regAddress, household?.address),
-              if (household?.latitude != null && household?.longitude != null)
-                InfoRow(l10n.gpsLabel, '${household!.latitude!.toStringAsFixed(6)}, ${household.longitude!.toStringAsFixed(6)}', ltr: true)
-              else if (household != null)
-                GpsCapture(location: widget.services.location, onCaptured: (fix) => _saveLocation(fix, l10n)),
-            ],
-          ),
-          if (pregnancy != null) ...[
-            gap,
-            SectionCard(
-              title: l10n.regPregnancySection,
-              icon: Icons.pregnant_woman,
-              children: [
-                InfoRow(l10n.fileRegisteredOn, _formatDate(dateFormat, pregnancy.registeredOn)),
-                InfoRow(l10n.fileMonthAtRegistration, '${pregnancy.pregnancyMonthAtRegistration}', ltr: true),
-                InfoRow(l10n.fileStatus, pregnancy.status == 'active' ? l10n.fileStatusActive : l10n.fileStatusClosed),
-              ],
-            ),
-            gap,
-            SectionCard(
-              title: l10n.fileVisitsSection,
-              icon: Icons.event_note,
-              children: [
-                if (_visits.isEmpty)
-                  Text(l10n.fileNoVisits, style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.outline))
-                else
-                  for (final visit in _visits) _VisitCard(visit),
-              ],
-            ),
-          ],
-          if (history != null) ...[
-            gap,
-            SectionCard(
-              title: l10n.regHistorySection,
-              icon: Icons.history,
-              children: [
-                InfoRow(l10n.regPreviousPregnancies, '${history.previousPregnancies}', ltr: true),
-                InfoRow(l10n.regPreviousCSections, '${history.previousCSections}', ltr: true),
-                InfoRow(l10n.regStillbirths, '${history.stillbirths}', ltr: true),
-                InfoRow(l10n.regKnownConditions, history.knownConditions),
-              ],
-            ),
-          ],
         ],
       ),
     );
@@ -194,6 +298,31 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
   static String _formatDate(DateFormat format, String date) {
     final parsed = DateTime.tryParse(date);
     return parsed == null ? date : format.format(parsed);
+  }
+}
+
+/// A number and its label in the stats card under the header.
+class _Stat extends StatelessWidget {
+  const _Stat(this.value, this.label);
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            textDirection: TextDirection.ltr,
+            style: theme.textTheme.headlineSmall?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w800),
+          ),
+          Text(label, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.mutedText)),
+        ],
+      ),
+    );
   }
 }
 
@@ -230,7 +359,8 @@ class _VisitCard extends StatelessWidget {
       if (v.bleeding) l10n.fieldBleeding,
       if (v.fever) l10n.fieldFever,
       if (v.urineSymptoms) l10n.fieldUrineSymptoms,
-      if (v.anaemiaSigns != 'none') '${l10n.fieldAnaemia}: ${v.anaemiaSigns == 'severe' ? l10n.anaemiaSevere : l10n.anaemiaPresent}',
+      if (v.anaemiaSigns != 'none')
+        '${l10n.fieldAnaemia}: ${v.anaemiaSigns == 'severe' ? l10n.anaemiaSevere : l10n.anaemiaPresent}',
     ];
 
     return DecoratedBox(

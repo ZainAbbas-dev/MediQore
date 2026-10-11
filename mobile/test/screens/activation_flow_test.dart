@@ -113,7 +113,7 @@ void main() {
 
     expect(find.byType(HomeScreen), findsOneWidget);
     expect(find.text('Demo LHW'), findsOneWidget);
-    expect(find.text(l10n.homeLhwCode('LHW-DEMO-001')), findsOneWidget);
+    expect(find.text('Demo Area 1 · LHW-DEMO-001'), findsOneWidget);
   });
 
   testWidgets('a wrong password and a missing connection are explained', (tester) async {

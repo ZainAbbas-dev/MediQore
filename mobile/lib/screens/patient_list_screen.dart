@@ -1,12 +1,17 @@
-// M2 FE-3: the women registered in the LHW's area, searchable and grouped by
-// village. Everything comes from the phone, so it works offline.
+// M2 FE-3: the women registered in the LHW's area (final design screen 13),
+// searchable, grouped by village, or sorted by the estimated distance from
+// where the LHW stands (GPS, no maps or internet needed). Everything comes from
+// the phone, so it works offline.
 import 'package:flutter/material.dart';
 
 import '../app_services.dart';
 import '../data/patient_repository.dart';
 import '../l10n/app_localizations.dart';
+import '../location/location_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_cards.dart';
+import '../widgets/curved_header.dart';
+import '../widgets/gps_capture.dart' show locationProblemText;
 import 'patient_file_screen.dart';
 import 'register_screen.dart';
 
@@ -23,6 +28,12 @@ class _PatientListScreenState extends State<PatientListScreen> {
   final _search = TextEditingController();
   List<PatientSummary>? _patients;
   int _total = 0;
+  int _villages = 0;
+
+  // Sorted by distance from this position (M2 FE-3), or by village when null.
+  ({double latitude, double longitude})? _near;
+  bool _locating = false;
+  LocationProblem? _locationProblem;
 
   @override
   void initState() {
@@ -38,13 +49,39 @@ class _PatientListScreenState extends State<PatientListScreen> {
 
   Future<void> _load() async {
     final search = _search.text;
-    final patients = await widget.services.patients.list(search: search);
-    final total = search.trim().isEmpty ? patients.length : (await widget.services.patients.list()).length;
-    if (!mounted || search != _search.text) return; // a newer search is on its way
+    final near = _near;
+    final patients = await widget.services.patients.list(search: search, near: near);
+    final all = search.trim().isEmpty ? patients : await widget.services.patients.list();
+    if (!mounted || search != _search.text || near != _near) return; // a newer request is on its way
     setState(() {
       _patients = patients;
-      _total = total;
+      _total = all.length;
+      _villages = {for (final p in all) if ((p.village ?? '').trim().isNotEmpty) p.village!.trim().toLowerCase()}.length;
     });
+  }
+
+  Future<void> _sortNearest(bool nearest) async {
+    if (!nearest) {
+      setState(() {
+        _near = null;
+        _locationProblem = null;
+      });
+      await _load();
+      return;
+    }
+    setState(() {
+      _locating = true;
+      _locationProblem = null;
+    });
+    final result = await widget.services.location.current();
+    if (!mounted) return;
+    final fix = result.fix;
+    setState(() {
+      _locating = false;
+      _locationProblem = result.problem;
+      if (fix != null) _near = (latitude: fix.latitude, longitude: fix.longitude);
+    });
+    await _load();
   }
 
   Future<void> _open(Widget screen) async {
@@ -60,9 +97,10 @@ class _PatientListScreenState extends State<PatientListScreen> {
 
     final rows = <Widget>[];
     String? village;
+    final byDistance = _near != null;
     for (final (index, p) in (patients ?? const <PatientSummary>[]).indexed) {
       final pVillage = p.village?.trim().isEmpty ?? true ? null : p.village!.trim();
-      if (index == 0 || pVillage != village) {
+      if (!byDistance && (index == 0 || pVillage != village)) {
         village = pVillage;
         rows.add(
           Padding(
@@ -84,9 +122,10 @@ class _PatientListScreenState extends State<PatientListScreen> {
       }
       rows.add(
         Padding(
-          padding: const EdgeInsets.only(bottom: 8),
+          padding: EdgeInsets.only(bottom: 8, top: byDistance && index == 0 ? 12 : 0),
           child: _PatientRow(
             patient: p,
+            byDistance: byDistance,
             onTap: () => _open(PatientFileScreen(services: widget.services, womanId: p.woman.id)),
           ),
         ),
@@ -94,37 +133,55 @@ class _PatientListScreenState extends State<PatientListScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.patientsTitle)),
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.person_add),
         label: Text(l10n.patientsNewButton),
-        tooltip: l10n.homeRegisterButton,
         onPressed: () => _open(RegisterScreen(services: widget.services)),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Material(
-            color: theme.colorScheme.primary,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: TextField(
-                controller: _search,
-                onChanged: (_) => _load(),
-                decoration: InputDecoration(
-                  hintText: l10n.patientsSearch,
-                  prefixIcon: const Icon(Icons.search),
-                  border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(28)), borderSide: BorderSide.none),
-                  enabledBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(28)), borderSide: BorderSide.none),
-                  focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(28)), borderSide: BorderSide.none),
-                ),
+          CurvedHeader(
+            title: l10n.patientsTitle,
+            subtitle: patients == null ? null : '${l10n.patientsCount(_total)} · ${l10n.patientsVillages(_villages)}',
+            child: TextField(
+              controller: _search,
+              onChanged: (_) => _load(),
+              decoration: InputDecoration(
+                hintText: l10n.patientsSearch,
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(28)), borderSide: BorderSide.none),
+                enabledBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(28)), borderSide: BorderSide.none),
+                focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(28)), borderSide: BorderSide.none),
               ),
             ),
           ),
-          if (patients != null && _total > 0)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+            child: SegmentedButton<bool>(
+              segments: [
+                ButtonSegment(value: false, label: Text(l10n.patientsSortVillage), icon: const Icon(Icons.holiday_village_outlined)),
+                ButtonSegment(value: true, label: Text(l10n.patientsSortNearest), icon: const Icon(Icons.near_me_outlined)),
+              ],
+              selected: {byDistance || _locating},
+              onSelectionChanged: _locating ? null : (choice) => _sortNearest(choice.single),
+            ),
+          ),
+          if (_locating)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Text(l10n.patientsCount(patients.length), style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText)),
+              child: Row(
+                children: [
+                  const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5)),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(l10n.gpsCapturing)),
+                ],
+              ),
+            ),
+          if (_locationProblem != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+              child: NoticeCard(text: locationProblemText(l10n, _locationProblem!), warning: true),
             ),
           Expanded(
             child: patients == null
@@ -144,10 +201,13 @@ class _PatientListScreenState extends State<PatientListScreen> {
 }
 
 class _PatientRow extends StatelessWidget {
-  const _PatientRow({required this.patient, required this.onTap});
+  const _PatientRow({required this.patient, required this.onTap, this.byDistance = false});
 
   final PatientSummary patient;
   final VoidCallback onTap;
+
+  /// Sorted by distance: the row shows the village and the distance.
+  final bool byDistance;
 
   @override
   Widget build(BuildContext context) {
@@ -181,6 +241,16 @@ class _PatientRow extends StatelessWidget {
                       style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText),
                     ),
                     if (details.isNotEmpty) Text(details.join(' · '), style: theme.textTheme.bodyMedium),
+                    if (byDistance)
+                      Text(
+                        [
+                          ?patient.village,
+                          patient.distanceKm == null
+                              ? l10n.patientsNoGps
+                              : l10n.patientsDistance(patient.distanceKm!.toStringAsFixed(1)),
+                        ].join(' · '),
+                        style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.primaryDark),
+                      ),
                     const SizedBox(height: 4),
                     SyncStatusChip(patient.syncStatus),
                   ],

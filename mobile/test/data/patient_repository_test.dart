@@ -189,6 +189,22 @@ void main() {
     });
   });
 
+  test('sorts by estimated distance from the LHW, nearest first, homes without GPS last (M2 FE-3)', () async {
+    // About 1.1 km, 5.6 km and 11 km north of the LHW.
+    await patients.register(input(name: 'Far', village: 'A', latitude: 33.70, longitude: 73.00), by: lhw);
+    await patients.register(input(name: 'No GPS', village: 'A', latitude: null, longitude: null), by: lhw);
+    await patients.register(input(name: 'Near', village: 'B', latitude: 33.61, longitude: 73.00), by: lhw);
+    await patients.register(input(name: 'Middle', village: 'C', latitude: 33.65, longitude: 73.00), by: lhw);
+
+    final list = await patients.list(near: (latitude: 33.60, longitude: 73.00));
+
+    expect(list.map((p) => p.woman.name), ['Near', 'Middle', 'Far', 'No GPS']);
+    expect(list[0].distanceKm, closeTo(1.11, 0.01));
+    expect(list[2].distanceKm, closeTo(11.12, 0.02));
+    expect(list[3].distanceKm, isNull);
+    expect((await patients.list()).every((p) => p.distanceKm == null), isTrue, reason: 'only when sorted by distance');
+  });
+
   test('file() returns the whole pregnancy file', () async {
     final woman = await patients.register(input(), by: lhw);
 

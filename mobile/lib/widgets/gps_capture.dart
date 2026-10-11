@@ -6,11 +6,25 @@ import '../l10n/app_localizations.dart';
 import '../location/location_service.dart';
 import 'large_button.dart';
 
+/// Why no position was found, in words for the LHW.
+String locationProblemText(AppLocalizations l10n, LocationProblem problem) => switch (problem) {
+  LocationProblem.serviceOff => l10n.gpsServiceOff,
+  LocationProblem.denied => l10n.gpsDenied,
+  LocationProblem.deniedForever => l10n.gpsDeniedForever,
+  LocationProblem.unavailable => l10n.gpsUnavailable,
+};
+
 class GpsCapture extends StatefulWidget {
-  const GpsCapture({super.key, required this.location, required this.onCaptured});
+  const GpsCapture({super.key, required this.location, required this.onCaptured, this.initial, this.showLabel = true});
 
   final LocationService location;
   final ValueChanged<LocationFix> onCaptured;
+
+  /// A position recorded earlier, for example before going back a step.
+  final LocationFix? initial;
+
+  /// Shows "Home location (GPS)" above the status; off inside a card titled so.
+  final bool showLabel;
 
   @override
   State<GpsCapture> createState() => _GpsCaptureState();
@@ -18,7 +32,7 @@ class GpsCapture extends StatefulWidget {
 
 class _GpsCaptureState extends State<GpsCapture> {
   bool _capturing = false;
-  LocationFix? _fix;
+  late LocationFix? _fix = widget.initial;
   LocationProblem? _problem;
 
   Future<void> _capture() async {
@@ -47,12 +61,7 @@ class _GpsCaptureState extends State<GpsCapture> {
     if (_capturing) {
       status = l10n.gpsCapturing;
     } else if (problem != null) {
-      status = switch (problem) {
-        LocationProblem.serviceOff => l10n.gpsServiceOff,
-        LocationProblem.denied => l10n.gpsDenied,
-        LocationProblem.deniedForever => l10n.gpsDeniedForever,
-        LocationProblem.unavailable => l10n.gpsUnavailable,
-      };
+      status = locationProblemText(l10n, problem);
     } else if (fix != null) {
       status = l10n.gpsCaptured(fix.accuracyMetres.round());
     } else {
@@ -62,8 +71,7 @@ class _GpsCaptureState extends State<GpsCapture> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(l10n.gpsLabel, style: theme.textTheme.titleMedium),
-        const SizedBox(height: 6),
+        if (widget.showLabel) ...[Text(l10n.gpsLabel, style: theme.textTheme.titleMedium), const SizedBox(height: 6)],
         Text(status, style: problem != null ? TextStyle(color: theme.colorScheme.error) : null),
         if (fix != null)
           Align(

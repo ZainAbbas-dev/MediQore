@@ -36,7 +36,7 @@ Roadmap task P0-7 asks for the Phase 1 screens: activation and PIN unlock, LHW h
 | 5 | Forgot PIN: supervisor reply code | [05](screens/05-forgot-pin-supervisor-reply-code.png) | M1 FE-2 |
 | 6 | Home | [06](screens/06-home.png) | M2, M3 FE-2 |
 | 7 | Settings (language) | [07](screens/07-settings-language.png) | M3 FE-3, M1 FE-2 |
-| 8–11 | Registration, steps 1–4 | [08](screens/08-registration-step-1-woman.png), [09](screens/09-registration-step-2-home.png), [10](screens/10-registration-step-3-pregnancy.png), [11](screens/11-registration-step-4-history.png) | M2 FE-1–3, Mockup 1 |
+| 8–11 | Registration, steps 1–4 | [08](screens/08-registration-step-1-woman.png), [09](screens/09-registration-step-2-pregnancy.png), [10](screens/10-registration-step-3-home.png), [11](screens/11-registration-step-4-history.png) | M2 FE-1–3, Mockup 1 |
 | 12 | Registration saved | [12](screens/12-registration-saved.png) | M2 FE-1 |
 | 13 | Registered women | [13](screens/13-registered-women.png) | M2 FE-3 |
 | 14 | Pregnancy file | [14](screens/14-pregnancy-file.png) | M2 FE-1, FE-2 |
@@ -60,8 +60,8 @@ Roadmap task P0-7 asks for the Phase 1 screens: activation and PIN unlock, LHW h
 
 - **Home (6):** teal header with the greeting, the LHW's name and ID and the settings gear; a sync card over the header's edge with the connection state, the number of records waiting to sync and **Sync now**; task cards for a new registration and the registered women; recent visits with their sync state.
 - **Settings (7):** the account, **Language** (اردو / English, each in its own script, saved on the phone), and the account actions: **Change PIN**, lock and sign out.
-- **Registration (8–11):** a four-step wizard with a progress bar: the woman (name, age, husband's name, contact), the home (village, address, GPS), the pregnancy (month) and the obstetric history (previous pregnancies, C-sections, stillbirths, known conditions). **Saved (12)** shows the offline patient ID (LHW code plus the phone's counter).
-- **Registered women (13)** are grouped by village with search; **the pregnancy file (14)** shows age, month, visits, the visit history with sync state and **New visit**.
+- **Registration (8–11):** a four-step wizard with a progress bar: the woman (name, age, husband's name, contact), the pregnancy (month, chosen from a 1–9 grid), the home (village, address, GPS) and the obstetric history (previous pregnancies, C-sections, stillbirths with − and + counters, known conditions). **Saved (12)** shows the offline patient ID (LHW code plus the phone's counter).
+- **Registered women (13)** are grouped by village with search, or sorted **nearest first** by the estimated distance from the LHW's GPS position (M2 FE-3); **the pregnancy file (14)** shows age, month, visits, the visit history with sync state, **New visit** and, under it, the risk factors the Clinical Rules Table finds in her history (M2 FE-2; they never change the risk colour).
 
 ### Home visit (screens 15–19)
 
@@ -80,4 +80,4 @@ Roadmap task P0-7 asks for the Phase 1 screens: activation and PIN unlock, LHW h
 
 ## Built in the app so far
 
-The Phase 1 revision rebuilds the screens in `mobile/` to this document. Done: screens 1–5 (activation, create a PIN, unlock, wrong-PIN wait, PIN reset) and 7 (settings), with no voice guidance; screen 21's activation code and the **PIN reset codes** page on the portal. Next: the home screen, the registration wizard, the list and file (6, 8–14) and the three-step visit form with the pulse counter, blood sugar details and the danger-sign checklist (15–19).
+The Phase 1 revision rebuilds the screens in `mobile/` to this document. Done: screens 1–14 (activation, PIN, unlock, wrong-PIN wait, PIN reset, home, settings, the registration wizard, saved, the list and the file), with no voice guidance; screen 21's activation code and the **PIN reset codes** page on the portal. Next: the three-step visit form with the pulse counter, blood sugar details and the danger-sign checklist (15–19).
