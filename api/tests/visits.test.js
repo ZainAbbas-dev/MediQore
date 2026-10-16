@@ -254,8 +254,8 @@ describeDb('Module 3: visits, same-day conflicts and the review queue', () => {
       const mine = await get(supervisor, '/dashboard/summary');
       const all = await get(admin, '/dashboard/summary');
 
-      expect(mine.body).toEqual({ registeredWomen: 1, visitsThisWeek: 1, pendingConflicts: 1 });
-      expect(all.body).toEqual({ registeredWomen: 2, visitsThisWeek: 2, pendingConflicts: 1 });
+      expect(mine.body).toEqual({ registeredWomen: 1, visitsThisWeek: 1, pendingConflicts: 1, lhws: 1, lhwsSyncedToday: 1 });
+      expect(all.body).toEqual({ registeredWomen: 2, visitsThisWeek: 2, pendingConflicts: 1, lhws: 2, lhwsSyncedToday: 2 });
       const women = await get(supervisor, '/women');
       expect(women.body.women[0].visits).toEqual({ count: 1, lastVisitAt: now });
     });

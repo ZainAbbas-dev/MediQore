@@ -41,7 +41,7 @@ const activity = {
   }],
 };
 
-const summary = { registeredWomen: 37, visitsThisWeek: 12, pendingConflicts: 2 };
+const summary = { registeredWomen: 37, visitsThisWeek: 12, pendingConflicts: 2, lhws: 16, lhwsSyncedToday: 13 };
 
 // The dashboard's answers; `overrides` replaces some of them.
 function dashboardApi(overrides = {}) {
@@ -59,53 +59,80 @@ const requested = (fetchMock, path) => fetchMock.mock.calls.filter(([url]) => ur
 describe('dashboard (M10 FE-1)', () => {
   afterEach(() => jest.useRealTimers());
 
-  it('shows the counts, the households synced from the LHW app and each LHW\'s activity', async () => {
+  it('shows the cards, the households on the map and each LHW\'s activity (screen 20)', async () => {
+    jest.useFakeTimers({ now: new Date('2026-10-04T12:00:00.000Z'), doNotFake: ['setTimeout', 'queueMicrotask', 'nextTick', 'setImmediate'] });
     const fetchMock = dashboardApi();
 
     renderApp('/', { session: supervisorSession });
 
-    expect(await screen.findByText('Test village')).toBeInTheDocument();
-    expect(screen.getByText('TEST-1').closest('tr')).toHaveTextContent('LHW-00007');
-    expect(screen.getByTestId('area-map')).toHaveTextContent('1 on map');
-    expect(screen.getByText(/^Registered households/).previousSibling).toHaveTextContent('1');
-    expect(screen.getByText('Registered women', { selector: '.card-label' }).closest('.card')).toHaveTextContent('37');
-    expect(screen.getByText('Visits this week', { selector: '.card-label' }).closest('.card')).toHaveTextContent('12');
+    expect(await screen.findByText('1 on map')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Households with GPS/ })).toHaveTextContent('Households with GPS · 1');
+    const card = (label) => screen.getByText(label, { selector: '.card-label' }).closest('.card');
+    await screen.findByText('37');
+    expect(card('Registered women')).toHaveTextContent('37');
+    expect(card('Visits this week')).toHaveTextContent('12');
+    expect(card('LHWs synced today')).toHaveTextContent('13of 16');
     const conflicts = screen.getByRole('link', { name: 'Sync conflicts to review' });
     expect(conflicts.closest('.card')).toHaveTextContent('2');
+    expect(conflicts.closest('.card')).toHaveClass('attention');
     expect(conflicts).toHaveAttribute('href', '/conflicts');
 
     const row = (await screen.findByText('Sana Iqbal')).closest('tr');
     for (const text of ['LHW-00007', '3', '41', '12', 'Never']) expect(within(row).getByText(text)).toBeInTheDocument();
     expect(row).toHaveTextContent('UC 1, Rawalpindi');
+    expect(row).toHaveTextContent(/Today \d/);
+    expect(row).not.toHaveClass('stale');
     expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer token-1');
   });
 
-  it('filters the map, households and LHW activity by district, Union Council, LHW and period', async () => {
+  it('highlights an LHW who has not synced for two days or more', async () => {
+    jest.useFakeTimers({ now: new Date('2026-10-08T12:00:00.000Z'), doNotFake: ['setTimeout', 'queueMicrotask', 'nextTick', 'setImmediate'] });
+    const never = { ...activity.lhws[0], id: 'l2', lhwCode: 'LHW-00009', fullName: 'Hina Bibi', lastSyncAt: null };
+    dashboardApi({ 'GET /dashboard/lhw-activity': [200, { lhws: [activity.lhws[0], never] }] });
+
+    renderApp('/', { session: supervisorSession });
+
+    const row = (await screen.findByText('Sana Iqbal')).closest('tr');
+    expect(row).toHaveClass('stale');
+    expect(row.querySelector('.stale-text')).toHaveTextContent('4 days ago');
+    expect(screen.getByText('Hina Bibi').closest('tr')).toHaveClass('stale');
+    expect(screen.getByText('Highlighted: no sync for 2 days or more.')).toBeInTheDocument();
+  });
+
+  it('filters the cards, the map and LHW activity by district, Union Council, LHW and period', async () => {
     const fetchMock = dashboardApi({
       'GET /households?districtId=d1': [200, { households: [] }],
+      'GET /dashboard/summary?districtId=d1': [200, { ...summary, registeredWomen: 5 }],
       'GET /dashboard/lhw-activity?districtId=d1': [200, activity],
       'GET /households?districtId=d1&lhwId=l1': [200, { households: [household] }],
+      'GET /dashboard/summary?districtId=d1&lhwId=l1': [200, summary],
+      'GET /dashboard/lhw-activity?districtId=d1&lhwId=l1': [200, activity],
       'GET /households?districtId=d1&lhwId=l1&days=30': [200, { households: [] }],
     });
     renderApp('/', { session: supervisorSession });
-    await screen.findByText('Test village');
+    await screen.findByText('1 on map');
     await screen.findByRole('option', { name: 'Rawalpindi' });
 
     fireEvent.change(screen.getByLabelText('District'), { target: { value: 'd1' } });
     expect(await screen.findByText('No households match these filters.')).toBeInTheDocument();
+    expect(await screen.findByText('5')).toBeInTheDocument();
     expect(requested(fetchMock, '/dashboard/lhw-activity?districtId=d1')).toBe(1);
     // Only the chosen district's Union Councils and LHWs are offered.
     expect(within(screen.getByLabelText('Union Council')).queryByRole('option', { name: 'UC 2' })).not.toBeInTheDocument();
     expect(within(screen.getByLabelText('LHW')).getAllByRole('option').map((o) => o.textContent)).toEqual(['All', 'LHW-00007 · Sana Iqbal']);
 
     fireEvent.change(screen.getByLabelText('LHW'), { target: { value: 'l1' } });
-    expect(await screen.findByText('Test village')).toBeInTheDocument();
+    expect(await screen.findByText('1 on map')).toBeInTheDocument();
+    expect(requested(fetchMock, '/dashboard/summary?districtId=d1&lhwId=l1')).toBe(1);
+    expect(requested(fetchMock, '/dashboard/lhw-activity?districtId=d1&lhwId=l1')).toBe(1);
     fireEvent.change(screen.getByLabelText('Period'), { target: { value: '30' } });
     expect(await screen.findByText('No households match these filters.')).toBeInTheDocument();
     expect(requested(fetchMock, '/households?districtId=d1&lhwId=l1&days=30')).toBe(1);
+    // The period is for the map only.
+    expect(requested(fetchMock, '/dashboard/summary?districtId=d1&lhwId=l1')).toBe(2);
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
-    expect(await screen.findByText('Test village')).toBeInTheDocument();
+    expect(await screen.findByText('1 on map')).toBeInTheDocument();
     expect(screen.getByLabelText('District')).toHaveValue('');
   });
 
@@ -113,7 +140,7 @@ describe('dashboard (M10 FE-1)', () => {
     jest.useFakeTimers();
     const fetchMock = dashboardApi();
     renderApp('/', { session: supervisorSession });
-    await screen.findByText('Test village');
+    await screen.findByText('1 on map');
     expect(requested(fetchMock, '/households')).toBe(1);
 
     await act(async () => {
@@ -125,7 +152,7 @@ describe('dashboard (M10 FE-1)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reload' }));
     await act(async () => {});
     expect(requested(fetchMock, '/households')).toBe(3);
-    expect(screen.getByText(/refreshes every 5 minutes/)).toBeInTheDocument();
+    expect(screen.getByText(/Refreshes every 5 minutes/)).toBeInTheDocument();
   });
 
   it('says so when nothing has been synced yet', async () => {

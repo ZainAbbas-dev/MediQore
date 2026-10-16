@@ -74,13 +74,13 @@ Run the task **MediQore: start API + portal**. Two terminals open, one for the A
 
 | Sign in as | What you should see |
 |---|---|
-| `syn.sup.01` | Dashboard with **100** households: map with four clusters near Rawalpindi, and the table |
+| `syn.sup.01` | Dashboard: cards for registered women, visits this week, **LHWs synced today** ("4 of 4") and sync conflicts to review; **Households with GPS · 100** on a map with four clusters near Rawalpindi |
 | `syn.sup.03` | A **different** 100 households near Attock: each supervisor sees only their own areas |
-| `syn.admin` | Households from every area. The Phase 0 list stops at 200. |
-| `admin.demo` or `syn.admin` | Also **LHW accounts** (add an LHW, **New activation code**, edit, deactivate, reset the password) and **PIN reset codes** (M1) |
-| `syn.sup.01` → **Registered women** | The synthetic pregnant women in that supervisor's areas, with their obstetric history and visit count (M2, M3) |
-| `syn.sup.01` → **Dashboard** | Below the map, **LHW activity**: each LHW of the supervisor's areas with visits this week and in total, women registered, last visit, last sync and last sign-in. Choose a district, Union Council, LHW or period: the map and the households table follow. The page reloads itself every 5 minutes (M10) |
-| `syn.admin` → **Administration** | **Supervisors and admins** (add a supervisor, tick their areas, the password is shown once), **Areas** (add, rename and delete districts, tehsils, Union Councils and areas; a district still in use cannot be deleted), **Hospitals** (a DHQ per district and a THQ per tehsil from the synthetic data; add one), **Roles** (what each role may do) and **Audit log** (everything you just did, with your username) (M10) |
+| `syn.admin` | Households from every area; the map shows the latest 200. |
+| `admin.demo` or `syn.admin` | Also **LHW accounts** (add an LHW; **New activation code** shows the code in a banner above the list; **Edit** also holds reset password and deactivate) and **PIN reset codes** (M1) |
+| `syn.sup.01` → **Registered women** | The synthetic pregnant women in that supervisor's areas, with their obstetric history and visit count. Click a visit count: her visits open with BP, pulse, weight, temperature, blood sugar (unit, source, date), symptoms and any danger sign answered yes (M2, M3, M10) |
+| `syn.sup.01` → **Dashboard** | Below the map, **LHW activity**: each LHW of the supervisor's areas with last sync, women registered, visits this week and in total, last visit and last sign-in; an LHW with no sync for 2 days or more is highlighted. Choose a district, Union Council or LHW: the cards, the map and LHW activity follow; the period narrows the map. The page reloads itself every 5 minutes (M10) |
+| `syn.admin` → **Administration** | **Supervisors and admins** (add a supervisor, tick their areas, the password is shown once), **Geography** (add, rename and delete districts, tehsils, Union Councils and areas; a district still in use cannot be deleted), **Hospitals** (a DHQ per district and a THQ per tehsil from the synthetic data; add one), **Roles** (what each role may do) and **Audit log** (everything you just did, with your username) (M10) |
 | `syn.sup.01` → **Sync conflicts** | Visits held because the same pregnancy already had a visit that day, each next to the stored visit with the differences highlighted. Decide one: it moves to **Decided** and the dashboard count drops (M3) |
 | `supervisor.demo` | No households yet, until the phone syncs one in step 7. **PIN reset codes** gives the reply code for an LHW in the supervisor's areas. |
 | `lhw.demo` | Refused: the portal is for supervisors and admins |
@@ -137,7 +137,7 @@ This tries Module 1 (activation code, PIN, offline unlock, wrong-PIN wait, PIN r
      2. Step 3: the village. Outdoors, tap **مقام محفوظ کریں** (record location). The first fix without mobile data can take a minute; indoors it may fail, and the form can be saved without it.
      3. Step 4: the earlier pregnancies with the − and + buttons, for example 5 earlier pregnancies. Tap **اندراج محفوظ کریں** (save registration). The app shows the patient ID, for example `LHW-DEMO-001-0001`; her file lists the risk factors from her history (here, five or more earlier pregnancies).
      4. Open **رجسٹرڈ خواتین** (registered women): she is listed under her village, marked "not sent yet". Search for part of her name.
-     5. Turn airplane mode off and sync. In the portal, as `supervisor.demo`, open **Registered women**: she is there with her history, and the dashboard count goes up.
+     5. Turn airplane mode off and sync. In the portal, as `supervisor.demo`, open **Registered women**: she is there with her history, and the dashboard count goes up. **LHWs synced today** counts `LHW-DEMO-001`; a sync with nothing new to send counts too.
    - **Record a visit offline (M3):** with **airplane mode** on, open her file from **رجسٹرڈ خواتین** and tap **نیا وزٹ** (new visit).
      1. Step 1 (measurements): leave every field empty and tap **اگلا قدم: علامات** (next step: signs): each required field says so. Type `98.6` as the temperature: it is refused, because the app takes °C.
      2. Tap **30 سیکنڈ گنیں** (count for 30 seconds) and press **دھڑکن** (beat) once per beat: after 30 seconds the app doubles the count; **یہ نبض لگائیں** (use this pulse) fills the pulse.
@@ -150,12 +150,13 @@ This tries Module 1 (activation code, PIN, offline unlock, wrong-PIN wait, PIN r
      1. Her file marks the second visit "waiting for the supervisor": the server held it because she already had a visit that day.
      2. In the portal, as `supervisor.demo`, open **Sync conflicts**: both visits are side by side. Choose one of the three decisions.
      3. Back on the phone, tap sync: the visit is no longer held (or, with "keep the stored visit", it disappears as a duplicate).
+     4. In **Registered women**, click her visit count: the visit shows its blood sugar source and date and the danger sign answered yes.
 6. In the settings (gear icon), under **ٹیسٹنگ** (testing), **فیز 0 کی جانچ** (Phase 0 checks, debug builds and the test APK only):
    - **ویجٹ کٹ** (widget kit): scroll through the Urdu controls and check that nothing is cut off.
    - **ڈیٹا سنک کی جانچ** (sync test):
      1. Turn on **airplane mode** and tap **ٹیسٹ گھرانہ بنائیں** (create test household). It is saved on the phone.
      2. Turn airplane mode off and tap **ابھی سنک کریں** (sync now). The household gets a server number.
-     3. In the portal, sign in as `supervisor.demo`: the household is in the count, on the map and in the table.
+     3. In the portal, sign in as `supervisor.demo`: the household is on the map (with GPS), and the LHW's last sync is now.
 7. **No phone at hand?** Use the configuration **MediQore app: Android emulator** with an emulator from Android Studio. The emergency call needs a real phone.
 
 ## Test APK: install the app on any phone

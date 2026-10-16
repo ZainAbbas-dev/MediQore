@@ -35,8 +35,14 @@ describe('supervisors and admins (M10 FE-3)', () => {
     const mine = screen.getByText('admin.demo').closest('tr');
     expect(mine).toHaveTextContent('All areas');
     expect(within(mine).getByText('you')).toBeInTheDocument();
-    expect(within(mine).queryByRole('button', { name: /Deactivate/ })).not.toBeInTheDocument();
-    expect(within(row).getByRole('button', { name: 'Deactivate sup.rwp' })).toBeInTheDocument();
+    // Reset password and deactivation are under Edit; never for your own account.
+    fireEvent.click(within(mine).getByRole('button', { name: 'Edit admin.demo' }));
+    const own = screen.getByRole('dialog', { name: 'Edit admin.demo' });
+    expect(within(own).getByRole('button', { name: 'Reset password of admin.demo' })).toBeInTheDocument();
+    expect(within(own).queryByRole('button', { name: /Deactivate/ })).not.toBeInTheDocument();
+    fireEvent.click(within(own).getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(within(row).getByRole('button', { name: 'Edit sup.rwp' }));
+    expect(within(screen.getByRole('dialog', { name: 'Edit sup.rwp' })).getByRole('button', { name: 'Deactivate sup.rwp' })).toBeInTheDocument();
   });
 
   it('creates a supervisor with chosen areas and shows the password once', async () => {
@@ -276,7 +282,7 @@ describe('administration in the sidebar', () => {
     });
     const { unmount } = renderApp('/', { session: adminSession });
     const admin = await screen.findByRole('navigation', { name: 'Administration' });
-    for (const name of ['LHW accounts', 'Supervisors and admins', 'Areas', 'Hospitals', 'Roles', 'Audit log']) {
+    for (const name of ['LHW accounts', 'Supervisors and admins', 'Geography', 'Hospitals', 'Roles', 'Audit log']) {
       expect(within(admin).getByRole('link', { name })).toBeInTheDocument();
     }
     unmount();

@@ -8,14 +8,16 @@ const dashboardController = require('../controllers/dashboard.controller');
 
 const router = Router();
 
-const activityQuery = Joi.object({
+// The dashboard filters; the period applies to the map only (GET /households).
+const placeQuery = Joi.object({
   districtId: Joi.string().guid(),
   unionCouncilId: Joi.string().guid(),
+  lhwId: Joi.string().guid(),
 });
 
 router.use(authenticate, requirePermission('records.view'));
-router.get('/summary', dashboardController.summary);
+router.get('/summary', validate({ query: placeQuery }), dashboardController.summary);
 router.get('/filters', dashboardController.filters);
-router.get('/lhw-activity', validate({ query: activityQuery }), dashboardController.lhwActivity);
+router.get('/lhw-activity', validate({ query: placeQuery }), dashboardController.lhwActivity);
 
 module.exports = router;

@@ -1,5 +1,7 @@
 const db = require('../db/pool');
+const AppError = require('../utils/app-error');
 const { supervisorAreaIds } = require('./scope.service');
+const { TABLES, normalise } = require('../sync/tables');
 
 // M2 FE-1, FE-2: registered women for the portal (M10 FE-1 shows registered
 // patients), with how many visits each has had (M3 FE-1). A supervisor sees only their assigned areas, an admin sees all.
@@ -86,4 +88,43 @@ async function listForPortal(user, { search, limit }) {
   };
 }
 
-module.exports = { listForPortal };
+// GET /women/:id/visits (M10 FE-1, M3 FE-1): every visit of one woman, over all
+// her pregnancies, for the portal, with the same fields the phone sends. The
+// latest first by server number, never by the phone's clock (LI-7). A woman
+// outside a supervisor's areas is not found.
+async function visitsForPortal(user, womanId) {
+  const params = [womanId];
+  let inScope = '';
+  if (user.role === 'supervisor') {
+    params.push(await supervisorAreaIds(db, user.id));
+    inScope = 'AND area_id = ANY($2)';
+  }
+  const { rows: [woman] } = await db.query(
+    `SELECT id FROM women WHERE id = $1 AND deleted_at IS NULL ${inScope}`,
+    params,
+  );
+  if (!woman) throw new AppError(404, 'NOT_FOUND', 'No registered woman with this ID in your areas');
+
+  const { fields } = TABLES.visits;
+  const { rows } = await db.query(
+    `SELECT v.*, lp.lhw_code AS recorded_by_code, u.full_name AS recorded_by_name
+     FROM visits v
+     JOIN pregnancies p ON p.id = v.pregnancy_id
+     LEFT JOIN users u ON u.id = v.created_by
+     LEFT JOIN lhw_profiles lp ON lp.user_id = v.created_by
+     WHERE p.woman_id = $1 AND v.deleted_at IS NULL
+     ORDER BY v.server_seq DESC`,
+    [womanId],
+  );
+  return {
+    visits: rows.map((row) => ({
+      id: row.id,
+      ...Object.fromEntries(Object.entries(fields).map(([name, field]) => [name, normalise(field, row[field.column])])),
+      recordedBy: { lhwCode: row.recorded_by_code, fullName: row.recorded_by_name },
+      serverSeq: Number(row.server_seq),
+      syncedAt: row.synced_at,
+    })),
+  };
+}
+
+module.exports = { listForPortal, visitsForPortal };

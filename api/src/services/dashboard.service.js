@@ -1,28 +1,69 @@
 const db = require('../db/pool');
 const { supervisorAreaIds } = require('./scope.service');
 
-// M10 FE-1 (Phase 1 base): the dashboard's counts for the viewer's areas.
-// "This week" starts on Monday, Pakistan time. Visit times come from the
-// phone's clock; they are only counted, never used to order records (LI-7).
-async function summary(viewer) {
-  const params = [];
-  let area = 'true';
-  if (viewer.role === 'supervisor') {
-    params.push(await supervisorAreaIds(db, viewer.id));
-    area = 'area_id = ANY($1)';
+// Start of this week (Monday) and of today, Pakistan time.
+const WEEK_START = "(date_trunc('week', now() AT TIME ZONE 'Asia/Karachi') AT TIME ZONE 'Asia/Karachi')";
+const TODAY_START = "(date_trunc('day', now() AT TIME ZONE 'Asia/Karachi') AT TIME ZONE 'Asia/Karachi')";
+
+// An LHW's last sync: the latest push or pull from her phone, or the latest
+// record the server received from her, whichever is later (server clock only).
+const LAST_SYNC = `greatest(
+  (SELECT max(last_sync_at) FROM devices WHERE user_id = u.id),
+  (SELECT max(synced_at) FROM households WHERE created_by = u.id),
+  (SELECT max(synced_at) FROM women WHERE created_by = u.id),
+  (SELECT max(synced_at) FROM visits WHERE created_by = u.id)
+)`;
+
+// The dashboard filters as SQL: `areaColumn` must lie in the viewer's areas and
+// the chosen district and Union Council; `byColumn` is the LHW who made the
+// record. Returns the conditions to AND together; values go into `params`.
+function placeConditions(params, { areaIds, districtId, unionCouncilId, lhwId }, areaColumn, byColumn) {
+  const conditions = [];
+  const add = (value, condition) => {
+    params.push(value);
+    conditions.push(condition.replace('?', `$${params.length}`));
+  };
+  if (areaIds) add(areaIds, `${areaColumn} = ANY(?)`);
+  if (districtId) {
+    add(districtId, `${areaColumn} IN (SELECT a.id FROM areas a JOIN union_councils uc ON uc.id = a.union_council_id
+      JOIN tehsils t ON t.id = uc.tehsil_id WHERE t.district_id = ?)`);
   }
+  if (unionCouncilId) add(unionCouncilId, `${areaColumn} IN (SELECT id FROM areas WHERE union_council_id = ?)`);
+  if (lhwId && byColumn) add(lhwId, `${byColumn} = ?`);
+  return conditions;
+}
+
+const and = (conditions) => conditions.map((c) => ` AND ${c}`).join('');
+
+// GET /dashboard/summary (M10 FE-1, Phase 1 base): the dashboard cards for the
+// viewer's areas, narrowed by district, Union Council and LHW. Visit times come
+// from the phone's clock; they are only counted, never used to order records
+// (LI-7). "LHWs synced today" counts active LHWs whose last sync was today.
+async function summary(viewer, filters = {}) {
+  const scope = { ...filters, areaIds: await scopedAreaIds(viewer) };
+  const params = [];
+  const women = placeConditions(params, scope, 'area_id', 'created_by');
+  const visits = placeConditions(params, scope, 'area_id', 'created_by');
+  const conflicts = placeConditions(params, scope, 'area_id', 'submitted_by');
+  const lhws = placeConditions(params, scope, 'p.area_id', 'u.id');
   const { rows: [row] } = await db.query(
     `SELECT
-       (SELECT count(*) FROM women WHERE deleted_at IS NULL AND ${area}) AS registered_women,
-       (SELECT count(*) FROM visits WHERE deleted_at IS NULL AND ${area}
-          AND visited_at >= (date_trunc('week', now() AT TIME ZONE 'Asia/Karachi') AT TIME ZONE 'Asia/Karachi')) AS visits_this_week,
-       (SELECT count(*) FROM sync_conflicts WHERE status = 'pending' AND ${area}) AS pending_conflicts`,
+       (SELECT count(*) FROM women WHERE deleted_at IS NULL${and(women)}) AS registered_women,
+       (SELECT count(*) FROM visits WHERE deleted_at IS NULL AND visited_at >= ${WEEK_START}${and(visits)}) AS visits_this_week,
+       (SELECT count(*) FROM sync_conflicts WHERE status = 'pending'${and(conflicts)}) AS pending_conflicts,
+       (SELECT count(*) FROM users u JOIN lhw_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
+          WHERE u.role = 'lhw' AND u.deleted_at IS NULL AND u.is_active${and(lhws)}) AS lhws,
+       (SELECT count(*) FROM users u JOIN lhw_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
+          WHERE u.role = 'lhw' AND u.deleted_at IS NULL AND u.is_active${and(lhws)}
+            AND ${LAST_SYNC} >= ${TODAY_START}) AS lhws_synced_today`,
     params,
   );
   return {
     registeredWomen: Number(row.registered_women),
     visitsThisWeek: Number(row.visits_this_week),
     pendingConflicts: Number(row.pending_conflicts),
+    lhws: Number(row.lhws),
+    lhwsSyncedToday: Number(row.lhws_synced_today),
   };
 }
 
@@ -70,33 +111,26 @@ async function filters(viewer) {
   };
 }
 
-// GET /dashboard/lhw-activity (M10 FE-1: LHW visit counts and last login).
-// Counts are by the LHW who made the record. Visit times come from the phone's
-// clock and are only counted (LI-7); "last sync" is the server's time.
-async function lhwActivity(viewer, { districtId, unionCouncilId }) {
+// GET /dashboard/lhw-activity (M10 FE-1: LHW visit counts and last login),
+// narrowed by district, Union Council and LHW. Counts are by the LHW who made
+// the record. Visit times come from the phone's clock and are only counted
+// (LI-7); "last sync" is the server's time (LAST_SYNC).
+async function lhwActivity(viewer, filters) {
   const params = [];
-  const where = ["u.role = 'lhw'", 'u.deleted_at IS NULL'];
-  const add = (value, condition) => {
-    params.push(value);
-    where.push(condition.replace('?', `$${params.length}`));
-  };
-  const areaIds = await scopedAreaIds(viewer);
-  if (areaIds) add(areaIds, 'p.area_id = ANY(?)');
-  if (districtId) add(districtId, 't.district_id = ?');
-  if (unionCouncilId) add(unionCouncilId, 'a.union_council_id = ?');
+  const where = [
+    "u.role = 'lhw'",
+    'u.deleted_at IS NULL',
+    ...placeConditions(params, { ...filters, areaIds: await scopedAreaIds(viewer) }, 'p.area_id', 'u.id'),
+  ];
   const { rows } = await db.query(
     `SELECT u.id, u.full_name, u.is_active, u.last_login_at, p.lhw_code,
             a.name AS area_name, uc.name AS union_council_name, d.name AS district_name,
             (SELECT count(*)::int FROM visits v WHERE v.created_by = u.id AND v.deleted_at IS NULL
-               AND v.visited_at >= (date_trunc('week', now() AT TIME ZONE 'Asia/Karachi') AT TIME ZONE 'Asia/Karachi')) AS visits_this_week,
+               AND v.visited_at >= ${WEEK_START}) AS visits_this_week,
             (SELECT count(*)::int FROM visits v WHERE v.created_by = u.id AND v.deleted_at IS NULL) AS visits_total,
             (SELECT count(*)::int FROM women w WHERE w.created_by = u.id AND w.deleted_at IS NULL) AS women_registered,
             (SELECT max(v.visited_at) FROM visits v WHERE v.created_by = u.id AND v.deleted_at IS NULL) AS last_visit_at,
-            greatest(
-              (SELECT max(synced_at) FROM households WHERE created_by = u.id),
-              (SELECT max(synced_at) FROM women WHERE created_by = u.id),
-              (SELECT max(synced_at) FROM visits WHERE created_by = u.id)
-            ) AS last_sync_at
+            ${LAST_SYNC} AS last_sync_at
      FROM users u
      JOIN lhw_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
      JOIN areas a ON a.id = p.area_id

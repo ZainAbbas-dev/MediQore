@@ -9,17 +9,15 @@ const { TABLES, normalise } = require('../sync/tables');
 // which the database assigns in commit order (see db/migrations).
 
 // Only a phone activated with an activation code (M1 FE-2) may sync, and only
-// the phone the access token was issued to. Push also records when it was last seen.
+// the phone the access token was issued to. Push and pull both record the sync
+// time for the dashboard (M10 FE-1); push also counts as the phone being seen.
 async function requireActivatedDevice(client, deviceId, user, { touch = false } = {}) {
   if (!user.deviceId || user.deviceId !== deviceId) {
     throw new AppError(403, 'DEVICE_NOT_ALLOWED', 'This request did not come from the phone that signed in');
   }
   const { rows } = await client.query(
-    touch
-      ? `UPDATE devices SET last_seen_at = now()
-         WHERE id = $1 AND user_id = $2 AND activated_at IS NOT NULL AND revoked_at IS NULL RETURNING id`
-      : `SELECT id FROM devices
-         WHERE id = $1 AND user_id = $2 AND activated_at IS NOT NULL AND revoked_at IS NULL`,
+    `UPDATE devices SET last_sync_at = now()${touch ? ', last_seen_at = now()' : ''}
+     WHERE id = $1 AND user_id = $2 AND activated_at IS NOT NULL AND revoked_at IS NULL RETURNING id`,
     [deviceId, user.id],
   );
   if (!rows.length) throw new AppError(403, 'DEVICE_NOT_ALLOWED', 'This phone is not activated for this account');
@@ -232,8 +230,9 @@ function toRecord(table, def, row) {
 // GET /sync/pull?since=: everything in the LHW's area numbered after `since`,
 // read from one consistent snapshot, oldest first.
 async function pull(user, since, limit) {
+  // The device check writes the sync time, so it runs before the read-only snapshot.
+  await requireActivatedDevice(db, user.deviceId, user);
   return db.withTransaction(async (client) => {
-    await requireActivatedDevice(client, user.deviceId, user);
     const areaId = await lhwAreaId(client, user.id);
     const rows = [];
     for (const [table, def] of Object.entries(TABLES)) {

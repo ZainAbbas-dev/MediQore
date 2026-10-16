@@ -76,8 +76,10 @@ From the roadmap:
 - Portal reads, all area-scoped for supervisors (M10 FE-1):
   - `GET /households`: the map, filtered by `districtId`, `unionCouncilId`, `lhwId` and `days` (received by the server in the last so many days).
   - `GET /women`: registered women with household, latest pregnancy, obstetric history and visit count, search.
-  - `GET /dashboard/summary`: registered women, visits this week, pending conflicts.
-  - `GET /dashboard/lhw-activity`: per LHW, visits this week and in total, women registered, last visit, last sync and last login.
+  - `GET /women/:id/visits`: one woman's visits over all her pregnancies, with every visit field, latest first by `server_seq` (404 outside a supervisor's areas).
+  - `GET /dashboard/summary`: registered women, visits this week, pending conflicts, active LHWs and LHWs synced today, narrowed by `districtId`, `unionCouncilId` and `lhwId` (`placeConditions` in `dashboard.service.js`).
+  - `GET /dashboard/lhw-activity`: per LHW, visits this week and in total, women registered, last visit, last sync and last login, with the same filters.
+    - Last sync (`LAST_SYNC`): the latest push or pull from her phone (`devices.last_sync_at`, set by `requireActivatedDevice` in `sync.service.js`), or the latest record the server received from her. Pull checks the phone before its read-only snapshot, because the check writes the time.
   - `GET /dashboard/filters`: the districts, Union Councils and LHWs the viewer may filter by.
 - Admin panel (M10 FE-3, admins only), every change with an audit row:
   - `staff.service.js`: supervisor and admin accounts (`/admin/staff`). The admin picks the username; the password is random and shown once. Supervisors get areas (`supervisor_areas`). An admin cannot change their own role or deactivate themselves (`OWN_ACCOUNT`), and the last active admin stays (`LAST_ADMIN`).

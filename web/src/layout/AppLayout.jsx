@@ -10,7 +10,12 @@ export default function AppLayout() {
   return (
     <div className="layout">
       <aside className="sidebar">
-        <div className="brand">MediQore</div>
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true">
+            +
+          </span>
+          MediQore
+        </div>
         <nav aria-label="Main">
           <NavLink to="/" end>
             Dashboard
@@ -24,7 +29,7 @@ export default function AppLayout() {
             <div className="nav-heading">Administration</div>
             <NavLink to="/admin/lhws">LHW accounts</NavLink>
             <NavLink to="/admin/staff">Supervisors and admins</NavLink>
-            <NavLink to="/admin/geography">Areas</NavLink>
+            <NavLink to="/admin/geography">Geography</NavLink>
             <NavLink to="/admin/facilities">Hospitals</NavLink>
             <NavLink to="/admin/roles">Roles</NavLink>
             <NavLink to="/admin/audit">Audit log</NavLink>

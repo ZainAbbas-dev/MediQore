@@ -42,24 +42,25 @@ React portal for Module 10: dashboard, map, alerts, reports and admin panel. Fol
 - `src/layout/AppLayout.jsx`: sidebar with the main navigation, the **Administration** navigation for admins, the signed-in user and Sign out.
 - `src/pages/`:
   - `LoginPage`, `NotFoundPage`.
-  - `DashboardPage` (M10 FE-1):
-    - cards from `GET /dashboard/summary` (registered women, visits this week, sync conflicts to review) and the household count ("200+" when the list hits its limit);
-    - filters from `GET /dashboard/filters` (district, Union Council, LHW, period) for `GET /households` (map and table) and, district and Union Council only, `GET /dashboard/lhw-activity`;
-    - the LHW activity table: visits this week and in total, women registered, last visit, last sync, last sign-in;
+  - `DashboardPage` (M10 FE-1, final design screen 20):
+    - the filters (district, Union Council, LHW, period) and **Reload** in the page header, from `GET /dashboard/filters`. District, Union Council and LHW apply to everything; the period applies to the map (`GET /households`);
+    - cards from `GET /dashboard/summary`: registered women, visits this week, LHWs synced today ("13 of 16"), sync conflicts to review (amber when there are any);
+    - **Households with GPS**: the map, with how many it shows;
+    - **LHW activity** from `GET /dashboard/lhw-activity`: last sync, women, visits this week and in total, last visit, last sign-in. An active LHW whose last sync is `STALE_AFTER_DAYS` (2) days old or more, or who never synced, is highlighted; this is a display hint, not the FE-4 inactivity detection (Phase 2);
     - refreshes every 5 minutes and on **Reload**; each part loads on its own, so one failure does not hide the others.
-  - `WomenPage` (`/women`, admins and supervisors, M2 FE-1–3): registered women with their pregnancy file in short and their visit count and last visit (M3), from `GET /women`, with search. Wide tables go inside `.table-scroll`.
+  - `WomenPage` (`/women`, admins and supervisors, M2 FE-1–3): registered women with their pregnancy file in short and their visit count and last visit (M3), from `GET /women`, with search. The visit count opens her visits (`GET /women/:id/visits`): vitals, blood sugar with unit, source and date, symptoms and the danger signs answered yes, with the decision-support note (LI-5).
   - `ConflictsPage` (`/conflicts`, admins and supervisors, M3 FE-2): the sync conflict queue from `GET /conflicts?status=…`. Each held visit sits next to the stored one, with differing fields highlighted, and three decisions (`POST /conflicts/:id/resolve`: keep both, keep the stored visit, keep the held visit). Decided conflicts show who decided and when.
   - `PinResetPage` (`/pin-reset`, admins and supervisors, M1 FE-2): **PIN reset codes**. Pick the LHW (from `GET /dashboard/filters`, so a supervisor sees only their areas), type the 6-digit code on her phone, and read back the 8-digit reply from `POST /pin-reset/reply-code`, shown once.
   - `LhwsPage` (`/admin/lhws`, admins, M1 FE-1–3, final design screen 21):
-    - lists LHW accounts with status (Active, Waiting to activate, Deactivated) and the phone state (activated on a date, code issued, not activated);
+    - lists LHW accounts with the phone state (activated on a date, code issued, not activated), status (Active, Waiting to activate, Deactivated) and last sign-in, with search and a status filter in the header;
+    - each row offers the next step for its state (**New activation code** while waiting, **Activate** when deactivated) and **Edit**; the Edit dialog also holds **New activation code**, **Reset password** and **Deactivate**;
     - creates an LHW and shows the issued LHW ID and password once;
-    - **New activation code** (after a confirmation that warns if a phone is already activated) shows the `XXXX-XXXX` code once with its expiry (M1 FE-2);
+    - **New activation code** (after a confirmation that warns if a phone is already activated) shows the `XXXX-XXXX` code once, with its expiry, in a banner above the list until **Done** (M1 FE-2);
     - edits and reassigns; the note says the phone's unsynced records keep the old area (M1 FE-3);
-    - deactivates or activates;
     - resets the password; the phone keeps its data and PIN (LI-8).
   - Admin panel (admins, M10 FE-3):
-    - `StaffPage` (`/admin/staff`): supervisor and admin accounts. Create with a chosen username (password shown once), supervisor areas with `AreaChecklist`, role change (never for your own account), deactivate, activate, reset password.
-    - `GeographyPage` (`/admin/geography`): four columns (district, tehsil, Union Council, area); choosing a unit shows its children. Add, rename, delete; a unit in use is refused with the API's reason.
+    - `StaffPage` (`/admin/staff`): supervisor and admin accounts. Create with a chosen username (password shown once), supervisor areas with `AreaChecklist`, role change (never for your own account). **Edit** also holds reset password and deactivate (never your own account); a deactivated account shows **Activate** in its row.
+    - `GeographyPage` (`/admin/geography`, **Geography** in the sidebar): four columns (district, tehsil, Union Council, area); choosing a unit shows its children. Add, rename, delete; a unit in use is refused with the API's reason.
     - `FacilitiesPage` (`/admin/facilities`): hospitals and referral centres as two tabs, by district, with optional area and GPS.
     - `RolesPage` (`/admin/roles`): the permission table from `GET /admin/roles`.
     - `AuditPage` (`/admin/audit`): the audit log, filtered by user, action, record type and dates; changes read "field: from → to"; **Show older entries** pages back.
@@ -67,6 +68,8 @@ React portal for Module 10: dashboard, map, alerts, reports and admin panel. Fol
   - `AreaMap.jsx`: Leaflet map centred on Pakistan that draws households with GPS. It fits to the households when they change, but keeps the user's zoom when an automatic refresh brings the same ones.
   - `Dialog.jsx`: the modal dialog of the admin pages.
   - `AreaChecklist.jsx`: picks several areas, with a search box.
+- `src/format.js`: times as "Today 10:31", "Yesterday 17:40", "4 days ago" or "6 Oct" (`formatWhen`), and `isStale` for the dashboard.
+- `src/styles.css`: the final design (Clinical Teal, `docs/design/phase1-screens.md`): tokens on `:root`, the teal sidebar with the active link in light teal, page headers with a subtitle and controls (`.page-header`, `.page-subtitle`, `.header-controls`, `.field`), white rounded panels (`.panel`; `.table-scroll` is one too), cards (`.card.attention` in amber), pill buttons and badges. Below 820 px the sidebar becomes a top bar with a scrolling row of links; the page never scrolls sideways (tables scroll inside their panel).
 - `src/runtime-config.js`: the API base URL from `import.meta.env`. Jest swaps it for `tests/runtime-config-stub.js`.
 - Installable web app (P0-5, M10 FE-1):
   - `public/manifest.webmanifest` and `public/icons/` (192 px, 512 px, maskable 512 px, Apple touch icon, SVG favicon; Clinical Teal `#00695C`). `index.html` links them.

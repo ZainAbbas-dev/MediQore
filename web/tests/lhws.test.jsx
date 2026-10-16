@@ -59,6 +59,11 @@ describe('LHW accounts (M1 FE-1, FE-3)', () => {
     const third = screen.getByText('Sana Iqbal').closest('tr');
     expect(within(third).getByText('Waiting to activate')).toBeInTheDocument();
     expect(within(third).getByText('Code issued, not used')).toBeInTheDocument();
+    // Each row offers the next step for its state (final design screen 21).
+    expect(within(third).getByRole('button', { name: 'New activation code for LHW-00003' })).toBeInTheDocument();
+    expect(within(first).queryByRole('button', { name: /New activation code/ })).not.toBeInTheDocument();
+    expect(within(first).getByRole('button', { name: 'Edit LHW-00001' })).toBeInTheDocument();
+    expect(screen.getByText(/Every change here is written to the audit log/)).toBeInTheDocument();
   });
 
   it('generates an activation code after confirmation and shows it once (M1 FE-2)', async () => {
@@ -78,7 +83,8 @@ describe('LHW accounts (M1 FE-1, FE-3)', () => {
     expect(fetchMock.mock.calls.some(([url]) => url.endsWith('/activation-code'))).toBe(false);
     fireEvent.click(within(confirm).getByRole('button', { name: 'Generate code' }));
 
-    const shown = await screen.findByRole('dialog', { name: 'Activation code for LHW-00001 (Area 0101-1)' });
+    const shown = await screen.findByRole('region', { name: 'Activation code for LHW-00001 (Area 0101-1)' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(within(shown).getByText('K7QM-4R2X')).toBeInTheDocument();
     expect(within(shown).getByText(/MediQore keeps only its hash/)).toBeInTheDocument();
     fireEvent.click(within(shown).getByRole('button', { name: 'Done' }));
@@ -89,8 +95,10 @@ describe('LHW accounts (M1 FE-1, FE-3)', () => {
     mockApi({ 'GET /admin/lhws': [200, { lhws: [lhw()] }], 'GET /admin/areas': [200, { areas }] });
     renderApp('/admin/lhws', { session: adminSession });
 
-    fireEvent.click(await screen.findByRole('button', { name: 'New activation code for LHW-00001' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit LHW-00001' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'New activation code for LHW-00001' }));
 
+    expect(screen.getByRole('dialog', { name: 'New activation code for LHW-00001?' })).toBeInTheDocument();
     expect(screen.getByText(/already has an activated phone/)).toBeInTheDocument();
   });
 
@@ -148,7 +156,8 @@ describe('LHW accounts (M1 FE-1, FE-3)', () => {
     });
     renderApp('/admin/lhws', { session: adminSession });
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Deactivate LHW-00001' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit LHW-00001' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Deactivate LHW-00001' }));
     const dialog = screen.getByRole('dialog', { name: 'Deactivate LHW-00001?' });
     expect(within(dialog).getByText(/will not be able to sign in or sync/)).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Deactivate' }));
@@ -165,7 +174,8 @@ describe('LHW accounts (M1 FE-1, FE-3)', () => {
     });
     renderApp('/admin/lhws', { session: adminSession });
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Reset password of LHW-00001' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit LHW-00001' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Reset password of LHW-00001' }));
     const dialog = screen.getByRole('dialog', { name: 'Reset the password of LHW-00001?' });
     expect(within(dialog).getByText(/records and the PIN on her phone stay as they are \(LI-8\)/)).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([url]) => url.endsWith('/reset-password'))).toBe(false);

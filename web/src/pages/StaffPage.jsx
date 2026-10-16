@@ -6,11 +6,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../auth/context';
 import AreaChecklist from '../components/AreaChecklist';
 import Dialog from '../components/Dialog';
+import { formatWhen } from '../format';
 
-const formatTime = (value) => (value ? new Date(value).toLocaleString() : 'Never');
 const ROLE_LABELS = { supervisor: 'Supervisor', admin: 'Admin' };
 
-function StaffForm({ areas, staff, ownAccount, onSubmit, onCancel }) {
+function StaffForm({ areas, staff, ownAccount, onSubmit, onCancel, children }) {
   const [role, setRole] = useState(staff?.role ?? 'supervisor');
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState(staff?.fullName ?? '');
@@ -80,6 +80,7 @@ function StaffForm({ areas, staff, ownAccount, onSubmit, onCancel }) {
           Cancel
         </button>
       </div>
+      {children}
     </form>
   );
 }
@@ -213,7 +214,7 @@ export default function StaffPage() {
                 <th>Phone</th>
                 <th>Status</th>
                 <th>Last sign-in</th>
-                <th aria-label="Actions" />
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -229,33 +230,27 @@ export default function StaffPage() {
                     {account.role === 'admin'
                       ? 'All areas'
                       : account.areas.map((a) => (
-                          <div key={a.id} title={`${a.district} › ${a.tehsil} › ${a.unionCouncil}`}>
+                          <div key={a.id} className="nowrap" title={`${a.district} › ${a.tehsil} › ${a.unionCouncil}`}>
                             {a.name}
                           </div>
                         ))}
                   </td>
-                  <td>{account.phone || '–'}</td>
+                  <td className="nowrap">{account.phone || '–'}</td>
                   <td>
                     <span className={account.isActive ? 'badge ok' : 'badge off'}>{account.isActive ? 'Active' : 'Deactivated'}</span>
                   </td>
-                  <td>{formatTime(account.lastLoginAt)}</td>
-                  <td className="row-actions">
-                    <button type="button" className="secondary" onClick={() => setDialog({ type: 'edit', staff: account })} aria-label={`Edit ${account.username}`}>
-                      Edit
-                    </button>
-                    {account.id !== user?.id &&
-                      (account.isActive ? (
-                        <button type="button" className="secondary" onClick={() => setDialog({ type: 'deactivate', staff: account })} aria-label={`Deactivate ${account.username}`}>
-                          Deactivate
-                        </button>
-                      ) : (
+                  <td className="nowrap">{formatWhen(account.lastLoginAt) ?? 'Never'}</td>
+                  <td>
+                    <div className="row-actions">
+                      {!account.isActive && account.id !== user?.id && (
                         <button type="button" className="secondary" onClick={() => setActive(account, true)} aria-label={`Activate ${account.username}`}>
                           Activate
                         </button>
-                      ))}
-                    <button type="button" className="secondary" onClick={() => setDialog({ type: 'reset', staff: account })} aria-label={`Reset password of ${account.username}`}>
-                      Reset password
-                    </button>
+                      )}
+                      <button type="button" className="secondary" onClick={() => setDialog({ type: 'edit', staff: account })} aria-label={`Edit ${account.username}`}>
+                        Edit
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -282,7 +277,39 @@ export default function StaffPage() {
             ownAccount={dialog.staff.id === user?.id}
             onSubmit={(values) => save(dialog.staff, values)}
             onCancel={close}
-          />
+          >
+            <h3>Account</h3>
+            <div className="actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setDialog({ type: 'reset', staff: dialog.staff })}
+                aria-label={`Reset password of ${dialog.staff.username}`}
+              >
+                Reset password
+              </button>
+              {dialog.staff.id !== user?.id &&
+                (dialog.staff.isActive ? (
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => setDialog({ type: 'deactivate', staff: dialog.staff })}
+                    aria-label={`Deactivate ${dialog.staff.username}`}
+                  >
+                    Deactivate
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => setActive(dialog.staff, true)}
+                    aria-label={`Activate ${dialog.staff.username}`}
+                  >
+                    Activate
+                  </button>
+                ))}
+            </div>
+          </StaffForm>
         </Dialog>
       )}
       {dialog?.type === 'deactivate' && (

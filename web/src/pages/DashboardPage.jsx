@@ -1,17 +1,19 @@
-// Dashboard home (M10 FE-1, Phase 1 base). Counts for the viewer's areas
-// (registered women, visits this week, sync conflicts to review, households),
-// the households on a map and in a table, and each LHW's activity: visits,
-// registrations, last sync and last sign-in. The map, table and LHW activity
-// can be filtered by district, Union Council, LHW and time period, and the page
-// refreshes itself every five minutes or on Reload. Supervisors see only their
-// areas; the API scopes every list.
+// Dashboard home (M10 FE-1, Phase 1 base, final design screen 20). Cards for
+// registered women, visits this week, LHWs synced today and sync conflicts to
+// review; the households with GPS on a map; and each LHW's activity: last sync,
+// women registered, visits, last visit and last sign-in, with an LHW who has not
+// synced for days highlighted. Everything follows the filters (district, Union
+// Council, LHW; the period applies to the map), and the page refreshes itself
+// every five minutes or on Reload. Supervisors see only their areas; the API
+// scopes every list.
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/context';
 import AreaMap from '../components/AreaMap';
+import { STALE_AFTER_DAYS, clock, formatWhen, isStale } from '../format';
 
 const NO_HOUSEHOLDS = [];
-// GET /households answers at most this many by default; the card then says "200+".
+// GET /households answers at most this many by default; the map title then says so.
 const HOUSEHOLD_LIMIT = 200;
 const REFRESH_EVERY_MS = 5 * 60 * 1000;
 const PERIODS = [
@@ -22,9 +24,6 @@ const PERIODS = [
 ];
 const EMPTY_FILTERS = { districtId: '', unionCouncilId: '', lhwId: '', days: '' };
 const NO_OPTIONS = { districts: [], unionCouncils: [], lhws: [] };
-
-const formatTime = (value) => (value ? new Date(value).toLocaleString() : '–');
-const formatDate = (value) => (value ? new Date(value).toLocaleDateString() : '–');
 
 function queryString(values) {
   const params = new URLSearchParams();
@@ -53,11 +52,12 @@ export default function DashboardPage() {
   // Each part loads on its own, so one failure does not hide the rest.
   useEffect(() => {
     let cancelled = false;
-    const { districtId, unionCouncilId } = filters;
+    const { districtId, unionCouncilId, lhwId } = filters;
+    const place = queryString({ districtId, unionCouncilId, lhwId });
     Promise.allSettled([
-      request('/dashboard/summary'),
+      request(`/dashboard/summary${place}`),
       request(`/households${queryString(filters)}`),
-      request(`/dashboard/lhw-activity${queryString({ districtId, unionCouncilId })}`),
+      request(`/dashboard/lhw-activity${place}`),
     ]).then(([summaryResult, householdsResult, activityResult]) => {
       if (cancelled) return;
       if (summaryResult.status === 'fulfilled') setSummary(summaryResult.value);
@@ -104,14 +104,68 @@ export default function DashboardPage() {
     });
   };
   const filtered = Object.values(filters).some(Boolean);
+  const mapped = households?.filter((h) => h.latitude !== null && h.longitude !== null).length;
+  const now = updatedAt ?? new Date();
 
   return (
     <>
       <div className="page-header">
-        <h1>Dashboard</h1>
-        <div className="refresh">
-          {updatedAt && <span className="muted">Updated {updatedAt.toLocaleTimeString()}; refreshes every 5 minutes</span>}
-          <button type="button" className="secondary" onClick={() => setRefreshes((n) => n + 1)}>
+        <div>
+          <h1>Dashboard</h1>
+          <p className="page-subtitle">
+            Refreshes every 5 minutes{updatedAt && ` · last refresh ${clock(updatedAt)}`}
+          </p>
+        </div>
+        <div className="header-controls" role="group" aria-label="Filters">
+          <label className="field">
+            District
+            <select value={filters.districtId} onChange={setFilter('districtId')}>
+              <option value="">All</option>
+              {options.districts.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            Union Council
+            <select value={filters.unionCouncilId} onChange={setFilter('unionCouncilId')}>
+              <option value="">All</option>
+              {unionCouncils.map((uc) => (
+                <option key={uc.id} value={uc.id}>
+                  {uc.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            LHW
+            <select value={filters.lhwId} onChange={setFilter('lhwId')}>
+              <option value="">All</option>
+              {lhws.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.lhwCode} · {l.fullName}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            Period
+            <select value={filters.days} onChange={setFilter('days')}>
+              {PERIODS.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {filtered && (
+            <button type="button" className="secondary" onClick={() => setFilters(EMPTY_FILTERS)}>
+              Clear filters
+            </button>
+          )}
+          <button type="button" onClick={() => setRefreshes((n) => n + 1)}>
             Reload
           </button>
         </div>
@@ -121,154 +175,105 @@ export default function DashboardPage() {
           {error}
         </p>
       )}
-      <section className="cards">
+
+      <section className="cards" aria-label="Summary">
         <div className="card">
-          <div className="card-value">{summary?.registeredWomen ?? '–'}</div>
           <div className="card-label">Registered women</div>
+          <div className="card-value">{summary?.registeredWomen ?? '–'}</div>
         </div>
         <div className="card">
-          <div className="card-value">{summary?.visitsThisWeek ?? '–'}</div>
           <div className="card-label">Visits this week</div>
+          <div className="card-value">{summary?.visitsThisWeek ?? '–'}</div>
+        </div>
+        <div className="card">
+          <div className="card-label">LHWs synced today</div>
+          <div className="card-value">
+            {summary ? summary.lhwsSyncedToday : '–'}
+            {summary && <span className="of">of {summary.lhws}</span>}
+          </div>
         </div>
         <div className={summary?.pendingConflicts ? 'card attention' : 'card'}>
-          <div className="card-value">{summary?.pendingConflicts ?? '–'}</div>
           <div className="card-label">
             <Link to="/conflicts">Sync conflicts to review</Link>
           </div>
-        </div>
-        <div className="card">
-          <div className="card-value">
-            {households ? `${households.length}${households.length >= HOUSEHOLD_LIMIT ? '+' : ''}` : '–'}
-          </div>
-          <div className="card-label">Registered households{filtered ? ' (filtered)' : ''}</div>
+          <div className="card-value">{summary?.pendingConflicts ?? '–'}</div>
         </div>
       </section>
 
-      <div className="toolbar wrap" role="group" aria-label="Filters">
-        <label htmlFor="filter-district">District</label>
-        <select id="filter-district" value={filters.districtId} onChange={setFilter('districtId')}>
-          <option value="">All</option>
-          {options.districts.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
-        <label htmlFor="filter-uc">Union Council</label>
-        <select id="filter-uc" value={filters.unionCouncilId} onChange={setFilter('unionCouncilId')}>
-          <option value="">All</option>
-          {unionCouncils.map((uc) => (
-            <option key={uc.id} value={uc.id}>
-              {uc.name}
-            </option>
-          ))}
-        </select>
-        <label htmlFor="filter-lhw">LHW</label>
-        <select id="filter-lhw" value={filters.lhwId} onChange={setFilter('lhwId')}>
-          <option value="">All</option>
-          {lhws.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.lhwCode} · {l.fullName}
-            </option>
-          ))}
-        </select>
-        <label htmlFor="filter-period">Period</label>
-        <select id="filter-period" value={filters.days} onChange={setFilter('days')}>
-          {PERIODS.map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        {filtered && (
-          <button type="button" className="secondary" onClick={() => setFilters(EMPTY_FILTERS)}>
-            Clear filters
-          </button>
+      <section className="panel" aria-labelledby="map-title">
+        <h2 className="panel-title" id="map-title">
+          Households with GPS
+          {households && (
+            <span className="muted">
+              {' '}
+              · {mapped}
+              {households.length >= HOUSEHOLD_LIMIT ? ' of the latest 200' : ''}
+            </span>
+          )}
+        </h2>
+        <AreaMap households={households ?? NO_HOUSEHOLDS} />
+        <p className="muted">
+          {households && households.length === 0
+            ? filtered
+              ? 'No households match these filters.'
+              : 'No households have been synced yet.'
+            : 'The period counts from when the server received each household.'}
+        </p>
+      </section>
+
+      <section className="panel" aria-labelledby="activity-title">
+        <h2 className="panel-title" id="activity-title">
+          LHW activity
+        </h2>
+        {activity && activity.length === 0 && <p className="muted">No LHWs in these areas.</p>}
+        {activity && activity.length > 0 && (
+          <div className="table-scroll">
+            <table className="lhw-activity">
+              <thead>
+                <tr>
+                  <th>LHW</th>
+                  <th className="col-place">Area</th>
+                  <th>Last sync</th>
+                  <th>Women</th>
+                  <th>Visits this week</th>
+                  <th>Visits in total</th>
+                  <th>Last visit</th>
+                  <th>Last sign-in</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activity.map((lhw) => {
+                  const stale = lhw.isActive && isStale(lhw.lastSyncAt, now);
+                  return (
+                    <tr key={lhw.id} className={stale ? 'stale' : undefined}>
+                      <td className="nowrap">
+                        {lhw.lhwCode}
+                        {!lhw.isActive && <span className="badge off">deactivated</span>}
+                        <div className="muted">{lhw.fullName}</div>
+                      </td>
+                      <td>
+                        {lhw.area}
+                        <div className="muted">
+                          {lhw.unionCouncil}, {lhw.district}
+                        </div>
+                      </td>
+                      <td className={stale ? 'nowrap stale-text' : 'nowrap'}>{formatWhen(lhw.lastSyncAt, now) ?? 'Never'}</td>
+                      <td>{lhw.womenRegistered}</td>
+                      <td>{lhw.visitsThisWeek}</td>
+                      <td>{lhw.visitsTotal}</td>
+                      <td className="nowrap">{formatWhen(lhw.lastVisitAt, now, { withTime: false }) ?? '–'}</td>
+                      <td className="nowrap">{formatWhen(lhw.lastLoginAt, now) ?? 'Never'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
-      </div>
-      <p className="muted">
-        The filters apply to the map and the households; district and Union Council also to LHW activity. The period counts
-        when the server received each household.
-      </p>
-
-      <AreaMap households={households ?? NO_HOUSEHOLDS} />
-
-      <h2>LHW activity</h2>
-      {activity && activity.length === 0 && <p className="muted">No LHWs in these areas.</p>}
-      {activity && activity.length > 0 && (
-        <div className="table-scroll">
-          <table className="lhw-activity">
-            <thead>
-              <tr>
-                <th>LHW</th>
-                <th className="col-place">Area</th>
-                <th>Visits this week</th>
-                <th>Visits in total</th>
-                <th>Women registered</th>
-                <th>Last visit</th>
-                <th>Last sync</th>
-                <th>Last sign-in</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activity.map((lhw) => (
-                <tr key={lhw.id}>
-                  <td className="nowrap">
-                    {lhw.lhwCode}
-                    {!lhw.isActive && <span className="badge off">deactivated</span>}
-                    <div className="muted">{lhw.fullName}</div>
-                  </td>
-                  <td>
-                    {lhw.area}
-                    <div className="muted">
-                      {lhw.unionCouncil}, {lhw.district}
-                    </div>
-                  </td>
-                  <td>{lhw.visitsThisWeek}</td>
-                  <td>{lhw.visitsTotal}</td>
-                  <td>{lhw.womenRegistered}</td>
-                  <td className="nowrap">{formatDate(lhw.lastVisitAt)}</td>
-                  <td className="nowrap">{formatTime(lhw.lastSyncAt)}</td>
-                  <td className="nowrap">{lhw.lastLoginAt ? formatTime(lhw.lastLoginAt) : 'Never'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <h2>Recently synced households</h2>
-      {households && households.length === 0 && (
-        <p className="muted">{filtered ? 'No households match these filters.' : 'No households have been synced yet.'}</p>
-      )}
-      {households && households.length > 0 && (
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Household</th>
-                <th>Village</th>
-                <th>Area</th>
-                <th>Registered by</th>
-                <th>Synced</th>
-                <th>Server no.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {households.map((h) => (
-                <tr key={h.id}>
-                  <td>{h.householdNumber || '–'}</td>
-                  <td>{h.village || '–'}</td>
-                  <td>{h.areaName}</td>
-                  <td>{h.registeredBy || '–'}</td>
-                  <td>{formatTime(h.syncedAt)}</td>
-                  <td>{h.serverSeq}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+        {activity && activity.some((l) => l.isActive && isStale(l.lastSyncAt, now)) && (
+          <p className="muted">Highlighted: no sync for {STALE_AFTER_DAYS} days or more.</p>
+        )}
+      </section>
     </>
   );
 }

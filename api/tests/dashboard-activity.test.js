@@ -1,6 +1,7 @@
-// M10 FE-1 (Phase 1 base): LHW visit counts and last login, the filter options
-// of the dashboard, and the household map filtered by district, Union Council,
-// LHW and time period. Supervisors see only their areas.
+// M10 FE-1 (Phase 1 base): the dashboard cards, LHW visit counts, last sync and
+// last login, the filter options of the dashboard, the household map filtered by
+// district, Union Council, LHW and time period, and a woman's visits.
+// Supervisors see only their areas.
 const { randomUUID } = require('node:crypto');
 const request = require('supertest');
 const { createApp } = require('../src/app');
@@ -31,6 +32,8 @@ describeDb('dashboard: LHW activity and map filters (M10 FE-1)', () => {
   let ids;
   let supervisor;
   let admin;
+  let a;
+  let b;
   const get = (token, path) => request(app).get(`/api/v1${path}`).set('Authorization', `Bearer ${token}`);
   const push = (userId, deviceId, records) =>
     request(app).post('/api/v1/sync/push').set('Authorization', `Bearer ${tokenFor(userId, 'lhw', deviceId)}`).send({ deviceId, records });
@@ -46,8 +49,8 @@ describeDb('dashboard: LHW activity and map filters (M10 FE-1)', () => {
     supervisor = tokenFor(ids.supervisorA, 'supervisor');
     admin = tokenFor(ids.admin, 'admin');
 
-    const a = registration('LHW-A-0001', 'Village A');
-    const b = registration('LHW-B-0001', 'Village B');
+    a = registration('LHW-A-0001', 'Village A');
+    b = registration('LHW-B-0001', 'Village B');
     const now = new Date();
     const daysAgo = (n) => new Date(now.getTime() - n * 86400000).toISOString();
     await push(ids.lhwA, ids.deviceA, [...a.all, visit(a.pregnancy.id, now.toISOString()), visit(a.pregnancy.id, daysAgo(40))]);
@@ -115,9 +118,67 @@ describeDb('dashboard: LHW activity and map filters (M10 FE-1)', () => {
     expect(res.body.households).toEqual([]);
   });
 
+  it('narrows the cards by district, Union Council and LHW, inside the viewer\'s areas', async () => {
+    const { district_id: districtB } = await placeOf(ids.areaB);
+    const { uc_id: ucA } = await placeOf(ids.areaA);
+    const cards = async (token, path) => (await get(token, `/dashboard/summary${path}`)).body;
+
+    expect(await cards(admin, '')).toMatchObject({ registeredWomen: 2, visitsThisWeek: 1, lhws: 2 });
+    expect(await cards(admin, `?districtId=${districtB}`)).toMatchObject({ registeredWomen: 1, visitsThisWeek: 0, lhws: 1 });
+    expect(await cards(admin, `?unionCouncilId=${ucA}`)).toMatchObject({ registeredWomen: 1, visitsThisWeek: 1, lhws: 1 });
+    expect(await cards(admin, `?lhwId=${ids.lhwA}`)).toMatchObject({ registeredWomen: 1, visitsThisWeek: 1, lhws: 1 });
+    expect(await cards(supervisor, '')).toMatchObject({ registeredWomen: 1, lhws: 1 });
+    expect(await cards(supervisor, `?lhwId=${ids.lhwB}`)).toMatchObject({ registeredWomen: 0, visitsThisWeek: 0, lhws: 0 });
+  });
+
+  it('filters LHW activity by LHW', async () => {
+    const res = await get(admin, `/dashboard/lhw-activity?lhwId=${ids.lhwB}`);
+    expect(res.body.lhws.map((l) => l.lhwCode)).toEqual(['LHW-B']);
+  });
+
+  it('lists a woman\'s visits, latest by server number first, only in the viewer\'s areas', async () => {
+    const res = await get(supervisor, `/women/${a.woman.id}/visits`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.visits).toHaveLength(2);
+    const [latest, earlier] = res.body.visits;
+    expect(latest.serverSeq).toBeGreaterThan(earlier.serverSeq);
+    expect(new Date(latest.visitedAt) < new Date(earlier.visitedAt)).toBe(true); // pushed later, visited earlier
+    expect(latest).toMatchObject({
+      pregnancyId: a.pregnancy.id, systolicBpMmhg: 118, pulseBpm: 84, bloodSugarMmolL: null,
+      convulsions: null, recordedBy: { lhwCode: 'LHW-A', fullName: 'Test lhw.a' },
+    });
+    expect((await get(supervisor, `/women/${b.woman.id}/visits`)).status).toBe(404);
+    expect((await get(admin, `/women/${b.woman.id}/visits`)).body.visits).toEqual([]);
+    expect((await get(admin, '/women/nope/visits')).status).toBe(400);
+    expect((await get(tokenFor(ids.lhwA, 'lhw', ids.deviceA), `/women/${a.woman.id}/visits`)).status).toBe(403);
+  });
+
   it('is for supervisors and admins, with validated filters', async () => {
     expect((await get(tokenFor(ids.lhwA, 'lhw', ids.deviceA), '/dashboard/lhw-activity')).status).toBe(403);
     expect((await get(admin, '/dashboard/lhw-activity?districtId=nope')).status).toBe(400);
     expect((await get(admin, '/households?days=0')).status).toBe(400);
+    expect((await get(admin, '/dashboard/summary?lhwId=nope')).status).toBe(400);
+  });
+
+  it('counts a pull with nothing new as a sync: last sync and "LHWs synced today"', async () => {
+    // LHW B last sent records 60 days ago and her phone has not synced since.
+    for (const table of ['households', 'women', 'pregnancies']) {
+      await query(`ALTER TABLE ${table} DISABLE TRIGGER ${table}_server_seq`);
+      await query(`UPDATE ${table} SET synced_at = now() - interval '60 days' WHERE created_by = $1`, [ids.lhwB]);
+      await query(`ALTER TABLE ${table} ENABLE TRIGGER ${table}_server_seq`);
+    }
+    await query('UPDATE devices SET last_sync_at = NULL WHERE user_id = $1', [ids.lhwB]);
+    const lhwB = async () => (await get(admin, `/dashboard/lhw-activity?lhwId=${ids.lhwB}`)).body.lhws[0];
+    const before = await lhwB();
+    expect(Date.now() - new Date(before.lastSyncAt).getTime()).toBeGreaterThan(59 * 86400000);
+    expect((await get(admin, '/dashboard/summary')).body).toMatchObject({ lhws: 2, lhwsSyncedToday: 1 });
+
+    const pull = await request(app).get('/api/v1/sync/pull?since=0')
+      .set('Authorization', `Bearer ${tokenFor(ids.lhwB, 'lhw', ids.deviceB)}`);
+
+    expect(pull.status).toBe(200);
+    expect(Date.now() - new Date((await lhwB()).lastSyncAt).getTime()).toBeLessThan(60000);
+    expect((await get(admin, '/dashboard/summary')).body).toMatchObject({ lhws: 2, lhwsSyncedToday: 2 });
   });
 });

@@ -121,7 +121,7 @@ export default function GeographyPage() {
 
   return (
     <>
-      <h1>Areas</h1>
+      <h1>Geography</h1>
       <p className="muted">
         The district, tehsil, Union Council and area structure. Choose a unit to see the units under it. LHWs and
         supervisors are given areas from here. A unit can be deleted only when nothing uses it any more.

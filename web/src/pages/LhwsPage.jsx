@@ -1,15 +1,18 @@
-// M1 FE-1, FE-3: LHW accounts, for admins. Create an LHW (the system issues the
-// LHW ID and a password), generate the one-time activation code for her phone
-// (M1 FE-2), edit and reassign the area, deactivate or reactivate, and reset the
-// password. A password reset loses no data on the phone (LI-8).
-// Activation codes and passwords are shown once, in their dialog only.
+// M1 FE-1, FE-3: LHW accounts, for admins (final design screen 21). Create an
+// LHW (the system issues the LHW ID and a password), generate the one-time
+// activation code for her phone (M1 FE-2), edit and reassign the area,
+// deactivate or reactivate, and reset the password. A password reset loses no
+// data on the phone (LI-8). Each row offers the next step for its state; the
+// rest is under Edit. Passwords are shown once in their dialog, and the
+// activation code once in the banner above the list.
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../auth/context';
 import Dialog from '../components/Dialog';
+import { formatWhen } from '../format';
 
 const areaLabel = (a) => `${a.district} › ${a.tehsil} › ${a.unionCouncil} › ${a.name}`;
-const formatTime = (value) => (value ? new Date(value).toLocaleString() : 'Never');
-const formatDate = (value) => new Date(value).toLocaleDateString();
+const formatTime = (value) => new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+const formatDate = (value) => new Date(value).toLocaleDateString([], { day: 'numeric', month: 'short' });
 
 // The phone column and status of the final design (screen 21).
 function phoneState(lhw) {
@@ -18,7 +21,7 @@ function phoneState(lhw) {
   return 'Not activated';
 }
 
-function LhwForm({ areas, lhw, onSubmit, onCancel }) {
+function LhwForm({ areas, lhw, onSubmit, onCancel, children }) {
   const [fullName, setFullName] = useState(lhw?.fullName ?? '');
   const [phone, setPhone] = useState(lhw?.phone ?? '');
   const [areaId, setAreaId] = useState(lhw?.area.id ?? '');
@@ -72,6 +75,7 @@ function LhwForm({ areas, lhw, onSubmit, onCancel }) {
           Cancel
         </button>
       </div>
+      {children}
     </form>
   );
 }
@@ -107,6 +111,8 @@ export default function LhwsPage() {
   const [status, setStatus] = useState('all');
   const [error, setError] = useState(null);
   const [dialog, setDialog] = useState(null); // { type, lhw?, credentials? }
+  // The activation code just issued, shown once in the banner until Done.
+  const [shownCode, setShownCode] = useState(null);
 
   const load = useCallback(() => {
     const params = new URLSearchParams();
@@ -162,7 +168,8 @@ export default function LhwsPage() {
   const issueActivationCode = (lhw) =>
     run(async () => {
       const result = await request(`/admin/lhws/${lhw.id}/activation-code`, { method: 'POST' });
-      setDialog({ type: 'activation-code', lhw: result.lhw, code: result.activationCode, expiresAt: result.expiresAt });
+      setShownCode({ lhw: result.lhw, code: result.activationCode, expiresAt: result.expiresAt });
+      close();
       load();
     });
 
@@ -175,99 +182,117 @@ export default function LhwsPage() {
   return (
     <>
       <div className="page-header">
-        <h1>LHW accounts</h1>
-        <button type="button" onClick={() => setDialog({ type: 'create' })}>
-          Add LHW
-        </button>
-      </div>
-      <div className="toolbar">
-        <label htmlFor="lhw-search">Search</label>
-        <input
-          id="lhw-search"
-          type="search"
-          placeholder="Name or LHW ID"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <label htmlFor="lhw-status">Status</label>
-        <select id="lhw-status" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="all">All</option>
-          <option value="active">Active</option>
-          <option value="inactive">Deactivated</option>
-        </select>
+        <div>
+          <h1>LHW accounts</h1>
+          <p className="page-subtitle">Create accounts, give each phone a one-time activation code, reassign areas</p>
+        </div>
+        <div className="header-controls">
+          <input
+            className="search"
+            type="search"
+            aria-label="Search"
+            placeholder="Search by name or LHW ID"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <label className="field">
+            Status
+            <select value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Deactivated</option>
+            </select>
+          </label>
+          <button type="button" onClick={() => setDialog({ type: 'create' })}>
+            Add LHW
+          </button>
+        </div>
       </div>
       {error && (
         <p className="error" role="alert">
           {error}
         </p>
       )}
+      {shownCode && (
+        <section className="notice code-banner" aria-labelledby="activation-code-title">
+          <div className="code-banner-text">
+            <h2 id="activation-code-title">
+              Activation code for {shownCode.lhw.lhwCode} ({shownCode.lhw.area.name})
+            </h2>
+            <p>
+              Give it to {shownCode.lhw.fullName} with her LHW ID and password. It works once, on one phone, and expires on{' '}
+              {formatTime(shownCode.expiresAt)} (48 hours). It is shown only now; MediQore keeps only its hash.
+            </p>
+          </div>
+          <div className="code">{shownCode.code}</div>
+          <button type="button" className="secondary" onClick={() => setShownCode(null)}>
+            Done
+          </button>
+        </section>
+      )}
       {lhws && lhws.length === 0 && <p className="muted">No LHWs match.</p>}
       {lhws && lhws.length > 0 && (
-        <table>
-          <thead>
-            <tr>
-              <th>LHW ID</th>
-              <th>Name</th>
-              <th>Area</th>
-              <th>Phone</th>
-              <th>Status</th>
-              <th>LHW phone</th>
-              <th>Last sign-in</th>
-              <th aria-label="Actions" />
-            </tr>
-          </thead>
-          <tbody>
-            {lhws.map((lhw) => (
-              <tr key={lhw.id}>
-                <td>{lhw.lhwCode}</td>
-                <td>{lhw.fullName}</td>
-                <td title={`${lhw.area.district.name} › ${lhw.area.tehsil.name} › ${lhw.area.unionCouncil.name}`}>
-                  {lhw.area.name}
-                </td>
-                <td>{lhw.phone || '–'}</td>
-                <td>
-                  {!lhw.isActive ? (
-                    <span className="badge off">Deactivated</span>
-                  ) : lhw.devices.activated > 0 ? (
-                    <span className="badge ok">Active</span>
-                  ) : (
-                    <span className="badge wait">Waiting to activate</span>
-                  )}
-                </td>
-                <td>{phoneState(lhw)}</td>
-                <td>{formatTime(lhw.lastLoginAt)}</td>
-                <td className="row-actions">
-                  <button type="button" className="secondary" onClick={() => setDialog({ type: 'edit', lhw })} aria-label={`Edit ${lhw.lhwCode}`}>
-                    Edit
-                  </button>
-                  {lhw.isActive && (
-                    <button
-                      type="button"
-                      className={lhw.devices.activated > 0 ? 'secondary' : undefined}
-                      onClick={() => setDialog({ type: 'new-code', lhw })}
-                      aria-label={`New activation code for ${lhw.lhwCode}`}
-                    >
-                      New activation code
-                    </button>
-                  )}
-                  {lhw.isActive ? (
-                    <button type="button" className="secondary" onClick={() => setDialog({ type: 'deactivate', lhw })} aria-label={`Deactivate ${lhw.lhwCode}`}>
-                      Deactivate
-                    </button>
-                  ) : (
-                    <button type="button" className="secondary" onClick={() => setActive(lhw, true)} aria-label={`Activate ${lhw.lhwCode}`}>
-                      Activate
-                    </button>
-                  )}
-                  <button type="button" className="secondary" onClick={() => setDialog({ type: 'reset', lhw })} aria-label={`Reset password of ${lhw.lhwCode}`}>
-                    Reset password
-                  </button>
-                </td>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>LHW ID</th>
+                <th>Name</th>
+                <th>Area</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Last sign-in</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {lhws.map((lhw) => {
+                const activated = lhw.devices.activated > 0;
+                return (
+                  <tr key={lhw.id}>
+                    <td className="nowrap">{lhw.lhwCode}</td>
+                    <td>{lhw.fullName}</td>
+                    <td title={`${lhw.area.district.name} › ${lhw.area.tehsil.name} › ${lhw.area.unionCouncil.name}`}>
+                      {lhw.area.name}
+                    </td>
+                    <td>{phoneState(lhw)}</td>
+                    <td>
+                      {!lhw.isActive ? (
+                        <span className="badge off">Deactivated</span>
+                      ) : activated ? (
+                        <span className="badge ok">Active</span>
+                      ) : (
+                        <span className="badge wait">Waiting to activate</span>
+                      )}
+                    </td>
+                    <td className="nowrap">{formatWhen(lhw.lastLoginAt) ?? 'Never'}</td>
+                    <td>
+                      <div className="row-actions">
+                        {lhw.isActive && !activated && (
+                          <button type="button" onClick={() => setDialog({ type: 'new-code', lhw })} aria-label={`New activation code for ${lhw.lhwCode}`}>
+                            New activation code
+                          </button>
+                        )}
+                        {!lhw.isActive && (
+                          <button type="button" className="secondary" onClick={() => setActive(lhw, true)} aria-label={`Activate ${lhw.lhwCode}`}>
+                            Activate
+                          </button>
+                        )}
+                        <button type="button" className="secondary" onClick={() => setDialog({ type: 'edit', lhw })} aria-label={`Edit ${lhw.lhwCode}`}>
+                          Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
+      <p className="muted">
+        Every change here is written to the audit log. A deactivation takes effect when the LHW&apos;s phone next connects.
+      </p>
 
       {dialog?.type === 'create' && (
         <Dialog title="Add LHW">
@@ -282,7 +307,44 @@ export default function LhwsPage() {
       )}
       {dialog?.type === 'edit' && (
         <Dialog title={`Edit ${dialog.lhw.lhwCode}`}>
-          <LhwForm areas={areas} lhw={dialog.lhw} onSubmit={(values) => save(dialog.lhw, values)} onCancel={close} />
+          <LhwForm areas={areas} lhw={dialog.lhw} onSubmit={(values) => save(dialog.lhw, values)} onCancel={close}>
+            <h3>Account and phone</h3>
+            <p className="muted">Phone: {phoneState(dialog.lhw)}.</p>
+            <div className="actions">
+              {dialog.lhw.isActive && (
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => setDialog({ type: 'new-code', lhw: dialog.lhw })}
+                  aria-label={`New activation code for ${dialog.lhw.lhwCode}`}
+                >
+                  New activation code
+                </button>
+              )}
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setDialog({ type: 'reset', lhw: dialog.lhw })}
+                aria-label={`Reset password of ${dialog.lhw.lhwCode}`}
+              >
+                Reset password
+              </button>
+              {dialog.lhw.isActive ? (
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => setDialog({ type: 'deactivate', lhw: dialog.lhw })}
+                  aria-label={`Deactivate ${dialog.lhw.lhwCode}`}
+                >
+                  Deactivate
+                </button>
+              ) : (
+                <button type="button" className="secondary" onClick={() => setActive(dialog.lhw, true)} aria-label={`Activate ${dialog.lhw.lhwCode}`}>
+                  Activate
+                </button>
+              )}
+            </div>
+          </LhwForm>
         </Dialog>
       )}
       {dialog?.type === 'new-code' && (
@@ -303,20 +365,6 @@ export default function LhwsPage() {
             </button>
             <button type="button" className="secondary" onClick={close}>
               Cancel
-            </button>
-          </div>
-        </Dialog>
-      )}
-      {dialog?.type === 'activation-code' && (
-        <Dialog title={`Activation code for ${dialog.lhw.lhwCode} (${dialog.lhw.area.name})`}>
-          <p className="code">{dialog.code}</p>
-          <p className="muted">
-            Give it to {dialog.lhw.fullName} with her LHW ID and password. It works once, on one phone, and expires on{' '}
-            {formatTime(dialog.expiresAt)}. It is shown only now; MediQore keeps only its hash.
-          </p>
-          <div className="actions">
-            <button type="button" onClick={close}>
-              Done
             </button>
           </div>
         </Dialog>
