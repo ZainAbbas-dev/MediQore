@@ -9,11 +9,11 @@ import 'patient_repository.dart';
 import 'visit_repository.dart';
 
 class LocalData {
-  LocalData(this.db, {required SyncApi api, required String deviceId})
+  LocalData(this.db, {required SyncApi api, required String deviceId, DateTime Function()? clock})
       : households = HouseholdRepository(db),
         patients = PatientRepository(db),
         visits = VisitRepository(db),
-        sync = SyncService(db: db, api: api, deviceId: deviceId);
+        sync = SyncService(db: db, api: api, deviceId: deviceId, clock: clock);
 
   final AppDatabase db;
   final HouseholdRepository households;

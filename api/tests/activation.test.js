@@ -242,17 +242,54 @@ describeDb('sign-in from the app (M1 FE-2)', () => {
   });
 
   describe('refresh and sign-out', () => {
-    it('swaps a refresh token for a new pair, once', async () => {
+    it('swaps a refresh token for a new pair; an old token is refused once its replacement was used', async () => {
       const { body: first } = await login({ username: 'lhw.a', password: PASSWORD, deviceId: ids.deviceA });
+      const refresh = (refreshToken) => request(app).post('/api/v1/auth/refresh').send({ refreshToken });
 
-      const refreshed = await request(app).post('/api/v1/auth/refresh').send({ refreshToken: first.refreshToken });
-      const again = await request(app).post('/api/v1/auth/refresh').send({ refreshToken: first.refreshToken });
+      const refreshed = await refresh(first.refreshToken);
+      const next = await refresh(refreshed.body.refreshToken);
+      const again = await refresh(first.refreshToken);
 
       expect(refreshed.status).toBe(200);
       expect(refreshed.body.refreshToken).not.toBe(first.refreshToken);
       expect(refreshed.body.user.areaId).toBe(ids.areaA);
+      expect(next.status).toBe(200);
       expect(again.status).toBe(401);
       expect(again.body.error.code).toBe('INVALID_REFRESH_TOKEN');
+    });
+
+    it('accepts a just-replaced token again when the phone never got its replacement (M3 FE-2)', async () => {
+      const { body: first } = await login({ username: 'lhw.a', password: PASSWORD, deviceId: ids.deviceA });
+      const refresh = (refreshToken) => request(app).post('/api/v1/auth/refresh').send({ refreshToken });
+
+      const lost = await refresh(first.refreshToken); // the answer never reached the phone
+      const retry = await refresh(first.refreshToken);
+
+      expect(retry.status).toBe(200);
+      expect((await refresh(lost.body.refreshToken)).status).toBe(401); // the lost one no longer works
+      expect((await refresh(retry.body.refreshToken)).status).toBe(200);
+      expect((await refresh(first.refreshToken)).status).toBe(401); // its replacement has now been used
+    });
+
+    it('does not bring back a replaced token after its window, sign-out, deactivation or a password reset', async () => {
+      const refresh = (refreshToken) => request(app).post('/api/v1/auth/refresh').send({ refreshToken });
+      const lostOnce = async () => {
+        const { body } = await login({ username: 'lhw.a', password: PASSWORD, deviceId: ids.deviceA });
+        const replaced = await refresh(body.refreshToken);
+        return { old: body.refreshToken, replacement: replaced.body.refreshToken };
+      };
+
+      const late = await lostOnce();
+      await query("UPDATE refresh_tokens SET revoked_at = now() - interval '31 minutes' WHERE replaced_by IS NOT NULL");
+      expect((await refresh(late.old)).status).toBe(401);
+
+      const signedOut = await lostOnce();
+      await request(app).post('/api/v1/auth/logout').send({ refreshToken: signedOut.replacement });
+      expect((await refresh(signedOut.old)).status).toBe(401);
+
+      const reset = await lostOnce();
+      await query('UPDATE refresh_tokens SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL', [ids.lhwA]);
+      expect((await refresh(reset.old)).status).toBe(401);
     });
 
     it('revokes the refresh token on sign-out', async () => {

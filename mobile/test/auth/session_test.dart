@@ -253,6 +253,29 @@ void main() {
       expect(secure.values[SecureKeys.refreshToken], isIn(server.validRefreshTokens));
     });
 
+    test('refreshes the tokens at every sync (M1 FE-2), so a new area or deactivation arrives at once', () async {
+      await activateApp(services, server);
+      final before = server.requests.where((r) => r == 'POST /auth/refresh').length;
+
+      await session().sync();
+      await session().sync();
+
+      expect(server.requests.where((r) => r == 'POST /auth/refresh').length, before + 2);
+      expect(secure.values[SecureKeys.refreshToken], isIn(server.validRefreshTokens));
+    });
+
+    test('uses the newest refresh token in the Keystore store, which background sync may have replaced', () async {
+      await activateApp(services, server);
+      // Background sync (M3 FE-2) used the token and saved its replacement.
+      final replaced = await services.api.refresh(secure.values[SecureKeys.refreshToken]!);
+      secure.values[SecureKeys.refreshToken] = replaced.refreshToken;
+
+      final report = await session().sync();
+
+      expect(report.lastServerSeq, isNotNull);
+      expect(session().canSync, isTrue);
+    });
+
     test('refreshes an expired access token once and carries on', () async {
       await activateApp(services, server);
       await services.households.create(village: 'Test village');

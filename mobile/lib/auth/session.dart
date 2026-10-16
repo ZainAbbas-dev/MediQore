@@ -359,15 +359,17 @@ class Session extends ChangeNotifier {
     return SignInResult.signedIn;
   }
 
-  /// Pushes and pulls, refreshing the tokens first when needed. A sync that
-  /// starts while another is running joins it, so the refresh token is never
-  /// used twice (automatic sync, M3 FE-2, and the Sync button).
+  /// Refreshes the tokens, then pushes and pulls (M1 FE-2: tokens are refreshed
+  /// at each sync, which also brings a new area, the supervisors and a
+  /// deactivation to the phone). A sync that starts while another is running
+  /// joins it, so the refresh token is never used twice (automatic sync, M3
+  /// FE-2, and the Sync button).
   Future<SyncReport> sync() => _syncing ??= _syncOnce().whenComplete(() => _syncing = null);
 
   Future<SyncReport> _syncOnce() async {
     if (_data == null) throw NeedsOnlineSignIn();
     try {
-      if (_accessToken == null) await _refresh();
+      await _refresh();
       return await _syncWith(_accessToken!);
     } on ApiException catch (error) {
       if (error.code == 'ACCOUNT_INACTIVE') {
@@ -395,7 +397,9 @@ class Session extends ChangeNotifier {
   }
 
   Future<void> _refresh() async {
-    final refreshToken = _refreshToken;
+    // The secure store holds the newest token: background sync (M3 FE-2) may
+    // have replaced it while the app was open.
+    final refreshToken = await _secure.read(SecureKeys.refreshToken) ?? _refreshToken;
     if (refreshToken == null) throw NeedsOnlineSignIn();
     final AuthTokens tokens;
     try {
@@ -496,7 +500,7 @@ class Session extends ChangeNotifier {
 
   Future<LocalData> _openData(Uint8List key) async {
     final AppDatabase db = await _opener.open(key);
-    final data = LocalData(db, api: _api, deviceId: _settings.deviceId);
+    final data = LocalData(db, api: _api, deviceId: _settings.deviceId, clock: _now);
     await _savePending(data);
     _outboxWatch = db.tableUpdates(TableUpdateQuery.onTable(db.outbox)).listen((_) => _savePending(data));
     return data;

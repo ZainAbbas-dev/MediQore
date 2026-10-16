@@ -151,6 +151,8 @@ This tries Module 1 (activation code, PIN, offline unlock, wrong-PIN wait, PIN r
      2. In the portal, as `supervisor.demo`, open **Sync conflicts**: both visits are side by side. Choose one of the three decisions.
      3. Back on the phone, tap sync: the visit is no longer held (or, with "keep the stored visit", it disappears as a duplicate).
      4. In **Registered women**, click her visit count: the visit shows its blood sugar source and date and the danger sign answered yes.
+   - **Background sync (M3 FE-2):** with **airplane mode** on, record a visit, then lock the app (gear → **ایپ لاک کریں**) or close it. Turn airplane mode off and wait: Android sends the record in the background, usually within a few minutes (it decides the exact moment). In the portal the visit appears, and **LHW activity** shows the new last sync, without opening the app.
+   - **Sync card and reminders (M3 FE-2, LI-8):** the home screen shows when the phone last synced. If records wait for a day without a sync, a reminder asks her to sync today. Records the server refused are counted on their own (never "everything sent") and are sent again at every sync.
 6. In the settings (gear icon), under **ٹیسٹنگ** (testing), **فیز 0 کی جانچ** (Phase 0 checks, debug builds and the test APK only):
    - **ویجٹ کٹ** (widget kit): scroll through the Urdu controls and check that nothing is cut off.
    - **ڈیٹا سنک کی جانچ** (sync test):

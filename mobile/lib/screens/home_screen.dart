@@ -1,9 +1,12 @@
 // M2, M3 FE-2: the home screen (final design screen 6). The teal header greets
 // the LHW with her name, area and LHW ID and has the settings gear (language,
 // Change PIN, lock, sign-out). The sync card over the header's edge shows the
-// connection, the records waiting to be sent and Sync now; records also sync on
-// their own while online (AutoSync). Then today's work (a new registration, the
-// registered women) and the recent visits with their sync state.
+// connection, the records waiting to be sent, when the phone last synced and
+// Sync now; records also sync on their own while online (AutoSync) and in the
+// background. Records the server refused are counted, and a reminder appears
+// when records have waited a day without a sync (LI-8). Then today's work (a new
+// registration, the registered women) and the recent visits with their sync
+// state.
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
@@ -43,8 +46,19 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+/// The daily sync reminder appears when records have waited this long (LI-8).
+const Duration syncReminderAfter = Duration(days: 1);
+
+/// "Today 10:31", "Yesterday 17:40" or a date, from the phone's clock.
+String syncTime(BuildContext context, DateTime at, {DateTime? now}) {
+  final time = DateFormat.Hm().format(at.toLocal());
+  return '${visitDay(context, at, now: now)} \u2066$time\u2069';
+}
+
 class _HomeScreenState extends State<HomeScreen> {
   int _pending = 0;
+  int _refused = 0;
+  DateTime? _lastSync;
   int? _women;
   List<RecentVisit> _recent = const [];
   bool _online = false;
@@ -82,12 +96,16 @@ class _HomeScreenState extends State<HomeScreen> {
     final data = _services.session.data;
     if (data == null) return;
     final pending = await data.db.pendingCount();
+    final refused = await data.db.refusedCount();
+    final lastSync = await data.db.lastSyncAt();
     final isLhw = _services.session.user?.lhwCode != null;
     final women = isLhw ? (await data.patients.list()).length : null;
     final recent = isLhw ? await data.visits.recent(limit: 5) : const <RecentVisit>[];
     if (!mounted) return;
     setState(() {
       _pending = pending;
+      _refused = refused;
+      _lastSync = lastSync;
       _women = women;
       _recent = recent;
     });
@@ -175,6 +193,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: _SyncCard(
                 online: _online,
                 pending: _pending,
+                refused: _refused,
+                lastSync: _lastSync == null ? l10n.homeNotSyncedYet : l10n.homeLastSync(syncTime(context, _lastSync!)),
                 busy: _busy,
                 onSync: _busy ? null : () => _sync(l10n),
               ),
@@ -186,6 +206,11 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (_message != null) ...[NoticeCard(text: _message!, icon: Icons.sync), gap],
+                if (_pending > 0 && (_lastSync == null || DateTime.now().difference(_lastSync!) >= syncReminderAfter)) ...[
+                  NoticeCard(text: l10n.homeSyncReminder(_pending), icon: Icons.schedule, warning: true),
+                  gap,
+                ],
+                if (_refused > 0) ...[NoticeCard(text: l10n.homeRefused(_refused), icon: Icons.report_outlined, warning: true), gap],
                 if (!session.canSync && !_needsSignIn) ...[NoticeCard(text: l10n.homeSyncNeedsSignIn), gap],
                 if (_needsSignIn || !session.canSync) ...[
                   LargeButton(
@@ -252,10 +277,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
 /// The connection, the records waiting and Sync now, over the header's edge.
 class _SyncCard extends StatelessWidget {
-  const _SyncCard({required this.online, required this.pending, required this.busy, required this.onSync});
+  const _SyncCard({
+    required this.online,
+    required this.pending,
+    required this.refused,
+    required this.lastSync,
+    required this.busy,
+    required this.onSync,
+  });
 
   final bool online;
   final int pending;
+
+  /// Records the server refused; never "all sent" while there are any.
+  final int refused;
+
+  /// "Last synced: …" or "Not synced yet".
+  final String lastSync;
   final bool busy;
   final VoidCallback? onSync;
 
@@ -267,39 +305,54 @@ class _SyncCard extends StatelessWidget {
         ? (AppColors.statusPending, AppColors.statusPendingBackground, Icons.cloud_upload_outlined)
         : pending > 0
         ? (AppColors.statusPending, AppColors.statusPendingBackground, Icons.cloud_upload_outlined)
+        : refused > 0
+        ? (AppColors.statusProblem, AppColors.statusProblemBackground, Icons.cloud_off_outlined)
         : (AppColors.statusSynced, AppColors.statusSyncedBackground, Icons.cloud_done_outlined);
     return Semantics(
       liveRegion: true,
       child: Card(
         child: Padding(
           padding: const EdgeInsets.all(14),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              CircleAvatar(radius: 22, backgroundColor: background, child: Icon(icon, color: foreground)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      online ? l10n.homeOnline : l10n.homeOffline,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              Row(
+                children: [
+                  CircleAvatar(radius: 22, backgroundColor: background, child: Icon(icon, color: foreground)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          online ? l10n.homeOnline : l10n.homeOffline,
+                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          pending > 0
+                              ? l10n.homeWaiting(pending)
+                              : refused > 0
+                              ? l10n.homeRefusedShort(refused)
+                              : l10n.homeAllSent,
+                          style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText),
+                        ),
+                        Text(lastSync, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.mutedText)),
+                      ],
                     ),
-                    Text(
-                      pending > 0 ? l10n.homeWaiting(pending) : l10n.homeAllSent,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              busy
-                  ? const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 3))
-                  : FilledButton.tonal(
-                      onPressed: onSync,
-                      style: FilledButton.styleFrom(minimumSize: const Size(0, 48), padding: const EdgeInsets.symmetric(horizontal: 16)),
-                      child: Text(l10n.syncNowButton),
-                    ),
+              const SizedBox(height: 10),
+              // Under the text, full width: beside it the text had no room on a small phone.
+              if (busy)
+                const Center(child: SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 3)))
+              else
+                FilledButton.tonalIcon(
+                  onPressed: onSync,
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+                  icon: const Icon(Icons.sync),
+                  label: Text(l10n.syncNowButton),
+                ),
             ],
           ),
         ),

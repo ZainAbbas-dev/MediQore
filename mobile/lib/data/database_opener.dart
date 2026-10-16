@@ -56,6 +56,9 @@ void unlockDatabase(CommonDatabase raw, String hexKey) {
   } on Object {
     throw WrongDatabaseKey();
   }
+  // Background sync (M3 FE-2) can have the file open at the same moment as the
+  // app: wait for the other connection instead of failing at once.
+  raw.execute('PRAGMA busy_timeout = 10000');
 }
 
 // AES-256 in the SQLCipher 4 format. The key is already 256 random bits, so it

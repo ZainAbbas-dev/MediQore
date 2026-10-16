@@ -251,6 +251,33 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
+      testWidgets('the home screen fits with refused records and the daily sync reminder (LI-8) ($language)', (tester) async {
+        final l10n = lookupAppLocalizations(english ? AppSettings.english : AppSettings.urdu);
+        await tester.runAsync(() async {
+          await activateApp(services, server);
+          final refused = await services.households.create(village: 'Refused');
+          server.rejectIds.add(refused.id);
+          await services.session.sync();
+          await services.households.create(village: 'Waiting');
+          // The last sync was two days ago.
+          await services.db.writeState(
+            AppDatabase.lastSyncKey,
+            DateTime.now().subtract(const Duration(days: 2)).toUtc().toIso8601String(),
+          );
+        });
+        await pumpScreen(tester, HomeScreen(services: services), english: english);
+        // The counts come from the database, outside the test clock.
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+        await tester.pumpAndSettle();
+        await tester.drag(find.byType(Scrollable).first, const Offset(0, -200));
+        await tester.pumpAndSettle();
+        expect(find.text(l10n.homeRefused(1)), findsOneWidget);
+        expect(find.text(l10n.homeSyncReminder(1)), findsOneWidget);
+        expect(find.textContaining(l10n.homeLastSync('').trim()), findsOneWidget);
+        await scrollToEnd(tester);
+        expect(tester.takeException(), isNull);
+      });
+
       testWidgets('the settings fit ($language)', (tester) async {
         await tester.runAsync(() => activateApp(services, server));
         await pumpScreen(tester, SettingsScreen(services: services), english: english);

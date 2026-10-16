@@ -258,6 +258,10 @@ class AppDatabase extends _$AppDatabase {
   static const List<String> syncedTables = ['households', 'women', 'pregnancies', 'obstetric_history', 'visits'];
 
   static const String lastServerSeqKey = 'last_server_seq';
+
+  /// When the last sync finished, by the phone's clock: shown to the LHW and
+  /// used for the daily reminder only, never to order records (LI-7, LI-8).
+  static const String lastSyncKey = 'last_sync_at';
   static const String _patientCounterKey = 'patient_counter';
 
   Future<String?> readState(String key) async {
@@ -333,6 +337,19 @@ class AppDatabase extends _$AppDatabase {
         }
         await delete(syncState).go();
       });
+
+  /// When the last sync finished (phone clock), or null if this phone never synced.
+  Future<DateTime?> lastSyncAt() async => DateTime.tryParse(await readState(lastSyncKey) ?? '');
+
+  /// Number of records the server refused; they stay on the phone and are sent
+  /// again at every sync.
+  Future<int> refusedCount() async {
+    final count = outbox.id.count();
+    final query = selectOnly(outbox)
+      ..addColumns([count])
+      ..where(outbox.lastError.isNotNull());
+    return (await query.getSingle()).read(count) ?? 0;
+  }
 
   /// Number of records still waiting to be pushed (refused ones excluded).
   Future<int> pendingCount() async {

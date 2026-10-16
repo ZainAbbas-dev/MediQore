@@ -20,8 +20,10 @@ import 'package:mediqore/data/app_database.dart';
 import 'package:mediqore/data/household_repository.dart';
 import 'package:mediqore/data/patient_repository.dart';
 import 'package:mediqore/data/visit_repository.dart';
+import 'package:mediqore/sync/background_sync.dart';
 import 'package:mediqore/sync/sync_api.dart';
 import 'package:mediqore/sync/sync_service.dart';
+import 'package:mediqore/sync/sync_gate.dart';
 import 'package:uuid/uuid.dart';
 
 import '../support/memory_database_opener.dart';
@@ -323,6 +325,44 @@ void main() {
         await phone.session.signOut();
         await phone.dispose();
       }
+    },
+    skip: apiBaseUrl.isEmpty ? 'Set --dart-define=E2E_API_BASE_URL to run against a real API' : false,
+  );
+
+  test(
+    'background sync sends a record saved before the app locked, and the app syncs on afterwards (M3 FE-2)',
+    () async {
+      final phone = await signedInNewPhone();
+      final woman = await phone.patients.register(
+        const RegistrationInput(name: 'E2E Background Woman', age: 27, pregnancyMonth: 5, village: 'End-to-end village'),
+        by: phone.session.user!,
+      );
+      phone.session.lock(null);
+      await phone.session.closed;
+
+      final result = await BackgroundSync(
+        opener: phone.opener,
+        secure: phone.secureStore,
+        settings: phone.settings,
+        api: phone.api,
+        gate: MemorySyncGate(),
+      ).run();
+
+      expect(result, BackgroundSyncResult.done);
+      expect(phone.settings.pendingRecords, 0);
+      final token = await adminToken();
+      final women = ((await send('GET', '/women?search=${woman.patientCode}', token: token))['women'] as List).cast<Map>();
+      expect(women.single['patientCode'], woman.patientCode);
+
+      // The refresh token background sync saved still works for the app.
+      expect((await phone.session.unlock(e2ePin)).result, UnlockResult.unlocked);
+      final report = await phone.session.sync();
+      expect(report.pushed, 0);
+
+      // ignore: avoid_print
+      print('E2E background sync OK: ${woman.patientCode}');
+      await phone.session.signOut();
+      await phone.dispose();
     },
     skip: apiBaseUrl.isEmpty ? 'Set --dart-define=E2E_API_BASE_URL to run against a real API' : false,
   );

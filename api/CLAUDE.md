@@ -57,7 +57,8 @@ From the roadmap:
       - The phone's secret is never stored: it is HMAC-SHA256(server key, `mediqore/activation/<deviceId>/<activation_secret_ref>`). The server key is `PIN_RESET_SECRET`, or derived from `JWT_ACCESS_SECRET` with HKDF if unset. Changing either changes every phone's secret, so phones would need activating again.
       - Reply code: HMAC-SHA256(secret, `mediqore/pin-reset/<6-digit challenge>`), first 4 bytes big-endian modulo 10^8, 8 digits. `tests/activation.test.js` holds the test vector the app shares.
     - `pin-reset.service.js`: `POST /pin-reset/reply-code` for supervisors (LHWs in their areas) and admins; the reply for her latest activated phone, audited without the code.
-    - `tokens.service.js`: JWT access tokens (claim `did` = the activated phone) and opaque refresh tokens. Refresh tokens are stored as SHA-256 hashes, rotated on every use, and revoked on sign-out, deactivation and password reset.
+    - `tokens.service.js`: JWT access tokens (claim `did` = the activated phone) and opaque refresh tokens. Refresh tokens are stored as SHA-256 hashes, rotated on every use (`replaced_by` links each to its replacement), and revoked on sign-out, deactivation and password reset.
+      - The app refreshes at every sync. On a weak network the answer can be lost after the token was already replaced, so a token replaced less than `REFRESH_REUSE_MINUTES` (30) ago is accepted once more while its replacement has never been used; that replacement is revoked instead. Sign-out, deactivation and a password reset revoke the replacement too, so they still end the session.
     - `login-throttle.js`: in-memory rate limit on failed sign-ins per address and username (429 `TOO_MANY_ATTEMPTS` with `Retry-After`). It holds one process's memory, so tests call `loginThrottle.reset()`.
   - `lhws.service.js` (M1 FE-1, FE-3): LHW accounts.
     - The LHW ID comes from the `lhw_code_seq` sequence (`LHW-00001`) and is also the username.

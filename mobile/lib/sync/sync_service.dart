@@ -33,15 +33,20 @@ class SyncReport {
 /// - pull asks for everything after the last sequence number seen, so nothing
 ///   depends on the phone's clock (LI-7);
 /// - a record the server holds for supervisor review (status `conflict`) leaves
-///   the outbox and is marked as held; the supervisor's decision arrives by pull.
+///   the outbox and is marked as held; the supervisor's decision arrives by pull;
+/// - a record the server refused stays in the outbox with the reason and is sent
+///   once more in every later sync (the outbox's retry), because some reasons
+///   pass: a parent that arrives later, an area an admin fixes.
 class SyncService {
-  SyncService({required this._db, required this._api, required this.deviceId});
+  SyncService({required this._db, required this._api, required this.deviceId, DateTime Function()? clock})
+      : _clock = clock ?? DateTime.now;
 
   static const int batchSize = 100;
   static const String lastServerSeqKey = AppDatabase.lastServerSeqKey;
 
   final AppDatabase _db;
   final SyncApi _api;
+  final DateTime Function() _clock;
 
   /// The installation's UUID (AppSettings.deviceId), sent with every push. The
   /// server accepts only the approved phone the token was issued to (M1 FE-2).
@@ -54,6 +59,7 @@ class SyncService {
   Future<SyncReport> syncNow(String token) async {
     final (pushed, rejected, held) = await push(token);
     final pulled = await pull(token);
+    await _db.writeState(AppDatabase.lastSyncKey, _clock().toUtc().toIso8601String());
     return SyncReport(
       pushed: pushed,
       rejected: rejected,
@@ -64,19 +70,28 @@ class SyncService {
   }
 
   /// Pushes the outbox; returns how many records were accepted, refused and
-  /// held for review.
+  /// held for review. Records refused before are sent once more, in the same
+  /// order as the rest (highest priority, then oldest first, so parents go
+  /// before their children).
   Future<(int, int, int)> push(String token) async {
     final device = deviceId;
     var pushed = 0;
     var rejected = 0;
     var held = 0;
+    final refusedBefore = await (_db.selectOnly(_db.outbox)
+          ..addColumns([_db.outbox.id])
+          ..where(_db.outbox.lastError.isNotNull()))
+        .map((row) => row.read(_db.outbox.id)!)
+        .get();
+    final sent = <int>{};
     while (true) {
       final batch = await (_db.select(_db.outbox)
-            ..where((o) => o.lastError.isNull())
+            ..where((o) => (o.lastError.isNull() | o.id.isIn(refusedBefore)) & o.id.isNotIn(sent))
             ..orderBy([(o) => OrderingTerm.desc(o.priority), (o) => OrderingTerm.asc(o.id)])
             ..limit(batchSize))
           .get();
       if (batch.isEmpty) return (pushed, rejected, held);
+      sent.addAll(batch.map((entry) => entry.id));
 
       final results = await _api.push(token, device, [for (final entry in batch) jsonDecode(entry.payload) as Map<String, dynamic>]);
 

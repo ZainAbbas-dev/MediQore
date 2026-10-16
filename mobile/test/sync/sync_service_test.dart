@@ -107,8 +107,39 @@ void main() {
     expect(entry.recordId, refused.id);
     expect(entry.lastError, 'OUT_OF_AREA');
 
+    // Retried once at every later sync (the outbox's retry), alone.
     await sync.syncNow('token-1');
-    expect(server.pushedBatches, hasLength(1), reason: 'refused records are not pushed again');
+    expect(server.pushedBatches, hasLength(2));
+    expect(server.pushedBatches.last.map((r) => r['id']), [refused.id]);
+    expect((await db.select(db.outbox).getSingle()).attempts, 2);
+
+    // Once the cause is gone (for example an admin fixed the area), it goes through.
+    server.rejectIds.remove(refused.id);
+    final later = await sync.syncNow('token-1');
+    expect((later.pushed, later.rejected), (1, 0));
+    expect(await db.select(db.outbox).get(), isEmpty);
+    expect(await db.refusedCount(), 0);
+  });
+
+  test('a retried record goes before newer ones, so a parent refused earlier is sent before its child', () async {
+    final first = await households.create(village: 'First');
+    server.rejectIds.add(first.id);
+    await sync.syncNow('token-1');
+    server.rejectIds.remove(first.id);
+    final second = await households.create(village: 'Second');
+
+    await sync.syncNow('token-1');
+
+    expect(server.pushedBatches.last.map((r) => r['id']), [first.id, second.id]);
+    expect(await db.select(db.outbox).get(), isEmpty);
+  });
+
+  test('saves when the last sync finished, for the home screen and the daily reminder (LI-8)', () async {
+    expect(await db.lastSyncAt(), isNull);
+
+    await sync.syncNow('token-1');
+
+    expect(await db.lastSyncAt(), isNotNull);
   });
 
   test('without a network nothing is lost; the next sync sends it', () async {

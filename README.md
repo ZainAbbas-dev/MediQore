@@ -29,7 +29,7 @@ The app syncs with a central server whenever a connection is available. Supervis
 >
 > Still with people: branch protection on `main` (P0-1), submitting the IEC application (P0-9), a Clinical Advisor for the rules table (P0-11), and the review of schema v1 and OpenAPI v1 by both members.
 >
-> **Phase 1 (Modules 1, 2, 3 and the Module 10 base)** was built on `dev` against the earlier scope and is being revised to the updated one. Module 1 is revised: the admin's one-time activation code, the offline six-digit PIN with progressive delays, PIN reset with the supervisor's reply code, the lock-screen emergency call and the Keystore-wrapped database key; voice guidance is removed (LI-6). Module 2 is revised: the four-step registration wizard, obstetric risk-factor flags from the Clinical Rules Table and nearest-first sorting. Module 3 is revised: the three-step visit with the 30-second pulse counter, blood sugar unit, source and date, and the danger-sign checklist, with automatic sync and the supervisor conflict queue. The Module 10 base is revised: the dashboard (registered women, visits this week, LHWs synced today, conflicts to review, the household map and LHW activity, all filtered by district, Union Council and LHW), a woman's visits on **Registered women**, LHW accounts with activation codes, the admin panel and audit log, all in the final design and usable at phone width.
+> **Phase 1 (Modules 1, 2, 3 and the Module 10 base)** was built on `dev` against the earlier scope and is being revised to the updated one. Module 1 is revised: the admin's one-time activation code, the offline six-digit PIN with progressive delays, PIN reset with the supervisor's reply code, the lock-screen emergency call and the Keystore-wrapped database key; voice guidance is removed (LI-6). Module 2 is revised: the four-step registration wizard, obstetric risk-factor flags from the Clinical Rules Table and nearest-first sorting. Module 3 is revised: the three-step visit with the 30-second pulse counter, blood sugar unit, source and date, and the danger-sign checklist, with automatic sync (also in the background with the app locked or closed, and as soon as the network returns) and the supervisor conflict queue. The Module 10 base is revised: the dashboard (registered women, visits this week, LHWs synced today, conflicts to review, the household map and LHW activity, all filtered by district, Union Council and LHW), a woman's visits on **Registered women**, LHW accounts with activation codes, the admin panel and audit log, all in the final design and usable at phone width.
 >
 > **Data notice:** MediQore is developed and demonstrated on synthetic data only. No real patient data is used before IEC approval (LI-10). AI results are decision support, not a clinical diagnosis (LI-5).
 
@@ -65,6 +65,8 @@ mediqore/
 - [Clinical Rules Table](clinical-rules/README.md): every clinical rule, pending clinical review, and how the Clinical Advisor signs it (P0-11).
 - [Schema v1](docs/schema-v1.md): the database, how sync works in it, and the decisions to review.
 - [API contract](docs/openapi.yaml): OpenAPI 3.1.
+- [User guide](docs/user-guide.md): how LHWs, supervisors and admins use each finished module.
+- [Test report](docs/test-report.md): what the tests cover per module, the latest results and what is still to check on a real phone.
 - [Phase 1 screens](docs/design/phase1-screens.md): the final screen design (Clinical Teal) and screen spec (P0-7).
 - [IEC application draft](docs/iec/README.md): the ethics application for the usability evaluation with LHWs (P0-9), ready to copy into the committee's form.
 - [Decision records](docs/decisions/README.md): the earlier roadmap's open items (model inputs, OTP channel, Urdu PDF method, Urdu voice, language switch, encryption library), with evidence and how the updated scope settled each.
@@ -168,7 +170,7 @@ The Phase 0 exit gate says: "One test record created on the phone offline, synce
 
 Without a phone, `flutter test test/e2e/sync_e2e_test.dart --dart-define=E2E_API_BASE_URL=http://localhost:3000/api/v1` runs the same app code against the API, including activation (it issues the code as `admin.demo`) and a PIN-reset reply code from `supervisor.demo`.
 
-[docs/local-setup.md](docs/local-setup.md) step 7 also walks through the Module 1 and 2 checks on the phone: activation, offline PIN unlock, the wrong-PIN wait, PIN reset, the emergency call, auto-lock, deactivation, and registering a woman in airplane mode.
+[docs/local-setup.md](docs/local-setup.md) step 7 also walks through the Module 1, 2 and 3 checks on the phone: activation, offline PIN unlock, the wrong-PIN wait, PIN reset, the emergency call, auto-lock, deactivation, registering a woman and recording a visit in airplane mode, the conflict queue and background sync.
 
 ## Branches and pull requests
 

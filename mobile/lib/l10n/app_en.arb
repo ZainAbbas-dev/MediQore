@@ -1329,6 +1329,46 @@
       }
     }
   },
+  "homeLastSync": "Last synced: {when}",
+  "@homeLastSync": {
+    "description": "Sync card: when the last sync finished (phone clock).",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "homeNotSyncedYet": "Not synced yet",
+  "@homeNotSyncedYet": {
+    "description": "Sync card: this phone has not finished a sync yet."
+  },
+  "homeRefused": "{count, plural, =1{The server refused 1 record. It stays on this phone and is sent again at every sync. Tell your supervisor.} other{The server refused {count} records. They stay on this phone and are sent again at every sync. Tell your supervisor.}}",
+  "@homeRefused": {
+    "description": "Home: records the server refused (outbox entries with an error).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeRefusedShort": "{count, plural, =1{1 record refused by the server} other{{count} records refused by the server}}",
+  "@homeRefusedShort": {
+    "description": "Sync card: nothing waits, but the server refused some records.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeSyncReminder": "{count, plural, =1{1 record is only on this phone and has not been synced for a day. Connect to the internet and sync today.} other{{count} records are only on this phone and have not been synced for a day. Connect to the internet and sync today.}}",
+  "@homeSyncReminder": {
+    "description": "Home: the daily sync reminder (LI-8), when records wait and the last sync is a day old or more.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "visitLineBp": "{day} · BP {bp}",
   "@visitLineBp": {
     "description": "A recent visit: its day and blood pressure.",

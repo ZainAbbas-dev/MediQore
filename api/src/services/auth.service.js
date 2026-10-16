@@ -194,11 +194,13 @@ async function login({ username, password, deviceId }, { ip }) {
 // POST /auth/refresh: swaps a refresh token for a new pair.
 async function refresh({ refreshToken }) {
   return db.withTransaction(async (client) => {
-    const { userId, deviceId } = await tokens.consumeRefreshToken(client, refreshToken);
+    const { userId, deviceId, tokenId } = await tokens.consumeRefreshToken(client, refreshToken);
     const user = await usersService.findById(userId);
     if (!user) throw new AppError(401, 'INVALID_REFRESH_TOKEN', 'Sign in again');
     if (!user.isActive) throw INACTIVE();
-    return sessionBody(client, user, deviceId);
+    const body = await sessionBody(client, user, deviceId);
+    await tokens.linkReplacement(client, tokenId, body.refreshToken);
+    return body;
   });
 }
 

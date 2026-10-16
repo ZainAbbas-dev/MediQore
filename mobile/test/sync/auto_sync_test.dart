@@ -1,10 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mediqore/app_services.dart';
 import 'package:mediqore/data/patient_repository.dart';
 import 'package:mediqore/sync/auto_sync.dart';
+import 'package:mediqore/sync/background_sync.dart';
+import 'package:mediqore/sync/sync_gate.dart';
 
 import '../helpers.dart';
 import '../support/fake_sync_server.dart';
+
+/// Counts the background syncs the app asks Android for.
+class FakeScheduler implements BackgroundScheduler {
+  int requested = 0;
+
+  @override
+  Future<void> start() async {}
+
+  @override
+  Future<void> syncWhenOnline() async => requested++;
+}
 
 /// M3 FE-2: records sync on their own while the app is unlocked and online.
 /// Real timers, with short intervals.
@@ -104,6 +119,88 @@ void main() {
     await register('While expired');
     await Future<void>.delayed(const Duration(milliseconds: 400));
     expect(server.requests.skip(before), isEmpty);
+  });
+
+  group('with the network, the gate and background sync', () {
+    late StreamController<bool> network;
+    late MemorySyncGate gate;
+    late FakeScheduler scheduler;
+
+    setUp(() {
+      network = StreamController<bool>();
+      gate = MemorySyncGate();
+      scheduler = FakeScheduler();
+    });
+
+    tearDown(() => network.close());
+
+    AutoSync startWith({Duration every = const Duration(hours: 1), Duration pullEvery = const Duration(minutes: 10)}) =>
+        auto = AutoSync(
+          session: services.session,
+          every: every,
+          afterSave: const Duration(hours: 1),
+          pullEvery: pullEvery,
+          settings: services.settings,
+          gate: gate,
+          scheduler: scheduler,
+          connectivity: network.stream,
+        );
+
+    test('syncs as soon as the network comes back, without waiting for the next check', () async {
+      await activateApp(services, server);
+      startWith();
+      await register('Saved offline');
+      network.add(false);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      final before = pushes();
+
+      network.add(true);
+
+      await until(() => pushes() > before);
+      await until(() => auto.lastOutcome?.report != null);
+      expect(await services.db.pendingCount(), 0);
+    });
+
+    test('marks the app open while unlocked; on lock, hands waiting records to background sync', () async {
+      await activateApp(services, server);
+      startWith();
+      expect(gate.appOpen, isTrue);
+      server.offline = true;
+      await register('Still waiting');
+
+      services.session.lock(null);
+      await services.session.closed;
+
+      await until(() => !gate.appOpen);
+      await until(() => scheduler.requested == 1);
+    });
+
+    test('waits for a background sync to finish before its own', () async {
+      await activateApp(services, server);
+      startWith();
+      gate.background = true;
+      var finished = false;
+      final running = auto.run().then((outcome) => finished = true);
+
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+      expect(finished, isFalse);
+      gate.background = false;
+
+      await running;
+      expect(finished, isTrue);
+    });
+
+    test('with nothing waiting, checks often but syncs only every pullEvery', () async {
+      await activateApp(services, server); // syncs once at activation
+      await services.session.sync();
+      startWith(every: const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      final before = server.requests.where((r) => r == 'POST /auth/refresh').length;
+
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+
+      expect(server.requests.where((r) => r == 'POST /auth/refresh').length, before);
+    });
   });
 
   test('a sync that starts while another runs joins it', () async {

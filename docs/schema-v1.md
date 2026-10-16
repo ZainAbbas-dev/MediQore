@@ -56,6 +56,7 @@ Each change is a new migration in `db/migrations/`; v1's files are not edited.
 | `lhw-previous-area` | `lhw_profiles.previous_area_id`: the area before the last reassignment, so records a phone made there and syncs late keep that area | M1 FE-3 |
 | `final-scope-data-model` | Brings v1 up to the updated final scope and the roadmap of 10 Oct 2026, listed below | P0-4 |
 | `activation-replaces-otp` | Drops `otp_codes` and the index on phones waiting for approval; adds indexes on activated phones and on unused activation codes. A phone is activated when `devices.activated_at` is set; phones approved under the earlier scheme must be activated again | M1 FE-2 |
+| `refresh-token-replacement` | `refresh_tokens.replaced_by`: the token that replaced a used one, so a token whose answer was lost on a weak network can be used once more while its replacement is unused | M1 FE-2, M3 FE-2 |
 | `device-last-sync` | `devices.last_sync_at`: the server's time of the phone's latest push or pull, for each LHW's last sync on the dashboard, even when the phone had nothing new to send | M10 FE-1 |
 
 ### What `final-scope-data-model` changes

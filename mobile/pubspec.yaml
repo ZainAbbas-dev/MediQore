@@ -11,6 +11,7 @@ environment:
   flutter: ">=3.47.0"
 
 dependencies:
+  connectivity_plus: ^7.3.1
   crypto: ^3.0.7
   drift: ^2.35.1
   drift_flutter: ^0.3.1
@@ -27,6 +28,7 @@ dependencies:
   sqlite3: ^3.5.2
   url_launcher: ^6.3.3
   uuid: ^4.6.0
+  workmanager: ^0.10.10
 
 dev_dependencies:
   flutter_test:
