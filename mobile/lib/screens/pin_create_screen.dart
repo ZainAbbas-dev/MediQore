@@ -126,7 +126,7 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
                 children: [
                   Text(stepText, textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
                   const SizedBox(height: 12),
-                  if (_error != null) ...[NoticeCard(text: _error!, warning: true), const SizedBox(height: 12)],
+                  if (_error != null) ...[NoticeCard(text: _error!, tone: NoticeTone.problem), const SizedBox(height: 12)],
                   if (_busy)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 24),

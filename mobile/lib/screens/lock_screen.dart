@@ -118,7 +118,7 @@ class _LockScreenState extends State<LockScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (deactivated) ...[
-                    NoticeCard(text: l10n.loginDeactivated, warning: true),
+                    NoticeCard(text: l10n.loginDeactivated, tone: NoticeTone.problem),
                     const SizedBox(height: 12),
                     LargeButton(
                       label: l10n.homeSignInAgainButton,
@@ -130,7 +130,7 @@ class _LockScreenState extends State<LockScreen> {
                       NoticeCard(text: notice),
                       const SizedBox(height: 12),
                     ],
-                    if (_error != null) ...[NoticeCard(text: _error!, warning: true), const SizedBox(height: 12)],
+                    if (_error != null) ...[NoticeCard(text: _error!, tone: NoticeTone.problem), const SizedBox(height: 12)],
                     if (waiting) ...[_WaitCard(wait: _wait), const SizedBox(height: 16)],
                     if (_checking)
                       const Padding(

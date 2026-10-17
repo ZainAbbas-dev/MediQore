@@ -104,27 +104,28 @@ class _PinResetScreenState extends State<PinResetScreen> {
                     number: 2,
                     title: l10n.resetStep2,
                     children: [
-                      AppTextField(
+                      // The card's heading is the field's label.
+                      Semantics(
                         label: l10n.resetStep2,
-                        controller: _reply,
-                        ltr: true,
-                        keyboardType: TextInputType.number,
-                        maxLength: 9,
+                        child: AppTextField(
+                          controller: _reply,
+                          ltr: true,
+                          keyboardType: TextInputType.number,
+                          maxLength: 9,
+                          code: true,
+                        ),
                       ),
-                      if (_error != null) NoticeCard(text: _error!, warning: true),
-                      LargeButton(
-                        label: l10n.resetCheckButton,
-                        icon: Icons.lock_reset,
-                        onPressed: _checking ? null : () => _check(l10n),
-                      ),
+                      if (_error != null) NoticeCard(text: _error!, tone: NoticeTone.problem),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    l10n.resetNote,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText),
+                  const SizedBox(height: 16),
+                  LargeButton(
+                    label: l10n.resetCheckButton,
+                    icon: Icons.lock_reset,
+                    onPressed: _checking ? null : () => _check(l10n),
                   ),
+                  const SizedBox(height: 16),
+                  InfoPanel(text: l10n.resetNote, icon: Icons.shield_outlined),
                   const SizedBox(height: 16),
                   EmergencyCallButton(services: widget.services, label: l10n.resetCallSupervisor),
                 ],

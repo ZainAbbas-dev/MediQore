@@ -161,7 +161,7 @@
   "savedOnPhone": "یہ ریکارڈ فون میں محفوظ ہے اور اگلی سنک پر سرور کو بھیج دیا جائے گا۔",
   "savedOpenFile": "اس کی فائل کھولیں",
   "savedRegisterAnother": "ایک اور خاتون کا اندراج",
-  "savedDone": "مکمل",
+  "savedDone": "ہوم پر جائیں",
   "patientsTitle": "رجسٹرڈ خواتین",
   "patientsSearch": "تلاش: نام، مریضہ آئی ڈی یا گاؤں",
   "patientsEmpty": "اس فون میں ابھی کوئی خاتون رجسٹرڈ نہیں۔",
@@ -299,5 +299,12 @@
   "settingsTestingSection": "ٹیسٹنگ",
   "syncSent": "بھیج دیا گیا",
   "syncInProgress": "سنک ہو رہا ہے…",
-  "patientsNewButton": "نیا اندراج"
+  "patientsNewButton": "نیا اندراج",
+  "fieldShowPassword": "پاس ورڈ دکھائیں",
+  "fieldHidePassword": "پاس ورڈ چھپائیں",
+  "pulseCountedLabel": "دھڑکنیں گنی گئیں",
+  "pulseResultLabel": "نبض",
+  "statusChipOffline": "آف لائن",
+  "statusChipPending": "{count} باقی",
+  "statusChipSynced": "سب بھیج دیا"
 }

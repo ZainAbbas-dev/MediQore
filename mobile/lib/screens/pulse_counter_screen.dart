@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
+import '../widgets/app_cards.dart';
 import '../widgets/curved_header.dart';
 
 class PulseCounterScreen extends StatefulWidget {
@@ -77,20 +78,13 @@ class _PulseCounterScreenState extends State<PulseCounterScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          CurvedHeader(title: l10n.pulseTitle),
+          CurvedHeader(title: l10n.pulseTitle, close: true),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(l10n.pulseIntro, textAlign: TextAlign.center, style: theme.textTheme.bodyLarge),
-                  Text(
-                    l10n.pulseMultiplyNote(widget.seconds, widget.multiplier),
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText),
-                  ),
-                  const SizedBox(height: 16),
                   Semantics(
                     liveRegion: true,
                     child: Text(
@@ -100,66 +94,94 @@ class _PulseCounterScreenState extends State<PulseCounterScreen> {
                       style: theme.textTheme.displaySmall?.copyWith(
                         fontWeight: FontWeight.w800,
                         color: AppColors.primaryDark,
+                        height: 1.1,
                       ),
                     ),
                   ),
+                  Text(
+                    _done
+                        ? l10n.pulseDone(widget.seconds)
+                        : _running
+                        ? ''
+                        : l10n.pulseTapToStart,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText),
+                  ),
                   const SizedBox(height: 16),
-                  if (!_done)
-                    Center(
+                  // The big button in a light teal ring (final design 16); it
+                  // keeps the count when the time is up.
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: const BoxDecoration(color: AppColors.primaryLight, shape: BoxShape.circle),
                       child: SizedBox.square(
-                        dimension: 200,
+                        dimension: 180,
                         child: FilledButton(
-                          onPressed: _beat,
-                          style: FilledButton.styleFrom(shape: const CircleBorder(), padding: EdgeInsets.zero),
+                          onPressed: _done ? null : _beat,
+                          style: FilledButton.styleFrom(
+                            shape: const CircleBorder(),
+                            padding: EdgeInsets.zero,
+                            disabledBackgroundColor: AppColors.primary,
+                            disabledForegroundColor: Colors.white,
+                          ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.favorite, size: 48),
-                              Text(
-                                l10n.pulseTapButton,
-                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-                              ),
+                              Icon(_done ? Icons.favorite_border : Icons.favorite, size: 44),
                               Text(
                                 '$_beats',
                                 textDirection: TextDirection.ltr,
-                                style: const TextStyle(
-                                  fontSize: 34,
-                                  fontWeight: FontWeight.w800,
-                                  fontFamily: 'sans-serif',
-                                ),
+                                style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w800, fontFamily: 'sans-serif', height: 1.1),
+                              ),
+                              Text(
+                                _done ? l10n.pulseCountedLabel : l10n.pulseTapButton,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                               ),
                             ],
                           ),
                         ),
                       ),
-                    )
-                  else
+                    ),
+                  ),
+                  // The explanation under the button, so the button is always in
+                  // sight, even on a small phone.
+                  if (!_done) ...[
+                    const SizedBox(height: 20),
+                    InfoPanel(
+                      text: '${l10n.pulseIntro} ${l10n.pulseMultiplyNote(widget.seconds, widget.multiplier)}',
+                      icon: Icons.touch_app_outlined,
+                    ),
+                  ],
+                  if (_done) ...[
+                    const SizedBox(height: 20),
                     Card(
                       child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        child: Row(
                           children: [
-                            Text(l10n.pulseDone(widget.seconds), style: theme.textTheme.titleMedium),
-                            Text(l10n.pulseBeats(_beats), style: theme.textTheme.bodyLarge),
-                            const SizedBox(height: 8),
                             Text(
-                              '$_beats × ${widget.multiplier} = $pulse ${l10n.unitPerMinute}',
-                              textDirection: TextDirection.ltr,
-                              style: theme.textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.primary,
+                              l10n.pulseResultLabel,
+                              style: theme.textTheme.titleMedium?.copyWith(color: AppColors.mutedText),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: AlignmentDirectional.centerEnd,
+                                child: Text(
+                                  '$_beats × ${widget.multiplier} = $pulse ${l10n.unitPerMinute}',
+                                  textDirection: TextDirection.ltr,
+                                  style: theme.textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                  if (!_running && !_done) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      l10n.pulseTapToStart,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText),
                     ),
                   ],
                 ],
@@ -173,15 +195,18 @@ class _PulseCounterScreenState extends State<PulseCounterScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    flex: 2,
-                    child: OutlinedButton(onPressed: _beats == 0 ? null : _restart, child: Text(l10n.pulseRestart)),
+                    child: OutlinedButton(
+                      onPressed: _beats == 0 ? null : _restart,
+                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
+                      child: Text(l10n.pulseRestart, textAlign: TextAlign.center),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    flex: 3,
                     child: FilledButton(
                       onPressed: _done && _beats > 0 ? () => Navigator.of(context).pop(pulse) : null,
-                      child: Text(l10n.pulseUse),
+                      style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
+                      child: Text(l10n.pulseUse, textAlign: TextAlign.center),
                     ),
                   ),
                 ],

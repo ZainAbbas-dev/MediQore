@@ -78,6 +78,7 @@ void main() {
       expect(session().canSync, isTrue);
       expect(session().user!.areaName, 'Demo Area 1');
       expect(await localHouseholds(), 1, reason: 'the area was downloaded at activation');
+      expect(await session().data!.db.lastSyncAt(), isNotNull, reason: 'the home screen shows the activation as the last sync');
       expect(secure.values.keys, containsAll([SecureKeys.databaseKey, SecureKeys.activationSecret, SecureKeys.refreshToken, SecureKeys.pin]));
       expect(base64Decode(secure.values[SecureKeys.databaseKey]!), hasLength(32), reason: 'a random 256-bit key');
       expect(secure.values[SecureKeys.pin], isNot(contains('246810')));

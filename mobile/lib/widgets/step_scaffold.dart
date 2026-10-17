@@ -1,10 +1,12 @@
 // A data entry wizard from the final design (screens 8–11 and 15–18): the
-// step line ("Step 2 of 4 · Pregnancy") with a progress bar, the step's
-// content, and Back / Next at the bottom, always in reach of the thumb.
+// teal header with the close button, the title and the step line ("Step 2 of
+// 4 · Pregnancy") with a progress bar, the sync status, the step's content, and
+// Back / Next at the bottom, always in reach of the thumb.
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
+import 'curved_header.dart';
 
 class StepScaffold extends StatelessWidget {
   const StepScaffold({
@@ -37,11 +39,11 @@ class StepScaffold extends StatelessWidget {
   final String nextLabel;
   final VoidCallback? onNext;
 
-  /// The previous step; hidden on the first step (the app bar's back button
+  /// The previous step; hidden on the first step (the header's close button
   /// leaves the form).
   final VoidCallback? onBack;
 
-  /// For example the offline status bar.
+  /// The sync state, at the end of the header: a compact [LiveStatusBar].
   final Widget? statusBar;
 
   /// Disables both buttons, for example while saving.
@@ -52,32 +54,20 @@ class StepScaffold extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: subtitle == null
-            ? Text(title)
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title),
-                  Text(
-                    subtitle!,
-                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.9)),
-                  ),
-                ],
-              ),
-      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ?statusBar,
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+          CurvedHeader(
+            title: title,
+            subtitle: subtitle,
+            close: true,
+            actions: [?statusBar],
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
                   l10n.stepOf(step, total, stepName),
-                  style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText),
+                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.9)),
                 ),
                 const SizedBox(height: 6),
                 Semantics(
@@ -91,7 +81,7 @@ class StepScaffold extends StatelessWidget {
                           child: Container(
                             height: 6,
                             decoration: BoxDecoration(
-                              color: i <= step ? AppColors.primary : AppColors.primaryLight,
+                              color: i <= step ? Colors.white : Colors.white.withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(3),
                             ),
                           ),

@@ -100,8 +100,13 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
     final file = _file;
     if (file == null) {
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.fileTitle)),
-        body: const Center(child: CircularProgressIndicator()),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            CurvedHeader(title: l10n.fileTitle),
+            const Expanded(child: Center(child: CircularProgressIndicator())),
+          ],
+        ),
       );
     }
 
@@ -187,6 +192,19 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
                   gap,
                   LargeButton(label: l10n.fileNewVisitButton, icon: Icons.add, onPressed: () => _newVisit(file, l10n)),
                 ],
+                if (pregnancy != null) ...[
+                  gap,
+                  SectionCard(
+                    title: l10n.fileVisitsSection,
+                    icon: Icons.event_note,
+                    children: [
+                      if (_visits.isEmpty)
+                        EmptyNote(text: l10n.fileNoVisits, icon: Icons.event_busy_outlined)
+                      else
+                        for (final visit in _visits) _VisitCard(visit),
+                    ],
+                  ),
+                ],
                 if (history != null && rules != null) ...[
                   gap,
                   SectionCard(
@@ -259,20 +277,6 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
                       ),
                     ],
                   ),
-                  gap,
-                  SectionCard(
-                    title: l10n.fileVisitsSection,
-                    icon: Icons.event_note,
-                    children: [
-                      if (_visits.isEmpty)
-                        Text(
-                          l10n.fileNoVisits,
-                          style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.outline),
-                        )
-                      else
-                        for (final visit in _visits) _VisitCard(visit),
-                    ],
-                  ),
                 ],
                 if (history != null) ...[
                   gap,
@@ -342,12 +346,14 @@ class _VisitCard extends StatelessWidget {
     String number(double value) => value == value.roundToDouble() ? '${value.toInt()}' : '$value';
     final readings = [
       if (v.systolicBpMmhg != null && v.diastolicBpMmhg != null)
-        (l10n.visitBloodPressure, '${v.systolicBpMmhg}/${v.diastolicBpMmhg} ${l10n.unitMmHg}'),
-      if (v.weightKg != null) (l10n.fieldWeight, '${number(v.weightKg!)} ${l10n.unitKg}'),
-      if (v.temperatureC != null) (l10n.fieldTemperature, '${number(v.temperatureC!)} ${l10n.unitCelsius}'),
-      if (v.pulseBpm != null) (l10n.fieldPulse, '${v.pulseBpm} ${l10n.unitPerMinute}'),
+        (Icons.favorite_border, l10n.visitBloodPressure, '${v.systolicBpMmhg}/${v.diastolicBpMmhg} ${l10n.unitMmHg}'),
+      if (v.weightKg != null) (Icons.monitor_weight_outlined, l10n.fieldWeight, '${number(v.weightKg!)} ${l10n.unitKg}'),
+      if (v.temperatureC != null)
+        (Icons.thermostat, l10n.fieldTemperature, '${number(v.temperatureC!)} ${l10n.unitCelsius}'),
+      if (v.pulseBpm != null) (Icons.monitor_heart_outlined, l10n.fieldPulse, '${v.pulseBpm} ${l10n.unitPerMinute}'),
       if (v.bloodSugarMmolL != null)
         (
+          Icons.water_drop_outlined,
           l10n.fieldBloodSugar,
           [
             '${number(v.bloodSugarMmolL!)} ${l10n.unitMmolL}',
@@ -387,40 +393,89 @@ class _VisitCard extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.background,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: danger.isEmpty ? AppColors.border : AppColors.statusProblem, width: danger.isEmpty ? 1 : 1.5),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // The phone's clock, shown as it is; never used to order visits (LI-7).
-            Text(
-              DateFormat.yMMMMd(locale).add_jm().format(v.visitedAt.toLocal()),
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                // The phone's clock, shown as it is; never used to order visits (LI-7).
+                Text(
+                  DateFormat.yMMMMd(locale).add_jm().format(v.visitedAt.toLocal()),
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                SyncStatusChip(summary.syncStatus),
+              ],
             ),
-            const SizedBox(height: 4),
-            Align(alignment: AlignmentDirectional.centerStart, child: SyncStatusChip(summary.syncStatus)),
             const SizedBox(height: 8),
-            for (final (label, value) in readings)
-              Padding(padding: const EdgeInsets.only(bottom: 4), child: InfoRow(label, value, ltr: true)),
+            // Each reading with its icon; the unit tells which one it is.
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [for (final (icon, label, value) in readings) _Reading(icon: icon, label: label, value: value)],
+            ),
             const SizedBox(height: 4),
             Text(
               '${l10n.visitSigns}: ${signs.isEmpty ? l10n.visitNoSigns : signs.join(l10n.listSeparator)}',
               style: theme.textTheme.bodyMedium,
             ),
             if (danger.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                '${l10n.visitStepDanger}: ${danger.join(l10n.listSeparator)}',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.statusProblem,
-                  fontWeight: FontWeight.w600,
-                ),
+              const SizedBox(height: 8),
+              NoticeCard(
+                text: '${l10n.visitStepDanger}: ${danger.join(l10n.listSeparator)}',
+                tone: NoticeTone.problem,
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One reading of a visit as a small white chip: its icon and value, with the
+/// reading's name for screen readers.
+class _Reading extends StatelessWidget {
+  const _Reading({required this.icon, required this.label, required this.value});
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: label,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: AppColors.primary),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  value,
+                  textDirection: TextDirection.ltr,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

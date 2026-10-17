@@ -10,7 +10,9 @@ import 'app_colors.dart';
 ///   for Nastaliq script. Latin letters and digits inside Urdu screens (names
 ///   typed in English, IDs, numbers) use the phone's standard Latin font, so
 ///   they look the same as in English.
-/// - English: the phone's standard Latin font with normal line height.
+/// - English: the phone's standard Latin font with normal line height. Urdu
+///   names typed by the LHW still show in Nastaliq through the fallback, never
+///   as empty boxes.
 ///
 /// Right-to-left or left-to-right layout comes from the locale set in [MediQoreApp].
 abstract final class AppTheme {
@@ -49,13 +51,14 @@ abstract final class AppTheme {
       outline: AppColors.fieldBorder,
       outlineVariant: AppColors.border,
     );
-    // In Urdu: the phone's Latin font first, then the Urdu font for the letters
-    // it does not have. Urdu words come out in Nastaliq; Latin text and digits
-    // keep the standard font instead of the Urdu font's own Latin letters.
+    // The phone's Latin font first, then the Urdu font for the letters it does
+    // not have. Urdu words come out in Nastaliq; Latin text and digits keep the
+    // standard font instead of the Urdu font's own Latin letters. English
+    // screens need the fallback too, for names written in Urdu.
     final base = ThemeData(
       colorScheme: colorScheme,
       fontFamily: urdu ? latinFontFamily : null,
-      fontFamilyFallback: urdu ? const [urduFontFamily] : null,
+      fontFamilyFallback: const [urduFontFamily],
       materialTapTargetSize: MaterialTapTargetSize.padded,
       scaffoldBackgroundColor: AppColors.background,
     );

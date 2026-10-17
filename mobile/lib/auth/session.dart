@@ -260,12 +260,12 @@ class Session extends ChangeNotifier {
     _accessToken = tokens.accessToken;
     _refreshToken = tokens.refreshToken;
 
-    // The area's records (M1 FE-1): first send what an earlier version left.
+    // The area's records (M1 FE-1): first send what an earlier version left,
+    // then download. A full sync, so the home screen shows when it happened.
     _downloading = true;
     notifyListeners();
     try {
-      if (kept) await data.sync.push(tokens.accessToken);
-      await data.sync.pull(tokens.accessToken);
+      await data.sync.syncNow(tokens.accessToken);
     } on Object catch (error) {
       if (!isNetworkError(error) && error is! ApiException) rethrow;
       // Activated anyway; the next sync downloads the rest.

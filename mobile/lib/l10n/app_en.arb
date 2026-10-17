@@ -746,7 +746,7 @@
   "@savedRegisterAnother": {
     "description": "Button after saving a registration."
   },
-  "savedDone": "Done",
+  "savedDone": "Go to home",
   "@savedDone": {
     "description": "Button after saving a registration."
   },
@@ -1416,5 +1416,38 @@
   "patientsNewButton": "New registration",
   "@patientsNewButton": {
     "description": "Registered women: the button that opens the registration form."
+  },
+  "fieldShowPassword": "Show password",
+  "@fieldShowPassword": {
+    "description": "Tooltip of the eye button in a password field that shows the typed password."
+  },
+  "fieldHidePassword": "Hide password",
+  "@fieldHidePassword": {
+    "description": "Tooltip of the eye button in a password field that hides the password again."
+  },
+  "pulseCountedLabel": "beats counted",
+  "@pulseCountedLabel": {
+    "description": "Pulse counter: under the number of beats in the big button once the time is up."
+  },
+  "pulseResultLabel": "Pulse",
+  "@pulseResultLabel": {
+    "description": "Pulse counter: label of the result card (count × multiplier = pulse per minute)."
+  },
+  "statusChipOffline": "Offline",
+  "@statusChipOffline": {
+    "description": "Short sync state in the header of a data entry screen: the phone has no connection."
+  },
+  "statusChipPending": "{count} waiting",
+  "@statusChipPending": {
+    "description": "Short sync state in the header of a data entry screen: records waiting to be sent.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statusChipSynced": "Synced",
+  "@statusChipSynced": {
+    "description": "Short sync state in the header of a data entry screen: everything has been sent."
   }
 }

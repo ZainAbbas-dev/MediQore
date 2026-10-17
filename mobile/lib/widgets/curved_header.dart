@@ -19,6 +19,7 @@ class CurvedHeader extends StatelessWidget {
     this.child,
     this.overlap = 0,
     this.showBack,
+    this.close = false,
   });
 
   final String title;
@@ -33,6 +34,10 @@ class CurvedHeader extends StatelessWidget {
 
   /// Shows the back button; by default only when the screen can go back.
   final bool? showBack;
+
+  /// A close (X) button instead of the back arrow, for a form that is left
+  /// without saving (the registration and visit wizards).
+  final bool close;
 
   @override
   Widget build(BuildContext context) {
@@ -58,8 +63,10 @@ class CurvedHeader extends StatelessWidget {
                   children: [
                     if (canPop) ...[
                       HeaderIconButton(
-                        icon: const BackButtonIcon(),
-                        tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                        icon: close ? const Icon(Icons.close) : const BackButtonIcon(),
+                        tooltip: close
+                            ? MaterialLocalizations.of(context).closeButtonTooltip
+                            : MaterialLocalizations.of(context).backButtonTooltip,
                         onPressed: () => Navigator.of(context).maybePop(),
                       ),
                       const SizedBox(width: 8),

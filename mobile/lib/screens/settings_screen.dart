@@ -8,9 +8,11 @@ import 'package:flutter/material.dart';
 import '../app_services.dart';
 import '../build_flags.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 import '../widgets/app_cards.dart';
+import '../widgets/curved_header.dart';
 import '../widgets/language_switch.dart';
-import '../widgets/large_button.dart';
 import 'dev_home_screen.dart';
 import 'pin_create_screen.dart';
 
@@ -51,67 +53,167 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     final session = services.session;
     final user = session.user;
     if (user == null) return const SizedBox.shrink(); // locked; the app shows the lock screen
-    const gap = SizedBox(height: 12);
+    const gap = SizedBox(height: 20);
+    final place = [?user.lhwCode, ?user.areaName].join(' · ');
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.homeSettingsSection)),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.zero,
         children: [
-          SectionCard(
-            title: l10n.languageLabel,
-            icon: Icons.translate,
-            children: [LanguageChoice(settings: services.settings)],
-          ),
-          gap,
-          SectionCard(
-            title: l10n.settingsAccountSection,
-            icon: Icons.person,
-            children: [
-              InfoRow(l10n.settingsName, user.fullName),
-              if (user.lhwCode != null) InfoRow(l10n.loginUsername, user.lhwCode, ltr: true),
-              if (user.areaName != null) InfoRow(l10n.settingsArea, user.areaName),
-              const SizedBox(height: 4),
-              LargeButton(
-                label: l10n.pinChangeTitle,
-                icon: Icons.pin,
-                secondary: true,
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => PinCreateScreen(services: services, mode: PinCreateMode.change),
+          CurvedHeader(title: l10n.homeSettingsSection, overlap: _profileOverlap),
+          Transform.translate(
+            offset: const Offset(0, -_profileOverlap),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      InitialAvatar(user.fullName, radius: 28),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(user.fullName, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                            if (place.isNotEmpty)
+                              Text(place, style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              LargeButton(label: l10n.homeLockButton, icon: Icons.lock, secondary: true, onPressed: () => session.lock(null)),
-              LargeButton(
-                label: l10n.homeSignOutButton,
-                icon: Icons.logout,
-                secondary: true,
-                onPressed: () => _signOut(context),
-              ),
-            ],
+            ),
           ),
-          if (kDebugMode || testBuild) ...[
-            gap,
-            SectionCard(
-              title: l10n.settingsTestingSection,
-              icon: Icons.build,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                InfoRow(l10n.loginServerLabel, services.serverAddress, ltr: true),
-                LargeButton(
-                  label: l10n.devHomeTitle,
-                  icon: Icons.checklist,
-                  secondary: true,
-                  onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => DevHomeScreen(services: services))),
+                _SectionLabel(icon: Icons.translate, text: l10n.languageLabel),
+                LanguageChoice(settings: services.settings),
+                gap,
+                _SectionLabel(icon: Icons.person_outline, text: l10n.settingsAccountSection),
+                Card(
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      _ActionTile(
+                        icon: Icons.key_outlined,
+                        label: l10n.pinChangeTitle,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => PinCreateScreen(services: services, mode: PinCreateMode.change),
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      _ActionTile(icon: Icons.lock_outline, label: l10n.homeLockButton, onTap: () => session.lock(null)),
+                      const Divider(height: 1),
+                      _ActionTile(
+                        icon: Icons.logout,
+                        label: l10n.homeSignOutButton,
+                        danger: true,
+                        onTap: () => _signOut(context),
+                      ),
+                    ],
+                  ),
                 ),
+                if (kDebugMode || testBuild) ...[
+                  gap,
+                  _SectionLabel(icon: Icons.build_outlined, text: l10n.settingsTestingSection),
+                  Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                          child: InfoRow(l10n.loginServerLabel, services.serverAddress, ltr: true),
+                        ),
+                        const Divider(height: 1),
+                        _ActionTile(
+                          icon: Icons.checklist,
+                          label: l10n.devHomeTitle,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(builder: (_) => DevHomeScreen(services: services)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
-          ],
+          ),
         ],
       ),
+    );
+  }
+
+  /// How far the profile card reaches over the header.
+  static const double _profileOverlap = 40;
+}
+
+/// A small heading above a group of settings.
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(4, 0, 4, 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One action in a settings card: an icon in a soft circle, the label and an
+/// arrow. [danger] shows it in red (sign out).
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({required this.icon, required this.label, required this.onTap, this.danger = false});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = danger ? AppColors.statusProblem : AppColors.primaryDark;
+    return ListTile(
+      minTileHeight: AppTheme.largeControlHeight + 4,
+      leading: CircleAvatar(
+        radius: 20,
+        backgroundColor: danger ? AppColors.statusProblemBackground : AppColors.primarySoft,
+        child: Icon(icon, color: color, size: 22),
+      ),
+      title: Text(
+        label,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(color: danger ? color : AppColors.text),
+      ),
+      trailing: Icon(Icons.chevron_right, size: 22, color: AppColors.mutedText),
+      onTap: onTap,
     );
   }
 }

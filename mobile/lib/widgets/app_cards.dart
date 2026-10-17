@@ -158,33 +158,107 @@ class StatusPill extends StatelessWidget {
   }
 }
 
-/// A notice inside a screen: information, or a warning in the error colour.
+/// How a [NoticeCard] reads: plain information, something that needs
+/// attention soon (amber), a problem (red) or a step that went well (green).
+enum NoticeTone { info, attention, problem, success }
+
+/// A notice inside a screen, in the colour of its [tone].
 class NoticeCard extends StatelessWidget {
-  const NoticeCard({super.key, required this.text, this.warning = false, this.icon});
+  const NoticeCard({super.key, required this.text, this.tone = NoticeTone.info, this.icon});
 
   final String text;
-  final bool warning;
+  final NoticeTone tone;
   final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
-    final (foreground, background) = warning
-        ? (AppColors.statusProblem, AppColors.statusProblemBackground)
-        : (AppColors.statusOffline, AppColors.statusOfflineBackground);
+    final (foreground, background, defaultIcon) = switch (tone) {
+      NoticeTone.info => (AppColors.statusOffline, AppColors.statusOfflineBackground, Icons.info_outline),
+      NoticeTone.attention => (AppColors.statusPending, AppColors.statusPendingBackground, Icons.schedule),
+      NoticeTone.problem => (AppColors.statusProblem, AppColors.statusProblemBackground, Icons.warning_amber),
+      NoticeTone.success => (AppColors.statusSynced, AppColors.statusSyncedBackground, Icons.check_circle_outline),
+    };
     return DecoratedBox(
-      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: foreground.withValues(alpha: 0.25)),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon ?? (warning ? Icons.warning_amber : Icons.info_outline), color: foreground, size: 22),
+            Icon(icon ?? defaultIcon, color: foreground, size: 22),
             const SizedBox(width: 10),
             Expanded(
               child: Text(text, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: foreground)),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A soft teal panel with an info icon, for a short explanation under a form
+/// (final design screens 1, 2 and 5).
+class InfoPanel extends StatelessWidget {
+  const InfoPanel({super.key, required this.text, this.icon = Icons.info_outline});
+
+  final String text;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(color: AppColors.primarySoft, borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: AppColors.primaryDark, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                text,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.primaryDark),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// An empty list, said kindly: a soft icon and a line of text, centred (no
+/// visits yet, no women registered).
+class EmptyNote extends StatelessWidget {
+  const EmptyNote({super.key, required this.text, required this.icon});
+
+  final String text;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 28,
+            backgroundColor: AppColors.primarySoft,
+            child: Icon(icon, size: 30, color: AppColors.primary),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.mutedText),
+          ),
+        ],
       ),
     );
   }

@@ -19,6 +19,8 @@ import '../data/patient_repository.dart';
 import '../data/visit_repository.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
+import '../widgets/app_cards.dart';
+import '../widgets/curved_header.dart';
 import '../widgets/form_fields.dart';
 import '../widgets/offline_status_bar.dart';
 import '../widgets/step_scaffold.dart';
@@ -303,8 +305,13 @@ class _VisitScreenState extends State<VisitScreen> {
     final ranges = _ranges;
     if (ranges == null) {
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.visitTitle)),
-        body: const Center(child: CircularProgressIndicator()),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            CurvedHeader(title: l10n.visitTitle),
+            const Expanded(child: Center(child: CircularProgressIndicator())),
+          ],
+        ),
       );
     }
     final (name, content, nextLabel) = switch (_step) {
@@ -318,7 +325,7 @@ class _VisitScreenState extends State<VisitScreen> {
       step: _step + 1,
       total: _steps,
       stepName: name,
-      statusBar: LiveStatusBar(services: _services),
+      statusBar: LiveStatusBar(services: _services, compact: true),
       busy: _saving,
       onBack: _step == 0 ? null : () => setState(() => _step--),
       nextLabel: nextLabel,
@@ -353,11 +360,13 @@ class _VisitScreenState extends State<VisitScreen> {
               unit: l10n.unitMmHg,
               controller: _systolic,
               validator: _vital('systolicBpMmhg', l10n),
+              card: true,
             ),
             VitalField(
               label: l10n.fieldDiastolicBp,
               unit: l10n.unitMmHg,
               controller: _diastolic,
+              card: true,
               validator: (text) {
                 final problem = _vital('diastolicBpMmhg', l10n)(text);
                 if (problem != null) return problem;
@@ -374,6 +383,7 @@ class _VisitScreenState extends State<VisitScreen> {
               controller: _weight,
               decimals: ranges['weightKg'].decimals,
               validator: _vital('weightKg', l10n),
+              card: true,
             ),
             VitalField(
               label: l10n.fieldTemperature,
@@ -381,78 +391,63 @@ class _VisitScreenState extends State<VisitScreen> {
               controller: _temperature,
               decimals: ranges['temperatureC'].decimals,
               validator: _vital('temperatureC', l10n),
+              card: true,
             ),
           ),
           gap,
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  VitalField(
-                    label: l10n.fieldPulse,
-                    unit: l10n.unitPerMinute,
-                    controller: _pulse,
-                    validator: _vital('pulseBpm', l10n),
-                  ),
-                  const SizedBox(height: 8),
-                  FilledButton.tonalIcon(
-                    onPressed: _countPulse,
-                    icon: const Icon(Icons.timer_outlined),
-                    label: Text(l10n.pulseCountButton(ranges.pulseCountSeconds)),
-                  ),
-                ],
+          VitalField(
+            label: l10n.fieldPulse,
+            unit: l10n.unitPerMinute,
+            controller: _pulse,
+            validator: _vital('pulseBpm', l10n),
+            card: true,
+            footer: [
+              FilledButton.tonalIcon(
+                onPressed: _countPulse,
+                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                icon: const Icon(Icons.timer_outlined),
+                label: Text(l10n.pulseCountButton(ranges.pulseCountSeconds)),
               ),
-            ),
+            ],
           ),
           gap,
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Directionality(
-                    textDirection: TextDirection.ltr,
-                    child: ChoiceButtons<bool>(
-                      options: [(false, l10n.unitMmolL), (true, l10n.unitMgDl)],
-                      selected: _sugarInMgDl,
-                      onSelected: (mgDl) => setState(() => _sugarInMgDl = mgDl),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  VitalField(
-                    key: ValueKey(_sugarInMgDl),
-                    label: l10n.fieldBloodSugar,
-                    unit: _sugarInMgDl ? l10n.unitMgDl : l10n.unitMmolL,
-                    controller: _sugar,
-                    decimals: _sugarInMgDl ? 0 : ranges['bloodSugarMmolL'].decimals,
-                    validator: _vital('bloodSugarMmolL', l10n, required: false),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  if (sugarGiven) ...[
-                    const SizedBox(height: 8),
-                    ChoiceButtons<String>(
-                      options: [('glucometer', l10n.sugarSourceGlucometer), ('lab_report', l10n.sugarSourceLab)],
-                      selected: _sugarSource,
-                      onSelected: (source) => setState(() => _sugarSource = source),
-                    ),
-                    FormField<void>(
-                      validator: (_) => _sugarSource == null ? l10n.sugarErrorSource : null,
-                      builder: (field) => field.hasError
-                          ? Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                field.errorText!,
-                                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
-                              ),
-                            )
-                          : const SizedBox.shrink(),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(l10n.sugarMeasuredOn, style: theme.textTheme.titleMedium),
-                    const SizedBox(height: 4),
+          VitalField(
+            key: ValueKey(_sugarInMgDl),
+            label: l10n.fieldBloodSugar,
+            unit: _sugarInMgDl ? l10n.unitMgDl : l10n.unitMmolL,
+            controller: _sugar,
+            decimals: _sugarInMgDl ? 0 : ranges['bloodSugarMmolL'].decimals,
+            validator: _vital('bloodSugarMmolL', l10n, required: false),
+            onChanged: (_) => setState(() {}),
+            card: true,
+            optional: true,
+            headerTrailing: _UnitToggle(
+              options: [(false, l10n.unitMmolL), (true, l10n.unitMgDl)],
+              selected: _sugarInMgDl,
+              onSelected: (mgDl) => setState(() => _sugarInMgDl = mgDl),
+            ),
+            footer: [
+              if (sugarGiven) ...[
+                ChoiceButtons<String>(
+                  options: [('glucometer', l10n.sugarSourceGlucometer), ('lab_report', l10n.sugarSourceLab)],
+                  selected: _sugarSource,
+                  onSelected: (source) => setState(() => _sugarSource = source),
+                ),
+                FormField<void>(
+                  validator: (_) => _sugarSource == null ? l10n.sugarErrorSource : null,
+                  builder: (field) => field.hasError
+                      ? Text(
+                          field.errorText!,
+                          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 6,
+                  children: [
+                    Text(l10n.sugarMeasuredOn, style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText)),
                     OutlinedButton.icon(
                       onPressed: _pickSugarDate,
                       style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
@@ -462,9 +457,9 @@ class _VisitScreenState extends State<VisitScreen> {
                       ),
                     ),
                   ],
-                ],
-              ),
-            ),
+                ),
+              ],
+            ],
           ),
         ],
       ),
@@ -547,11 +542,8 @@ class _VisitScreenState extends State<VisitScreen> {
           ),
           const SizedBox(height: 8),
         ],
-        Text(
-          l10n.decisionSupportNote,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall?.copyWith(color: AppColors.mutedText),
-        ),
+        // LI-5: the result is decision support only.
+        InfoPanel(text: l10n.decisionSupportNote, icon: Icons.medical_information_outlined),
       ],
     );
   }
@@ -617,6 +609,51 @@ class _DangerCard extends StatelessWidget {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A small two-way switch for a unit, in the corner of a vital card (final
+/// design 15: mmol/L or mg/dL). The units read left to right in both languages.
+class _UnitToggle extends StatelessWidget {
+  const _UnitToggle({required this.options, required this.selected, required this.onSelected});
+
+  final List<(bool, String)> options;
+  final bool selected;
+  final ValueChanged<bool> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: DecoratedBox(
+        decoration: BoxDecoration(color: AppColors.primarySoft, borderRadius: BorderRadius.circular(14)),
+        child: Padding(
+          padding: const EdgeInsets.all(3),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final (value, label) in options)
+                Semantics(
+                  selected: value == selected,
+                  child: OutlinedButton(
+                    onPressed: () => onSelected(value),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 44),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+                      side: BorderSide.none,
+                      backgroundColor: value == selected ? AppColors.primary : Colors.transparent,
+                      foregroundColor: value == selected ? Colors.white : AppColors.primaryDark,
+                      textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                    child: Text(label),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

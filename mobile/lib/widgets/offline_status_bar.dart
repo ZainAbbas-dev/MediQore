@@ -11,12 +11,17 @@ import '../theme/app_colors.dart';
 /// It only displays the state it is given; the sync engine (P0-6) supplies
 /// [isOnline] and [pendingCount].
 class OfflineStatusBar extends StatelessWidget {
-  const OfflineStatusBar({super.key, required this.isOnline, this.pendingCount = 0});
+  const OfflineStatusBar({super.key, required this.isOnline, this.pendingCount = 0, this.compact = false});
 
   final bool isOnline;
 
   /// Records still in the outbox.
   final int pendingCount;
+
+  /// A small white chip for the teal header of a data entry screen (final
+  /// design 15: the offline chip in the header), with the full message for
+  /// screen readers.
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +32,35 @@ class OfflineStatusBar extends StatelessWidget {
         ? (AppColors.statusPending, AppColors.statusPendingBackground, Icons.cloud_upload, l10n.statusOnlinePending(pendingCount))
         : (AppColors.statusSynced, AppColors.statusSyncedBackground, Icons.cloud_done, l10n.statusOnlineSynced);
 
+    if (compact) {
+      final short = !isOnline
+          ? l10n.statusChipOffline
+          : pendingCount > 0
+          ? l10n.statusChipPending(pendingCount)
+          : l10n.statusChipSynced;
+      return Semantics(
+        liveRegion: true,
+        label: message,
+        excludeSemantics: true,
+        child: DecoratedBox(
+          decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: foreground, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  short,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: foreground, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return Semantics(
       liveRegion: true,
       child: Material(
@@ -55,9 +89,12 @@ class OfflineStatusBar extends StatelessWidget {
 /// (M3 FE-2) and counts the records waiting on the phone when it opens and
 /// after each sync.
 class LiveStatusBar extends StatefulWidget {
-  const LiveStatusBar({super.key, required this.services});
+  const LiveStatusBar({super.key, required this.services, this.compact = false});
 
   final AppServices services;
+
+  /// See [OfflineStatusBar.compact].
+  final bool compact;
 
   @override
   State<LiveStatusBar> createState() => _LiveStatusBarState();
@@ -92,7 +129,11 @@ class _LiveStatusBarState extends State<LiveStatusBar> {
     return ListenableBuilder(
       listenable: services.autoSync,
       builder: (context, _) =>
-          OfflineStatusBar(isOnline: services.autoSync.online ?? services.session.canSync, pendingCount: _pending),
+          OfflineStatusBar(
+            isOnline: services.autoSync.online ?? services.session.canSync,
+            pendingCount: _pending,
+            compact: widget.compact,
+          ),
     );
   }
 }

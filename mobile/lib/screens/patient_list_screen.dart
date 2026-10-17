@@ -164,6 +164,13 @@ class _PatientListScreenState extends State<PatientListScreen> {
                 ButtonSegment(value: true, label: Text(l10n.patientsSortNearest), icon: const Icon(Icons.near_me_outlined)),
               ],
               selected: {byDistance || _locating},
+              style: SegmentedButton.styleFrom(
+                minimumSize: const Size(0, 52),
+                textStyle: theme.textTheme.titleSmall?.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
+                backgroundColor: AppColors.surface,
+                selectedBackgroundColor: AppColors.primaryLight,
+                selectedForegroundColor: AppColors.primaryDark,
+              ),
               onSelectionChanged: _locating ? null : (choice) => _sortNearest(choice.single),
             ),
           ),
@@ -181,15 +188,20 @@ class _PatientListScreenState extends State<PatientListScreen> {
           if (_locationProblem != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-              child: NoticeCard(text: locationProblemText(l10n, _locationProblem!), warning: true),
+              child: NoticeCard(text: locationProblemText(l10n, _locationProblem!), tone: NoticeTone.problem),
             ),
           Expanded(
             child: patients == null
                 ? const Center(child: CircularProgressIndicator())
                 : patients.isEmpty
-                ? Padding(
+                ? ListView(
                     padding: const EdgeInsets.all(16),
-                    child: NoticeCard(text: _total == 0 ? l10n.patientsEmpty : l10n.patientsNoMatch),
+                    children: [
+                      EmptyNote(
+                        text: _total == 0 ? l10n.patientsEmpty : l10n.patientsNoMatch,
+                        icon: _total == 0 ? Icons.groups_outlined : Icons.search_off,
+                      ),
+                    ],
                   )
                 // Room at the end so the last woman is not hidden under the button.
                 : ListView(padding: const EdgeInsets.fromLTRB(12, 0, 12, 96), children: rows),

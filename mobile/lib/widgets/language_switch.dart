@@ -58,7 +58,8 @@ class LanguageToggle extends StatelessWidget {
   }
 }
 
-/// The language choice in the settings: both languages, the current one ticked.
+/// The language choice in the settings (final design screen 7): both
+/// languages side by side, each in its own script, the current one filled.
 class LanguageChoice extends StatelessWidget {
   const LanguageChoice({super.key, required this.settings});
 
@@ -67,26 +68,61 @@ class LanguageChoice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     return ListenableBuilder(
       listenable: settings,
-      builder: (context, _) => Column(
-        children: [
-          for (final (index, locale) in AppSettings.languages.indexed) ...[
-            if (index > 0) const Divider(),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              minTileHeight: AppTheme.largeControlHeight,
-              selected: settings.locale == locale,
-              selectedColor: theme.colorScheme.primary,
-              title: languageName(l10n, locale, style: const TextStyle(fontSize: 18, color: Colors.black87)),
-              trailing: settings.locale == locale
-                  ? Icon(Icons.check_circle, color: theme.colorScheme.primary)
-                  : const Icon(Icons.circle_outlined, color: AppColors.border),
-              onTap: () => settings.setLocale(locale),
+      builder: (context, _) => DecoratedBox(
+        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(AppTheme.radius)),
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Row(
+            children: [
+              for (final (index, locale) in AppSettings.languages.indexed) ...[
+                if (index > 0) const SizedBox(width: 6),
+                Expanded(child: _LanguageOption(l10n: l10n, locale: locale, selected: settings.locale == locale, settings: settings)),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LanguageOption extends StatelessWidget {
+  const _LanguageOption({required this.l10n, required this.locale, required this.selected, required this.settings});
+
+  final AppLocalizations l10n;
+  final Locale locale;
+  final bool selected;
+  final AppSettings settings;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? Colors.white : AppColors.text;
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: Material(
+        color: selected ? AppColors.primary : Colors.transparent,
+        shape: const StadiumBorder(),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: () => settings.setLocale(locale),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 52),
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (selected) ...[Icon(Icons.check, size: 20, color: color), const SizedBox(width: 6)],
+                  Flexible(
+                    child: languageName(l10n, locale, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: color)),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ],
+          ),
+        ),
       ),
     );
   }

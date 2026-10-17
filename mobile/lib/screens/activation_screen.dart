@@ -11,6 +11,7 @@ import '../auth/session.dart';
 import '../build_flags.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 import '../widgets/app_cards.dart';
 import '../widgets/form_fields.dart';
 import '../widgets/language_switch.dart';
@@ -118,49 +119,74 @@ class _ActivationScreenState extends State<ActivationScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _Header(services: widget.services, onLongPressLogo: widget.showServerSetting && !_busy ? _changeServer : null),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(l10n.activateTitle, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 12),
-                      AppTextField(label: l10n.loginUsername, controller: _username, ltr: true),
-                      const SizedBox(height: 12),
-                      AppTextField(label: l10n.fieldPassword, controller: _password, obscureText: true, ltr: true),
-                      const SizedBox(height: 12),
-                      AppTextField(label: l10n.activateCodeLabel, controller: _code, ltr: true, maxLength: 9),
-                      const SizedBox(height: 8),
-                      if (message != null) ...[
-                        NoticeCard(text: message, warning: _error != null),
-                        const SizedBox(height: 12),
-                      ],
-                      if (_busy) ...[
-                        Row(
+            // The form card sits over the header's lower edge (final design 1).
+            Transform.translate(
+              offset: const Offset(0, -_Header.overlap),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 3)),
-                            const SizedBox(width: 12),
-                            Expanded(child: Text(l10n.activateBusy)),
+                            Text(
+                              l10n.activateTitle,
+                              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 12),
+                            AppTextField(
+                              label: l10n.loginUsername,
+                              controller: _username,
+                              ltr: true,
+                              icon: Icons.badge_outlined,
+                            ),
+                            const SizedBox(height: 12),
+                            AppTextField(
+                              label: l10n.fieldPassword,
+                              controller: _password,
+                              obscureText: true,
+                              ltr: true,
+                              icon: Icons.lock_outline,
+                            ),
+                            const SizedBox(height: 12),
+                            AppTextField(
+                              label: l10n.activateCodeLabel,
+                              controller: _code,
+                              ltr: true,
+                              maxLength: 9,
+                              code: true,
+                            ),
+                            const SizedBox(height: 16),
+                            if (message != null) ...[
+                              NoticeCard(text: message, tone: _error != null ? NoticeTone.problem : NoticeTone.info),
+                              const SizedBox(height: 12),
+                            ],
+                            if (_busy) ...[
+                              Row(
+                                children: [
+                                  const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 3)),
+                                  const SizedBox(width: 12),
+                                  Expanded(child: Text(l10n.activateBusy)),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                            LargeButton(
+                              label: l10n.activateButton,
+                              icon: Icons.verified_user,
+                              onPressed: _busy ? null : () => _activate(l10n),
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                      ],
-                      LargeButton(
-                        label: l10n.activateButton,
-                        icon: Icons.verified_user,
-                        onPressed: _busy ? null : () => _activate(l10n),
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        l10n.activateNote,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 16),
+                    InfoPanel(text: l10n.activateNote),
+                  ],
                 ),
               ),
             ),
@@ -175,6 +201,9 @@ class _ActivationScreenState extends State<ActivationScreen> {
 class _Header extends StatelessWidget {
   const _Header({required this.services, this.onLongPressLogo});
 
+  /// How far the form card reaches over the header.
+  static const double overlap = 32;
+
   final AppServices services;
 
   /// Test builds only: pressing and holding the logo changes the server.
@@ -184,12 +213,15 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return Container(
+    return Material(
       color: theme.colorScheme.primary,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(AppTheme.headerRadius)),
+      ),
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28 + overlap),
           child: Column(
             children: [
               Align(

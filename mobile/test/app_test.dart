@@ -107,7 +107,11 @@ void main() {
   test('theme uses the standard Latin font and line height in English', () {
     final theme = AppTheme.light(urdu: false);
     expect(theme.textTheme.bodyLarge?.fontFamily, isNot(AppTheme.urduFontFamily));
-    expect(theme.textTheme.bodyLarge?.fontFamilyFallback ?? const [], isNot(contains(AppTheme.urduFontFamily)));
+    expect(
+      theme.textTheme.bodyLarge?.fontFamilyFallback,
+      contains(AppTheme.urduFontFamily),
+      reason: 'names written in Urdu still show in Nastaliq on English screens',
+    );
     expect(theme.textTheme.bodyLarge?.height, isNot(AppTheme.urduLineHeight));
     expect(theme.filledButtonTheme.style?.minimumSize?.resolve({})?.height, AppTheme.largeControlHeight);
   });

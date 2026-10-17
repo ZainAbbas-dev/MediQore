@@ -60,7 +60,6 @@ class _SignInAgainScreenState extends State<SignInAgainScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final user = widget.services.session.account?.user;
 
     return Scaffold(
@@ -77,13 +76,19 @@ class _SignInAgainScreenState extends State<SignInAgainScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(l10n.signInAgainIntro, style: theme.textTheme.bodyLarge),
+                      InfoPanel(text: l10n.signInAgainIntro, icon: Icons.wifi),
                       const SizedBox(height: 12),
                       if (user != null) InfoRow(l10n.loginUsername, user.username, ltr: true),
                       const SizedBox(height: 12),
-                      AppTextField(label: l10n.fieldPassword, controller: _password, obscureText: true, ltr: true),
-                      const SizedBox(height: 12),
-                      if (_error != null) ...[NoticeCard(text: _error!, warning: true), const SizedBox(height: 12)],
+                      AppTextField(
+                        label: l10n.fieldPassword,
+                        controller: _password,
+                        obscureText: true,
+                        ltr: true,
+                        icon: Icons.lock_outline,
+                      ),
+                      const SizedBox(height: 16),
+                      if (_error != null) ...[NoticeCard(text: _error!, tone: NoticeTone.problem), const SizedBox(height: 12)],
                       if (_busy) ...[
                         const Center(child: CircularProgressIndicator()),
                         const SizedBox(height: 12),

@@ -147,21 +147,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
         l10n.regWomanSection,
         <Widget>[
           Text(l10n.regWomanQuestion, style: question),
-          AppTextField(label: l10n.regName, controller: _name, validator: required),
+          AppTextField(label: l10n.regName, controller: _name, validator: required, icon: Icons.person_outline),
           NumberField(
             label: l10n.regAge,
             controller: _age,
+            icon: Icons.cake_outlined,
             validator: (text) {
               final age = int.tryParse(text ?? '');
               return age == null || age < 10 || age > 60 ? l10n.regErrorAge : null;
             },
           ),
-          AppTextField(label: l10n.regHusbandName, controller: _husbandName),
+          AppTextField(label: l10n.regHusbandName, controller: _husbandName, icon: Icons.man_outlined),
           AppTextField(
             label: l10n.regContactNumber,
             controller: _contact,
             keyboardType: TextInputType.phone,
             ltr: true,
+            icon: Icons.phone_outlined,
             validator: (text) {
               final value = _withoutSpaces(text ?? '');
               return value.isEmpty || _mobileNumber.hasMatch(value) ? null : l10n.regErrorContact;
@@ -181,8 +183,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               _monthMissing = false;
             }),
           ),
-          if (_month != null) NoticeCard(text: l10n.regMonthChosen(_month!), icon: Icons.check_circle_outline),
-          if (_monthMissing) NoticeCard(text: l10n.regErrorChooseMonth, warning: true),
+          if (_month != null) NoticeCard(text: l10n.regMonthChosen(_month!), tone: NoticeTone.success),
+          if (_monthMissing) NoticeCard(text: l10n.regErrorChooseMonth, tone: NoticeTone.problem),
         ],
       ),
       2 => (
@@ -209,8 +211,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               validator: (id) => id == null ? l10n.regErrorChooseWoman : null,
             )
           else ...[
-            AppTextField(label: l10n.regVillage, controller: _village, validator: required),
-            AppTextField(label: l10n.regAddress, controller: _address),
+            AppTextField(
+              label: l10n.regVillage,
+              controller: _village,
+              validator: required,
+              icon: Icons.holiday_village_outlined,
+            ),
+            AppTextField(label: l10n.regAddress, controller: _address, icon: Icons.home_outlined),
             SectionCard(
               title: l10n.gpsLabel,
               icon: Icons.location_on_outlined,
@@ -259,7 +266,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             validator: (_) => _cSections > _previous || _stillbirths > _previous ? l10n.regErrorMoreThanPregnancies : null,
             builder: (_) => const SizedBox.shrink(),
           ),
-          AppTextField(label: l10n.regKnownConditions, controller: _conditions),
+          AppTextField(
+            label: l10n.regKnownConditions,
+            controller: _conditions,
+            icon: Icons.medical_information_outlined,
+          ),
         ],
       ),
     };
@@ -269,7 +280,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       step: _step + 1,
       total: _steps,
       stepName: name,
-      statusBar: LiveStatusBar(services: widget.services),
+      statusBar: LiveStatusBar(services: widget.services, compact: true),
       busy: _saving,
       onBack: _step == 0 ? null : _back,
       nextLabel: _step == _steps - 1 ? l10n.regSaveButton : l10n.stepNext,

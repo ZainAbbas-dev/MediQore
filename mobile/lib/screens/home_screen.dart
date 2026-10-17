@@ -207,10 +207,10 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 if (_message != null) ...[NoticeCard(text: _message!, icon: Icons.sync), gap],
                 if (_pending > 0 && (_lastSync == null || DateTime.now().difference(_lastSync!) >= syncReminderAfter)) ...[
-                  NoticeCard(text: l10n.homeSyncReminder(_pending), icon: Icons.schedule, warning: true),
+                  NoticeCard(text: l10n.homeSyncReminder(_pending), tone: NoticeTone.attention),
                   gap,
                 ],
-                if (_refused > 0) ...[NoticeCard(text: l10n.homeRefused(_refused), icon: Icons.report_outlined, warning: true), gap],
+                if (_refused > 0) ...[NoticeCard(text: l10n.homeRefused(_refused), icon: Icons.report_outlined, tone: NoticeTone.problem), gap],
                 if (!session.canSync && !_needsSignIn) ...[NoticeCard(text: l10n.homeSyncNeedsSignIn), gap],
                 if (_needsSignIn || !session.canSync) ...[
                   LargeButton(
@@ -220,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   gap,
                 ],
-                if (session.lostUnsyncedRecords) ...[NoticeCard(text: l10n.homeLostUnsynced, warning: true), gap],
+                if (session.lostUnsyncedRecords) ...[NoticeCard(text: l10n.homeLostUnsynced, tone: NoticeTone.problem), gap],
                 if (user.lhwCode != null) ...[
                   Text(l10n.homeTodayTasks, style: heading),
                   gap,
@@ -254,7 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(l10n.homeRecentVisits, style: heading),
                   gap,
                   if (_recent.isEmpty)
-                    Text(l10n.fileNoVisits, style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText))
+                    Card(child: EmptyNote(text: l10n.fileNoVisits, icon: Icons.event_note_outlined))
                   else
                     for (final recent in _recent) ...[
                       _RecentVisitCard(

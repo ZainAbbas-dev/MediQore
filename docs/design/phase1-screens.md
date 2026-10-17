@@ -81,3 +81,16 @@ Roadmap task P0-7 asks for the Phase 1 screens: activation and PIN unlock, LHW h
 ## Built in the app so far
 
 The Phase 1 revision rebuilds the screens in `mobile/` to this document. Done: screens 1–14 (activation, PIN, unlock, wrong-PIN wait, PIN reset, home, settings, the registration wizard, saved, the list and the file), with no voice guidance; screens 15–19 (the three-step visit, the pulse counter, blood sugar unit, source and date, the danger-sign checklist and the unusual value check; the danger-sign pictures are Material icons for now); and the portal in the final design: screen 20 (dashboard home with LHWs synced today, the map panel and LHW activity with a stale sync highlighted) and screen 21 (LHW accounts with the activation code banner), the same look on every other portal page, the **PIN reset codes** page, and the sync conflict queue and a woman's visits with the new visit fields. The portal works at phone width (the sidebar becomes a top bar). Not built from the canvas: the Figtree font (the portal uses the system font).
+
+Design pass of 17 October 2026 (app, screens 1–19), so every screen follows the same pieces:
+
+- **One header everywhere:** the teal `CurvedHeader` on every screen, also the settings, the wizards, the saved screen and the pulse counter (the canvas draws the wizards with a light header; the app keeps them teal so the whole app reads as one). The wizards and the pulse counter have the close (X) button of the canvas, the step line and progress bar in the header, and the offline/sync state as a small chip in the header (screen 15).
+- **Cards over the header's edge:** activation (1), home (6), settings profile (7), saved (12) and the file (14).
+- **Settings (7):** the profile card, the two-way language selector and the account actions as a list with icons, sign out in red.
+- **Forms:** fields with icons (LI-6), the show/hide eye on passwords, activation and reply codes as large spaced code fields without a character counter; Latin text and numbers line up on the right in Urdu.
+- **Visit step 1 (15):** each vital in its own card with the label inside and a large number; the pulse card holds the 30-second button; blood sugar has a light teal border and the unit switch beside its label.
+- **Pulse counter (16):** the big button in a light teal ring, the result card "41 × 2 = 82 /min", the explanation under the button so the button is always in sight on a small phone.
+- **Saved (12):** the teal success header, the patient ID on one line, **Go to home** as a text button.
+- **File (14):** the visits right under **New visit**, each reading as an icon chip; a visit with a danger sign answered yes has a red border and a red notice.
+- **Notices in four tones:** information grey, attention amber (the daily sync reminder), problem red (refused records, errors), success green (saved on the phone, month chosen); explanations under a form in a soft teal panel (activation, PIN reset, sign in again, the pulse counter, the decision-support note, LI-5); empty lists with an icon.
+- **English screens** show names written in Urdu in Nastaliq (font fallback), and the phone records the activation as its first sync, so the home screen shows "Last synced" instead of the daily reminder right after activation.
