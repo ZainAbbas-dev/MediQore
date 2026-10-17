@@ -67,7 +67,7 @@ a {
 }
 
 .sidebar {
-  width: 220px;
+  width: 240px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -99,12 +99,19 @@ a {
 }
 
 .sidebar nav a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 4px;
   padding: 10px 12px;
   border-radius: 12px;
   color: #fff;
   text-decoration: none;
+}
+
+.nav-icon {
+  flex-shrink: 0;
+  opacity: 0.9;
 }
 
 .sidebar nav a:hover {
@@ -204,7 +211,7 @@ textarea {
 }
 
 .search {
-  min-width: 19rem;
+  min-width: 22rem;
   border-radius: 999px;
   padding: 8px 16px;
 }
@@ -433,14 +440,21 @@ button.danger:hover:not(:disabled) {
   white-space: nowrap;
 }
 
-/* In a table the actions stay on one line; a cell keeps its table layout. */
+/* In a table the actions wrap under each other when the row is narrow, so the
+   table fits the page instead of scrolling sideways. */
 td .row-actions {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 td.row-actions {
   display: table-cell;
   min-width: 12rem;
+}
+
+td .row-actions button {
+  min-height: 32px;
+  padding: 3px 12px;
+  font-size: 0.875rem;
 }
 
 td.row-actions button {

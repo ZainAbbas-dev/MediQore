@@ -159,6 +159,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                               ltr: true,
                               maxLength: 9,
                               code: true,
+                              icon: Icons.key_outlined,
                             ),
                             const SizedBox(height: 16),
                             if (message != null) ...[

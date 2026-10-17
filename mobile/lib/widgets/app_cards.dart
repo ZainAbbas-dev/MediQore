@@ -201,6 +201,29 @@ class NoticeCard extends StatelessWidget {
   }
 }
 
+/// The heading above a group of cards on a screen (final design 6 and 7:
+/// "Today's work", "Language"): dark, bold, without an icon, so it does not
+/// compete with the cards' own headings.
+class SectionHeading extends StatelessWidget {
+  const SectionHeading(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(4, 0, 4, 10),
+      child: Semantics(
+        header: true,
+        child: Text(
+          text,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: AppColors.text),
+        ),
+      ),
+    );
+  }
+}
+
 /// A soft teal panel with an info icon, for a short explanation under a form
 /// (final design screens 1, 2 and 5).
 class InfoPanel extends StatelessWidget {

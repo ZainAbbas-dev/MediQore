@@ -209,8 +209,8 @@ export default function WomenPage() {
                   <th>Month at registration</th>
                   <th>Registered on</th>
                   <th title="Previous pregnancies / previous C-sections / stillbirths">
-                    Obstetric history
-                    <div className="muted">previous / C-sections / stillbirths</div>
+                    History
+                    <div className="muted">pregn. / C-sec. / stillb.</div>
                   </th>
                   <th>Known conditions</th>
                   <th>

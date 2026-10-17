@@ -10,9 +10,15 @@ const ACTION_LABELS = {
   delete: 'Deleted',
   referral: 'Referral',
   alert: 'Alert',
-  login: 'Sign-in',
+  login: 'Sign-in or sign-out',
   sync_conflict: 'Sync conflict',
 };
+
+// A sign-out is stored as a login entry with the result "logout".
+function actionLabel(entry) {
+  if (entry.action === 'login') return entry.details?.result === 'logout' ? 'Sign-out' : 'Sign-in';
+  return ACTION_LABELS[entry.action] ?? entry.action;
+}
 
 const show = (value) => (value === null || value === undefined || value === '' ? '–' : String(value));
 
@@ -158,7 +164,7 @@ export default function AuditPage() {
                       <span className="muted">Unknown</span>
                     )}
                   </td>
-                  <td>{ACTION_LABELS[entry.action] ?? entry.action}</td>
+                  <td>{actionLabel(entry)}</td>
                   <td>
                     {entry.entityType ?? '–'}
                     {(entry.entityLabel || entry.entityId) && (

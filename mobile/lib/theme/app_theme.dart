@@ -27,6 +27,9 @@ abstract final class AppTheme {
   /// letters from being clipped.
   static const double urduLineHeight = 1.7;
 
+  /// How much larger Urdu text is than English text of the same style.
+  static const double urduSizeFactor = 1.1;
+
   /// Height of the main buttons and other large tap targets (final design: 60 dp).
   static const double largeControlHeight = 60;
 
@@ -62,7 +65,13 @@ abstract final class AppTheme {
       materialTapTargetSize: MaterialTapTargetSize.padded,
       scaffoldBackgroundColor: AppColors.background,
     );
-    final textTheme = urdu ? _withLineHeight(base.textTheme, urduLineHeight) : base.textTheme;
+    // The theme's text styles carry no sizes yet; they come from the
+    // typography's geometry, so the sizes are taken from there (in both
+    // languages, so switching between them animates smoothly). Nastaliq
+    // letters look smaller than Latin ones at the same size, so Urdu text is
+    // set a little larger to read as easily as English.
+    final sized = base.typography.englishLike.merge(base.textTheme);
+    final textTheme = urdu ? _withLineHeight(sized.apply(fontSizeFactor: urduSizeFactor), urduLineHeight) : sized;
 
     // Built from the theme's own label style so buttons keep the language's
     // font: a bare TextStyle here would replace it with the system font.
@@ -119,6 +128,8 @@ abstract final class AppTheme {
           borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
         errorMaxLines: 3,
+        // Errors as large as body text, so a missing value is hard to miss.
+        errorStyle: textTheme.bodyMedium?.copyWith(color: colorScheme.error),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: AppColors.primary,

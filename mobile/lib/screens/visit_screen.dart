@@ -220,6 +220,7 @@ class _VisitScreenState extends State<VisitScreen> {
       builder: (context) {
         final theme = Theme.of(context);
         return AlertDialog(
+          icon: const Icon(Icons.warning_amber_rounded, size: 40, color: AppColors.statusPending),
           title: Text(l10n.rangeCheckTitle),
           content: SingleChildScrollView(
             child: Column(
@@ -251,9 +252,19 @@ class _VisitScreenState extends State<VisitScreen> {
               ],
             ),
           ),
+          // Two full-width buttons, as large as the rest of the app's.
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.rangeCheckCorrect)),
-            FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(l10n.rangeCheckConfirm)),
+            SizedBox(
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(l10n.rangeCheckConfirm)),
+                  const SizedBox(height: 10),
+                  OutlinedButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.rangeCheckCorrect)),
+                ],
+              ),
+            ),
           ],
         );
       },

@@ -39,7 +39,7 @@ React portal for Module 10: dashboard, map, alerts, reports and admin panel. Fol
   - `RequireRole.jsx`: shows a route only to the given roles.
   - `context.js`: `useAuth()` and `PORTAL_ROLES`.
   - `RequireAuth.jsx`: the auth guard.
-- `src/layout/AppLayout.jsx`: sidebar with the main navigation, the **Administration** navigation for admins, the signed-in user and Sign out.
+- `src/layout/AppLayout.jsx`: sidebar with the main navigation, the **Administration** navigation for admins, the signed-in user and Sign out. Each link has an outlined icon from `NavIcon.jsx` (inline SVG paths of the Material icons the app uses, no icon library).
 - `src/pages/`:
   - `LoginPage`, `NotFoundPage`.
   - `DashboardPage` (M10 FE-1, final design screen 20):
@@ -63,7 +63,7 @@ React portal for Module 10: dashboard, map, alerts, reports and admin panel. Fol
     - `GeographyPage` (`/admin/geography`, **Geography** in the sidebar): four columns (district, tehsil, Union Council, area); choosing a unit shows its children. Add, rename, delete; a unit in use is refused with the API's reason.
     - `FacilitiesPage` (`/admin/facilities`): hospitals and referral centres as two tabs, by district, with optional area and GPS.
     - `RolesPage` (`/admin/roles`): the permission table from `GET /admin/roles`.
-    - `AuditPage` (`/admin/audit`): the audit log, filtered by user, action, record type and dates; changes read "field: from → to"; **Show older entries** pages back.
+    - `AuditPage` (`/admin/audit`): the audit log, filtered by user, action, record type and dates; changes read "field: from → to"; a sign-out (a login entry with the result `logout`) reads **Sign-out**; **Show older entries** pages back.
 - `src/components/`:
   - `AreaMap.jsx`: Leaflet map centred on Pakistan that draws households with GPS. It fits to the households when they change, but keeps the user's zoom when an automatic refresh brings the same ones.
   - `Dialog.jsx`: the modal dialog of the admin pages.

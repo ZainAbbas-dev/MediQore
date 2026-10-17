@@ -97,16 +97,16 @@ class SettingsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _SectionLabel(icon: Icons.translate, text: l10n.languageLabel),
+                SectionHeading(l10n.languageLabel),
                 LanguageChoice(settings: services.settings),
                 gap,
-                _SectionLabel(icon: Icons.person_outline, text: l10n.settingsAccountSection),
+                SectionHeading(l10n.settingsAccountSection),
                 Card(
                   clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
                       _ActionTile(
-                        icon: Icons.key_outlined,
+                        icon: Icons.pin_outlined,
                         label: l10n.pinChangeTitle,
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
@@ -128,7 +128,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 if (kDebugMode || testBuild) ...[
                   gap,
-                  _SectionLabel(icon: Icons.build_outlined, text: l10n.settingsTestingSection),
+                  SectionHeading(l10n.settingsTestingSection),
                   Card(
                     clipBehavior: Clip.antiAlias,
                     child: Column(
@@ -159,33 +159,6 @@ class SettingsScreen extends StatelessWidget {
 
   /// How far the profile card reaches over the header.
   static const double _profileOverlap = 40;
-}
-
-/// A small heading above a group of settings.
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsetsDirectional.fromSTEB(4, 0, 4, 8),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: AppColors.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 /// One action in a settings card: an icon in a soft circle, the label and an

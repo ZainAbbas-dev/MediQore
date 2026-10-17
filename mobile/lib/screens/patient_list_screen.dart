@@ -107,7 +107,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
             padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
             child: Row(
               children: [
-                Icon(Icons.place, size: 20, color: theme.colorScheme.primary),
+                Icon(Icons.location_on_outlined, size: 20, color: theme.colorScheme.primary),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -134,7 +134,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.person_add),
+        icon: const Icon(Icons.person_add_alt_1_outlined),
         label: Text(l10n.patientsNewButton),
         onPressed: () => _open(RegisterScreen(services: widget.services)),
       ),

@@ -252,7 +252,7 @@ export default function LhwsPage() {
                   <tr key={lhw.id}>
                     <td className="nowrap">{lhw.lhwCode}</td>
                     <td>{lhw.fullName}</td>
-                    <td title={`${lhw.area.district.name} › ${lhw.area.tehsil.name} › ${lhw.area.unionCouncil.name}`}>
+                    <td className="nowrap" title={`${lhw.area.district.name} › ${lhw.area.tehsil.name} › ${lhw.area.unionCouncil.name}`}>
                       {lhw.area.name}
                     </td>
                     <td>{phoneState(lhw)}</td>
@@ -265,7 +265,7 @@ export default function LhwsPage() {
                         <span className="badge wait">Waiting to activate</span>
                       )}
                     </td>
-                    <td className="nowrap">{formatWhen(lhw.lastLoginAt) ?? 'Never'}</td>
+                    <td>{formatWhen(lhw.lastLoginAt) ?? 'Never'}</td>
                     <td>
                       <div className="row-actions">
                         {lhw.isActive && !activated && (

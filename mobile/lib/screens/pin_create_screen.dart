@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 
 import '../app_services.dart';
 import '../l10n/app_localizations.dart';
-import '../theme/app_colors.dart';
 import '../widgets/app_cards.dart';
 import '../widgets/curved_header.dart';
 import '../widgets/pin_pad.dart';
@@ -141,11 +140,7 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
                   else
                     PinEntry(key: ValueKey(_step), onComplete: _onPin),
                   const SizedBox(height: 16),
-                  Text(
-                    l10n.pinCreateNote,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText),
-                  ),
+                  InfoPanel(text: l10n.pinCreateNote, icon: Icons.shield_outlined),
                 ],
               ),
             ),

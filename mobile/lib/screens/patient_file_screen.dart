@@ -196,7 +196,7 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
                   gap,
                   SectionCard(
                     title: l10n.fileVisitsSection,
-                    icon: Icons.event_note,
+                    icon: Icons.event_note_outlined,
                     children: [
                       if (_visits.isEmpty)
                         EmptyNote(text: l10n.fileNoVisits, icon: Icons.event_busy_outlined)
@@ -239,7 +239,7 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
                 gap,
                 SectionCard(
                   title: l10n.regWomanSection,
-                  icon: Icons.person,
+                  icon: Icons.person_outline,
                   children: [
                     InfoRow(l10n.regAge, woman.age?.toString(), ltr: true),
                     InfoRow(l10n.regHusbandName, woman.husbandName),
@@ -249,7 +249,7 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
                 gap,
                 SectionCard(
                   title: l10n.regHomeSection,
-                  icon: Icons.home,
+                  icon: Icons.home_outlined,
                   children: [
                     InfoRow(l10n.regVillage, household?.village),
                     InfoRow(l10n.regAddress, household?.address),
@@ -282,7 +282,7 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
                   gap,
                   SectionCard(
                     title: l10n.regHistorySection,
-                    icon: Icons.history,
+                    icon: Icons.history_outlined,
                     children: [
                       InfoRow(l10n.regPreviousPregnancies, '${history.previousPregnancies}', ltr: true),
                       InfoRow(l10n.regPreviousCSections, '${history.previousCSections}', ltr: true),
@@ -409,7 +409,7 @@ class _VisitCard extends StatelessWidget {
               children: [
                 // The phone's clock, shown as it is; never used to order visits (LI-7).
                 Text(
-                  DateFormat.yMMMMd(locale).add_jm().format(v.visitedAt.toLocal()),
+                  DateFormat.yMMMMd(locale).add_Hm().format(v.visitedAt.toLocal()),
                   style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 SyncStatusChip(summary.syncStatus),

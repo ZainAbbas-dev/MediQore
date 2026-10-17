@@ -156,7 +156,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (user == null) return const SizedBox.shrink(); // locked; the app shows the lock screen
     const gap = SizedBox(height: 12);
     final place = [?user.areaName, ?user.lhwCode].join(' · ');
-    final heading = theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700);
 
     return Scaffold(
       body: ListView(
@@ -222,8 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
                 if (session.lostUnsyncedRecords) ...[NoticeCard(text: l10n.homeLostUnsynced, tone: NoticeTone.problem), gap],
                 if (user.lhwCode != null) ...[
-                  Text(l10n.homeTodayTasks, style: heading),
-                  gap,
+                  SectionHeading(l10n.homeTodayTasks),
                   // M2: registration and the patient list work without the internet.
                   IntrinsicHeight(
                     child: Row(
@@ -231,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Expanded(
                           child: _TaskCard(
-                            icon: Icons.person_add_alt_1,
+                            icon: Icons.person_add_alt_1_outlined,
                             title: l10n.patientsNewButton,
                             subtitle: l10n.homeRegisterHint,
                             primary: true,
@@ -251,8 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Text(l10n.homeRecentVisits, style: heading),
-                  gap,
+                  SectionHeading(l10n.homeRecentVisits),
                   if (_recent.isEmpty)
                     Card(child: EmptyNote(text: l10n.fileNoVisits, icon: Icons.event_note_outlined))
                   else

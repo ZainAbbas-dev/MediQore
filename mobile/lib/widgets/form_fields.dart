@@ -166,6 +166,21 @@ class VitalField extends StatefulWidget {
 class _VitalFieldState extends State<VitalField> {
   final _focus = FocusNode();
 
+  /// The card's border turns red while the field shows an error.
+  bool _hasError = false;
+
+  String? _validate(String? text) {
+    final error = widget.validator?.call(text);
+    if ((error != null) != _hasError) {
+      _hasError = error != null;
+      // The validator runs during a build: repaint the card after it.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
+    }
+    return error;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -194,7 +209,7 @@ class _VitalFieldState extends State<VitalField> {
       textDirection: TextDirection.ltr,
       child: TextFormField(
         controller: widget.controller,
-        validator: widget.validator,
+        validator: widget.validator == null ? null : _validate,
         onChanged: widget.onChanged,
         focusNode: _focus,
         keyboardType: TextInputType.numberWithOptions(decimal: decimals > 0),
@@ -229,12 +244,14 @@ class _VitalFieldState extends State<VitalField> {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppTheme.fieldRadius),
         border: Border.all(
-          color: focused
+          color: _hasError
+              ? theme.colorScheme.error
+              : focused
               ? AppColors.primary
               : widget.optional
               ? AppColors.primaryLight
               : AppColors.fieldBorder,
-          width: focused || widget.optional ? 2 : 1,
+          width: _hasError || focused || widget.optional ? 2 : 1,
         ),
       ),
       child: InkWell(

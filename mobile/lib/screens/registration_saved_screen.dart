@@ -109,13 +109,13 @@ class RegistrationSavedScreen extends StatelessWidget {
                   const SizedBox(height: 20),
                   LargeButton(
                     label: l10n.savedOpenFile,
-                    icon: Icons.folder_open,
+                    icon: Icons.folder_open_outlined,
                     onPressed: () => replaceWith(PatientFileScreen(services: services, womanId: woman.id)),
                   ),
                   const SizedBox(height: 12),
                   LargeButton(
                     label: l10n.savedRegisterAnother,
-                    icon: Icons.person_add,
+                    icon: Icons.person_add_alt_1_outlined,
                     secondary: true,
                     onPressed: () => replaceWith(RegisterScreen(services: services)),
                   ),

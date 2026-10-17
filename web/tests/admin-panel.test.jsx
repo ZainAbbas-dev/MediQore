@@ -251,7 +251,10 @@ describe('roles and the audit log (M10 FE-3)', () => {
     const fetchMock = mockApi({
       'GET /admin/audit': [200, { entries: [entry(12)], nextBefore: 12, actions: ['create', 'edit', 'login'], entityTypes: ['users'] }],
       'GET /admin/audit?before=12': [200, {
-        entries: [entry(11, { action: 'login', user: null, entityLabel: null, details: { outcome: 'wrong_password' } })],
+        entries: [
+          entry(11, { action: 'login', user: null, entityLabel: null, details: { outcome: 'wrong_password' } }),
+          entry(10, { action: 'login', details: { result: 'logout' } }),
+        ],
         nextBefore: null, actions: [], entityTypes: [],
       }],
       'GET /admin/audit?action=login': [200, { entries: [], nextBefore: null, actions: ['create', 'edit', 'login'], entityTypes: ['users'] }],
@@ -266,6 +269,7 @@ describe('roles and the audit log (M10 FE-3)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Show older entries' }));
     expect(await screen.findByText('outcome: wrong_password')).toBeInTheDocument();
     expect(screen.getByText('Unknown')).toBeInTheDocument();
+    expect(screen.getByText('result: logout').closest('tr')).toHaveTextContent('Sign-out');
     expect(screen.queryByRole('button', { name: 'Show older entries' })).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Action'), { target: { value: 'login' } });
