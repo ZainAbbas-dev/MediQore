@@ -7,6 +7,7 @@ import 'screens/activation_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/lock_screen.dart';
 import 'screens/pin_create_screen.dart';
+import 'theme/app_motion.dart';
 import 'theme/app_theme.dart';
 import 'widgets/inactivity_lock.dart';
 
@@ -68,12 +69,17 @@ class _MediQoreAppState extends State<MediQoreApp> {
         builder: (context, child) => InactivityLock(session: session, child: child!),
         home: ListenableBuilder(
           listenable: session,
-          builder: (context, _) => switch (session.stage) {
-            SessionStage.activation => ActivationScreen(services: services),
-            SessionStage.createPin => PinCreateScreen(services: services, mode: PinCreateMode.activation),
-            SessionStage.locked => LockScreen(services: services),
-            SessionStage.unlocked => HomeScreen(services: services),
-          },
+          // A new stage fades in (opening the app after the PIN, locking it).
+          builder: (context, _) => EnterTransition(
+            key: ValueKey(session.stage),
+            duration: AppMotion.long,
+            child: switch (session.stage) {
+              SessionStage.activation => ActivationScreen(services: services),
+              SessionStage.createPin => PinCreateScreen(services: services, mode: PinCreateMode.activation),
+              SessionStage.locked => LockScreen(services: services),
+              SessionStage.unlocked => HomeScreen(services: services),
+            },
+          ),
         ),
       ),
     );

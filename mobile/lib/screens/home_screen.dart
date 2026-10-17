@@ -15,6 +15,7 @@ import '../data/visit_repository.dart';
 import '../l10n/app_localizations.dart';
 import '../sync/auto_sync.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_cards.dart';
 import '../widgets/curved_header.dart';
@@ -315,7 +316,18 @@ class _SyncCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  CircleAvatar(radius: 22, backgroundColor: background, child: Icon(icon, color: foreground)),
+                  // The state's colour and icon change smoothly after a sync.
+                  AnimatedContainer(
+                    duration: AppMotion.of(context, AppMotion.medium),
+                    curve: AppMotion.standard,
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(color: background, shape: BoxShape.circle),
+                    child: AnimatedSwitcher(
+                      duration: AppMotion.of(context, AppMotion.medium),
+                      child: Icon(icon, key: ValueKey(icon), color: foreground),
+                    ),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -341,15 +353,26 @@ class _SyncCard extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               // Under the text, full width: beside it the text had no room on a small phone.
-              if (busy)
-                const Center(child: SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 3)))
-              else
-                FilledButton.tonalIcon(
-                  onPressed: onSync,
-                  style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
-                  icon: const Icon(Icons.sync),
-                  label: Text(l10n.syncNowButton),
-                ),
+              // Sync now and the spinner cross-fade in the same space, so the
+              // card does not jump while it syncs.
+              AnimatedSwitcher(
+                duration: AppMotion.of(context, AppMotion.short),
+                child: busy
+                    ? const SizedBox(
+                        key: ValueKey('syncing'),
+                        height: 48,
+                        child: Center(
+                          child: SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 3)),
+                        ),
+                      )
+                    : FilledButton.tonalIcon(
+                        key: const ValueKey('sync'),
+                        onPressed: onSync,
+                        style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, 48)),
+                        icon: const Icon(Icons.sync),
+                        label: Text(l10n.syncNowButton),
+                      ),
+              ),
             ],
           ),
         ),

@@ -17,7 +17,7 @@ Short notes per module, as the roadmap's Definition of done asks ("Short note ad
 
 | Suite | Result |
 |---|---|
-| Mobile unit and widget tests | 205 passed, 5 skipped (the end-to-end tests, which need a real API); `flutter analyze` clean. Rerun after the design pass of 17 October: same result, every screen on a 320 × 640 phone in Urdu and English |
+| Mobile unit and widget tests | 205 passed, 5 skipped (the end-to-end tests, which need a real API); `flutter analyze` clean. Rerun after the design pass and the motion of 17 October: 208 passed (3 new motion tests: entrance off with "Remove animations", wizard steps mirrored in Urdu, wrong-PIN shake), every screen on a 320 × 640 phone in Urdu and English |
 | Mobile end to end against the local API | 5 passed: Phase 0 record path, M1 activation and PIN-reset reply code, M2 registration, M3 visit with a same-day conflict decided on the portal, background sync |
 | API | 191 passed; lint clean |
 | Portal | 66 passed; lint and production build clean |

@@ -1,9 +1,13 @@
 // M1 FE-2: the PIN entry of the final design (screens 2–4): six dots and a
 // large keypad. Digits always read left to right, also in the Urdu layout.
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_motion.dart';
 
 /// Six dots that fill as digits are typed.
 class PinDots extends StatelessWidget {
@@ -23,7 +27,10 @@ class PinDots extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             for (var i = 0; i < length; i++)
-              Container(
+              // Each dot fills with a short ease as its digit is typed.
+              AnimatedContainer(
+                duration: AppMotion.of(context, AppMotion.short),
+                curve: AppMotion.standard,
                 width: 18,
                 height: 18,
                 margin: const EdgeInsets.symmetric(horizontal: 7),
@@ -129,34 +136,55 @@ class PinEntry extends StatefulWidget {
 }
 
 class PinEntryController extends ChangeNotifier {
-  void clear() => notifyListeners();
+  bool _rejected = false;
+
+  /// Empties the dots.
+  void clear() {
+    _rejected = false;
+    notifyListeners();
+  }
+
+  /// A wrong PIN or a mismatch: the dots shake once, the phone gives a short
+  /// buzz, and they empty, the way phones answer a wrong unlock code.
+  void reject() {
+    _rejected = true;
+    notifyListeners();
+  }
 }
 
-class _PinEntryState extends State<PinEntry> {
+class _PinEntryState extends State<PinEntry> with SingleTickerProviderStateMixin {
   String _digits = '';
+  late final AnimationController _shake = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
 
   @override
   void initState() {
     super.initState();
-    widget.controller?.addListener(_clear);
+    widget.controller?.addListener(_onController);
   }
 
   @override
   void didUpdateWidget(PinEntry oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
-      oldWidget.controller?.removeListener(_clear);
-      widget.controller?.addListener(_clear);
+      oldWidget.controller?.removeListener(_onController);
+      widget.controller?.addListener(_onController);
     }
   }
 
   @override
   void dispose() {
-    widget.controller?.removeListener(_clear);
+    widget.controller?.removeListener(_onController);
+    _shake.dispose();
     super.dispose();
   }
 
-  void _clear() => setState(() => _digits = '');
+  void _onController() {
+    setState(() => _digits = '');
+    if (widget.controller?._rejected ?? false) {
+      HapticFeedback.mediumImpact();
+      if (!(MediaQuery.maybeDisableAnimationsOf(context) ?? false)) _shake.forward(from: 0);
+    }
+  }
 
   void _add(String digit) {
     if (_digits.length >= 6) return;
@@ -174,7 +202,13 @@ class _PinEntryState extends State<PinEntry> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        PinDots(filled: _digits.length),
+        AnimatedBuilder(
+          animation: _shake,
+          // Three quick swings that die out.
+          builder: (context, dots) =>
+              Transform.translate(offset: Offset(sin(_shake.value * pi * 6) * 10 * (1 - _shake.value), 0), child: dots),
+          child: PinDots(filled: _digits.length),
+        ),
         const SizedBox(height: 20),
         PinKeypad(onDigit: _add, onDelete: _delete, enabled: widget.enabled),
       ],

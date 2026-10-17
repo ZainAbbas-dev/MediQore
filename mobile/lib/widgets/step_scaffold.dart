@@ -6,9 +6,10 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_motion.dart';
 import 'curved_header.dart';
 
-class StepScaffold extends StatelessWidget {
+class StepScaffold extends StatefulWidget {
   const StepScaffold({
     super.key,
     required this.title,
@@ -50,9 +51,30 @@ class StepScaffold extends StatelessWidget {
   final bool busy;
 
   @override
+  State<StepScaffold> createState() => _StepScaffoldState();
+}
+
+class _StepScaffoldState extends State<StepScaffold> {
+  /// Set when the step changes: the new step slides in from the side it comes
+  /// from (the end for Next, the start for Back). The first step does not move,
+  /// because the screen itself is already arriving.
+  bool? _forward;
+
+  @override
+  void didUpdateWidget(StepScaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.step != oldWidget.step) _forward = widget.step > oldWidget.step;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final StepScaffold(:title, :subtitle, :step, :total, :stepName, :child, :nextLabel, :onNext, :onBack, :statusBar, :busy) =
+        widget;
+    final forward = _forward;
+    // "The end side" is the right in English and the left in Urdu.
+    final fromEnd = Directionality.of(context) == TextDirection.ltr ? 1.0 : -1.0;
     return Scaffold(
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -78,7 +100,10 @@ class StepScaffold extends StatelessWidget {
                       for (var i = 1; i <= total; i++) ...[
                         if (i > 1) const SizedBox(width: 6),
                         Expanded(
-                          child: Container(
+                          // The next segment fills as the step changes.
+                          child: AnimatedContainer(
+                            duration: AppMotion.of(context, AppMotion.medium),
+                            curve: AppMotion.standard,
                             height: 6,
                             decoration: BoxDecoration(
                               color: i <= step ? Colors.white : Colors.white.withValues(alpha: 0.3),
@@ -93,7 +118,15 @@ class StepScaffold extends StatelessWidget {
               ],
             ),
           ),
-          Expanded(child: child),
+          Expanded(
+            child: forward == null
+                ? child
+                : EnterTransition(
+                    key: ValueKey(step),
+                    offset: Offset((forward ? 32 : -32) * fromEnd, 0),
+                    child: child,
+                  ),
+          ),
           SafeArea(
             top: false,
             child: Padding(

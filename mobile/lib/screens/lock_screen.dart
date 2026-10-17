@@ -77,7 +77,11 @@ class _LockScreenState extends State<LockScreen> {
     });
     final outcome = await _session.unlock(pin);
     if (!mounted) return;
-    _entry.clear();
+    if (outcome.result == UnlockResult.wrongPin) {
+      _entry.reject();
+    } else {
+      _entry.clear();
+    }
     setState(() => _checking = false);
     switch (outcome.result) {
       case UnlockResult.unlocked:

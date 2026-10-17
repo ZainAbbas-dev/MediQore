@@ -2,9 +2,11 @@
 // The same screen makes a new PIN after the supervisor's reply code (PIN
 // reset) and changes the PIN from Settings, where the current PIN comes first.
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../app_services.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_motion.dart';
 import '../widgets/app_cards.dart';
 import '../widgets/curved_header.dart';
 import '../widgets/pin_pad.dart';
@@ -39,8 +41,12 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
   String? _error;
   bool _busy = false;
 
+  /// The first instruction does not move; later ones fade in.
+  bool _stepChanged = false;
+
   Future<void> _onPin(String pin) async {
     final l10n = AppLocalizations.of(context);
+    _stepChanged = true;
     switch (_step) {
       case _Step.current:
         setState(() {
@@ -56,6 +62,7 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
         });
       case _Step.repeat:
         if (pin != _first) {
+          HapticFeedback.mediumImpact();
           setState(() {
             _first = null;
             _step = _Step.enter;
@@ -90,6 +97,7 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
           _first = null;
           _step = _Step.current;
           _error = l10n.pinChangeWrong;
+          HapticFeedback.mediumImpact();
         });
         return;
     }
@@ -123,7 +131,14 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(stepText, textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
+                  // The instruction changes with the step ("type it again"): it
+                  // fades in, so the LHW notices she is on the next step.
+                  EnterTransition(
+                    key: ValueKey(('instruction', _step)),
+                    duration: _stepChanged ? AppMotion.medium : Duration.zero,
+                    offset: const Offset(0, 6),
+                    child: Text(stepText, textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
+                  ),
                   const SizedBox(height: 12),
                   if (_error != null) ...[NoticeCard(text: _error!, tone: NoticeTone.problem), const SizedBox(height: 12)],
                   if (_busy)

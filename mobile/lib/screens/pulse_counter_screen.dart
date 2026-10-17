@@ -3,11 +3,14 @@
 // time starts at the first press. When it is up, the app multiplies the count
 // (both numbers from the Clinical Rules Table) and closes with the pulse.
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_motion.dart';
 import '../widgets/app_cards.dart';
 import '../widgets/curved_header.dart';
 
@@ -21,7 +24,13 @@ class PulseCounterScreen extends StatefulWidget {
   State<PulseCounterScreen> createState() => _PulseCounterScreenState();
 }
 
-class _PulseCounterScreenState extends State<PulseCounterScreen> {
+class _PulseCounterScreenState extends State<PulseCounterScreen> with SingleTickerProviderStateMixin {
+  /// One heart beat on the button for every tap, so each counted beat is felt
+  /// and seen without looking at the number.
+  late final AnimationController _beatPulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 180),
+  );
   int _beats = 0;
   int _left = 0;
   bool _done = false;
@@ -38,6 +47,7 @@ class _PulseCounterScreenState extends State<PulseCounterScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _beatPulse.dispose();
     super.dispose();
   }
 
@@ -55,6 +65,8 @@ class _PulseCounterScreenState extends State<PulseCounterScreen> {
       });
     });
     setState(() => _beats++);
+    HapticFeedback.selectionClick();
+    if (AppMotion.of(context, AppMotion.short) > Duration.zero) _beatPulse.forward(from: 0);
   }
 
   void _restart() {
@@ -127,7 +139,12 @@ class _PulseCounterScreenState extends State<PulseCounterScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(_done ? Icons.favorite_border : Icons.favorite, size: 44),
+                              AnimatedBuilder(
+                                animation: _beatPulse,
+                                builder: (context, heart) =>
+                                    Transform.scale(scale: 1 + 0.28 * sin(_beatPulse.value * pi), child: heart),
+                                child: Icon(_done ? Icons.favorite_border : Icons.favorite, size: 44),
+                              ),
                               Text(
                                 '$_beats',
                                 textDirection: TextDirection.ltr,
@@ -155,7 +172,8 @@ class _PulseCounterScreenState extends State<PulseCounterScreen> {
                   ],
                   if (_done) ...[
                     const SizedBox(height: 20),
-                    Card(
+                    // The result rises into place when the time is up.
+                    EnterTransition(offset: const Offset(0, 16), child: Card(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                         child: Row(
@@ -182,7 +200,7 @@ class _PulseCounterScreenState extends State<PulseCounterScreen> {
                           ],
                         ),
                       ),
-                    ),
+                    )),
                   ],
                 ],
               ),

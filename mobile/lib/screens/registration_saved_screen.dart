@@ -6,6 +6,7 @@ import '../app_services.dart';
 import '../data/app_database.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_cards.dart';
 import '../widgets/large_button.dart';
@@ -40,10 +41,18 @@ class RegistrationSavedScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 28, 16, 28 + _overlap),
                 child: Column(
                   children: [
-                    const CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.white,
-                      child: Icon(Icons.check_rounded, size: 52, color: AppColors.primary),
+                    // The one celebration in the app: the tick pops in once when
+                    // the registration is saved.
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0, end: 1),
+                      duration: AppMotion.of(context, const Duration(milliseconds: 450)),
+                      curve: Curves.easeOutBack,
+                      builder: (context, t, tick) => Transform.scale(scale: 0.6 + 0.4 * t, child: tick),
+                      child: const CircleAvatar(
+                        radius: 40,
+                        backgroundColor: Colors.white,
+                        child: Icon(Icons.check_rounded, size: 52, color: AppColors.primary),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Semantics(
