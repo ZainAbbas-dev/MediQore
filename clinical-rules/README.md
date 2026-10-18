@@ -51,7 +51,11 @@ Fields use the sync field names of the API (`docs/openapi.yaml`). An unanswered 
 
 ## Sign-off by the Clinical Advisor
 
-The roadmap's most urgent open item is finding a Clinical Advisor (an obstetrician or community-health doctor) by 27 Dec 2026. When the advisor has reviewed every section:
+The roadmap's most urgent open item is finding a Clinical Advisor (an obstetrician or community-health doctor) by 27 Dec 2026.
+
+[`review-checklist-v0.1.0.pdf`](review-checklist-v0.1.0.pdf) is the printable checklist for the advisor, made from this version of the table: every rule with its value and source and an Agree / Change box, the decisions the scope leaves to the advisor (the `review_note`s), and a sign-off page. Make a new checklist when the version changes. Keep the signed copy with the project records, not in this public repository, if it shows the advisor's contact details.
+
+When the advisor has reviewed every section:
 
 1. Resolve each `review_note`, then remove it.
 2. Set `status` to `signed` and fill `sign_off.clinical_advisor` (name and qualification) and `sign_off.signed_on` (date).
