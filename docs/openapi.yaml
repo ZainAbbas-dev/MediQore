@@ -206,10 +206,11 @@ paths:
       summary: Swap a refresh token for a new access and refresh token
       description: |
         Each refresh token works once. Deactivation and password resets revoke them. The app refreshes
-        at every sync, which also updates its profile, area and supervisor list. A token replaced less
-        than REFRESH_REUSE_MINUTES (30) ago is accepted once more while its replacement has never been
-        used, because the phone then lost the answer on a weak network; the unused replacement is
-        revoked instead.
+        at every sync, which also updates its profile, area and supervisor list. A replaced token is
+        accepted again as long as its replacement has never been used, because the phone then lost the
+        answer (a weak network, or a sleeping server that answered after the phone gave up); the unused
+        replacement is revoked instead. There is no time limit, only the token's own expiry
+        (REFRESH_TOKEN_TTL_DAYS). Once the replacement has been used, the old token is refused.
       operationId: refreshTokens
       security: []
       requestBody:

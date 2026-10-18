@@ -271,7 +271,24 @@ describeDb('sign-in from the app (M1 FE-2)', () => {
       expect((await refresh(first.refreshToken)).status).toBe(401); // its replacement has now been used
     });
 
-    it('does not bring back a replaced token after its window, sign-out, deactivation or a password reset', async () => {
+    it('accepts it days later too while the replacement is unused: the phone may be offline for days', async () => {
+      const { body: first } = await login({ username: 'lhw.a', password: PASSWORD, deviceId: ids.deviceA });
+      const refresh = (refreshToken) => request(app).post('/api/v1/auth/refresh').send({ refreshToken });
+
+      await refresh(first.refreshToken); // the phone gave up while the server was starting
+      await query("UPDATE refresh_tokens SET revoked_at = now() - interval '3 days' WHERE replaced_by IS NOT NULL");
+      const later = await refresh(first.refreshToken);
+      expect(later.status).toBe(200);
+
+      // Lost again, then the phone's next sync gets through: the chain goes on.
+      await refresh(later.body.refreshToken);
+      const again = await refresh(later.body.refreshToken);
+      expect(again.status).toBe(200);
+      expect((await refresh(again.body.refreshToken)).status).toBe(200);
+      expect((await refresh(later.body.refreshToken)).status).toBe(401); // its replacement has now been used
+    });
+
+    it('does not bring back a replaced token after it expired, sign-out, deactivation or a password reset', async () => {
       const refresh = (refreshToken) => request(app).post('/api/v1/auth/refresh').send({ refreshToken });
       const lostOnce = async () => {
         const { body } = await login({ username: 'lhw.a', password: PASSWORD, deviceId: ids.deviceA });
@@ -279,9 +296,9 @@ describeDb('sign-in from the app (M1 FE-2)', () => {
         return { old: body.refreshToken, replacement: replaced.body.refreshToken };
       };
 
-      const late = await lostOnce();
-      await query("UPDATE refresh_tokens SET revoked_at = now() - interval '31 minutes' WHERE replaced_by IS NOT NULL");
-      expect((await refresh(late.old)).status).toBe(401);
+      const expired = await lostOnce();
+      await query("UPDATE refresh_tokens SET expires_at = now() - interval '1 minute' WHERE replaced_by IS NOT NULL");
+      expect((await refresh(expired.old)).status).toBe(401);
 
       const signedOut = await lostOnce();
       await request(app).post('/api/v1/auth/logout').send({ refreshToken: signedOut.replacement });

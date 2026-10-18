@@ -23,7 +23,6 @@ module.exports = {
   refreshTokenTtlDays: int(process.env.REFRESH_TOKEN_TTL_DAYS, 30),
   // A replaced refresh token is accepted again for this long if its replacement
   // was never used: the phone lost the answer on a weak network (M3 FE-2).
-  refreshReuseMinutes: int(process.env.REFRESH_REUSE_MINUTES, 30),
   // M1 FE-2: login rate limiting, per client address and username.
   loginRateLimit: {
     maxFailures: int(process.env.LOGIN_MAX_FAILURES, 5),

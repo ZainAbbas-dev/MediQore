@@ -37,28 +37,30 @@ async function issueRefreshToken(client, userId, deviceId) {
 // pair (link the new token with linkReplacement). Fails with 401 if the token
 // is unknown, expired, revoked or its phone was revoked.
 //
-// One exception keeps a phone signed in on a weak network (M3 FE-2): a token
-// that was replaced less than REFRESH_REUSE_MINUTES ago is accepted again when
-// its replacement has never been used, because the phone then never received
-// it. The unused replacement is revoked instead. Sign-out, deactivation and a
+// One exception keeps a phone signed in on a weak network (M3 FE-2): a replaced
+// token is accepted again as long as its replacement has never been used,
+// because the phone then never received the answer (the network dropped, or the
+// phone gave up while a sleeping server was starting). There is no time limit:
+// a phone in the field may not get another chance for days, and the token still
+// ends with its own expiry. The unused replacement is revoked instead. Once the
+// replacement has been used the old token is dead; sign-out, deactivation and a
 // password reset revoke the replacement too, so they still end the session.
 async function consumeRefreshToken(client, token) {
   const { rows: [row] } = await client.query(
     `SELECT t.id, t.user_id, t.device_id, t.expires_at, t.revoked_at, t.replaced_by,
             d.revoked_at AS device_revoked_at,
-            r.revoked_at AS replacement_revoked_at,
-            t.revoked_at > now() - make_interval(mins => $2) AS recently_replaced
+            r.revoked_at AS replacement_revoked_at
      FROM refresh_tokens t
      LEFT JOIN devices d ON d.id = t.device_id
      LEFT JOIN refresh_tokens r ON r.id = t.replaced_by
      WHERE t.token_hash = $1
      FOR UPDATE OF t`,
-    [hashToken(token), config.refreshReuseMinutes],
+    [hashToken(token)],
   );
   const invalid = new AppError(401, 'INVALID_REFRESH_TOKEN', 'Sign in again');
   if (!row || row.device_revoked_at || row.expires_at <= new Date()) throw invalid;
   if (row.revoked_at) {
-    const lostReplacement = row.replaced_by && row.replacement_revoked_at === null && row.recently_replaced;
+    const lostReplacement = row.replaced_by && row.replacement_revoked_at === null;
     if (!lostReplacement) throw invalid;
     const { rowCount } = await client.query(
       'UPDATE refresh_tokens SET revoked_at = now() WHERE id = $1 AND revoked_at IS NULL',
