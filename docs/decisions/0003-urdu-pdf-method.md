@@ -1,9 +1,11 @@
 # 0003. Urdu text in PDF reports
 
-- **Status:** Proposed. The P0-12 check is done and the roadmap's own rule picks the fallback ("Test pdfkit with Nastaliq; if letters do not join or run right to left, use HTML-to-PDF"); team sign-off and the supervisor's agreement are still needed, because the Tools table names pdfkit
+- **Status:** Accepted: decided by the updated final scope (Tools table: "Puppeteer (headless Chromium) + ExcelJS", M6 FE-3) and the roadmap of 20 Oct 2026 ("Urdu text in PDF reports: Decided in scope")
 - **Date:** 2026-10-03
 - **Scope:** M6 FE-3 (bilingual progress report with an Urdu summary), M10 FE-2 (weekly and monthly PDF reports); Tools table: "pdfkit + ExcelJS"
 - **Roadmap:** Risks and decisions, row 3: "Test a one-page Urdu PDF in Phase 0; if it breaks, render the report as HTML with the Urdu font and print it to PDF with headless Chrome (Puppeteer)"
+
+> **Update, 2026-10-20 (updated final scope and roadmap of 20 Oct 2026).** The scope's Tools table now names Puppeteer (headless Chromium) + ExcelJS, and PDFs are rendered from HTML with the bundled Jameel Noori Nastaleeq font (M6 FE-3, M10 FE-2), which is this record's decision. P0-12 is now the check that a sample bilingual report page renders correctly with Puppeteer on the staging server, to settle by 27 Dec 2026.
 
 > **Update, 2026-10-10 (updated final scope and roadmap of 10 Oct 2026).** This is roadmap task **P0-12** (it was P0-11 in the earlier roadmap), to settle by 27 Dec 2026. The test was checked again on 10 Oct 2026: pdfkit 0.20.2 is still the latest release, so the results below stand. pdfkit joins the Nastaliq letters but runs every Urdu line left to right and misplaces numbers and units, which is exactly the case where the roadmap says to use HTML-to-PDF. ExcelJS stays for Excel reports.
 

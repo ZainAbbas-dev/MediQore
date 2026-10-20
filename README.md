@@ -13,7 +13,7 @@ MediQore replaces the LHW's paper registers with an Android app, in Urdu by defa
 
 The app syncs with a central server whenever a connection is available. Supervisors and admins use a web portal for a live dashboard and map, alerts, PDF/Excel reports and administration.
 
-> **Status:** Phase 0 (Design and foundation, roadmap of 10 Oct 2026) is built on `dev`:
+> **Status:** Phase 0 (Design and foundation, roadmap of 10 Oct 2026, since updated on 20 Oct 2026) is built on `dev`:
 > - monorepo with GitHub Actions lint and tests for every part (P0-1);
 > - the Flutter app with Urdu and English, the bundled Jameel Noori Nastaleeq font, right to left and left to right layouts, and a widget kit in the final Clinical Teal design (P0-2);
 > - the Express 5 API skeleton on Node.js 24 LTS with Joi validation, a central error handler, request logging and the OpenAPI file (P0-3);
@@ -25,7 +25,7 @@ The app syncs with a central server whenever a connection is available. Supervis
 > - the IEC application draft, ready for the team to submit (P0-9);
 > - the start of the ML track: UCI dataset download and exploratory notebook (P0-10);
 > - the Clinical Rules Table v0 with WHO-referenced defaults, marked "pending clinical review" ([clinical-rules/](clinical-rules/README.md), P0-11);
-> - the Urdu PDF check: pdfkit runs Urdu lines left to right, so reports use HTML printed to PDF ([decision 0003](docs/decisions/0003-urdu-pdf-method.md), P0-12).
+> - the Urdu PDF check: pdfkit runs Urdu lines left to right, so reports use HTML printed to PDF with Puppeteer, which the updated scope's Tools table now names ([decision 0003](docs/decisions/0003-urdu-pdf-method.md), P0-12).
 >
 > Still with people: branch protection on `main` (P0-1), submitting the IEC application (P0-9), a Clinical Advisor for the rules table (P0-11), and the review of schema v1 and OpenAPI v1 by both members.
 >
@@ -61,7 +61,7 @@ mediqore/
 ## Documentation
 
 - [Scope](docs/scope.md): the updated final scope with modules M1–M10, features (FE-n) and limitations LI-1 to LI-12.
-- [Implementation roadmap](docs/roadmap.md) (10 Oct 2026): phases, tasks, architecture rules, data model and definition of done. The original is [roadmap.pdf](docs/roadmap.pdf).
+- [Implementation roadmap](docs/roadmap.md) (20 Oct 2026): phases, tasks, architecture rules, data model and definition of done. The original is [roadmap.pdf](docs/roadmap.pdf).
 - [Clinical Rules Table](clinical-rules/README.md): every clinical rule, pending clinical review, and how the Clinical Advisor signs it (P0-11).
 - [Schema v1](docs/schema-v1.md): the database, how sync works in it, and the decisions to review.
 - [API contract](docs/openapi.yaml): OpenAPI 3.1.

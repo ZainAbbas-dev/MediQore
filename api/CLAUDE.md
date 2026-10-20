@@ -1,6 +1,6 @@
 # api/: REST API
 
-Node.js + Express REST API: auth and activation codes, sync endpoints, conflict detection, alerts and server-side escalation, reports and audit log. Follow the root `CLAUDE.md` first; this file only adds what is specific to `api/`.
+Node.js + Express REST API: auth and activation codes, sync endpoints, conflict detection, emergency alerts (web push, re-send at the time limit, alert status for the phone), reports and audit log. Follow the root `CLAUDE.md` first; this file only adds what is specific to `api/`.
 
 ## Stack (scope Tools table)
 
@@ -12,13 +12,13 @@ Node.js + Express REST API: auth and activation codes, sync endpoints, conflict 
 | Joi | Latest | Request body validation and sanitisation before any database operation |
 | TLS via HTTPS | N/A | All client-server traffic encrypted; plain HTTP rejected at server level |
 | PostgreSQL | 15.x | Central relational database (migrations live in `db/`) |
-| pdfkit + ExcelJS | Latest | Automated PDF and Excel report generation |
+| Puppeteer (headless Chromium) + ExcelJS | Latest | Automated PDF and Excel report generation; PDFs are rendered from HTML with the bundled Jameel Noori Nastaleeq font |
 
 From the roadmap:
 
 - Tests use Jest + Supertest.
 - Migrations use node-pg-migrate, chosen in P0-4, and live in `db/` (see `db/CLAUDE.md` and `docs/schema-v1.md`). The API never changes the schema itself.
-- Urdu PDF rendering is tested in P0-12; if pdfkit breaks Nastaliq, the fallback is HTML printed to PDF with headless Chrome (Puppeteer). See `docs/decisions/0003-urdu-pdf-method.md`.
+- P0-12 checks a bilingual report page rendered to PDF with Puppeteer on the staging server. See `docs/decisions/0003-urdu-pdf-method.md`.
 
 ## Key rules
 
