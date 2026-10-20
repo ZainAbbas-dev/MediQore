@@ -1,6 +1,6 @@
 // M3 FE-3, M1 FE-2: the app's settings (final design screen 7), opened from
-// the gear icon on the home screen: the language (اردو / English, saved on the
-// phone), the account with Change PIN, Lock the app and Sign out, and the
+// the gear icon on the home screen: the language row and its sheet (اردو /
+// English, saved on the phone), the account with Change PIN, Lock the app and Sign out, and the
 // Phase 0 checks in development and test builds.
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -69,87 +69,84 @@ class SettingsScreen extends StatelessWidget {
             offset: const Offset(0, -_profileOverlap),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      InitialAvatar(user.fullName, radius: 28),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(user.fullName, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-                            if (place.isNotEmpty)
-                              Text(place, style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SectionHeading(l10n.languageLabel),
-                LanguageChoice(settings: services.settings),
-                gap,
-                SectionHeading(l10n.settingsAccountSection),
-                Card(
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    children: [
-                      _ActionTile(
-                        icon: Icons.pin_outlined,
-                        label: l10n.pinChangeTitle,
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => PinCreateScreen(services: services, mode: PinCreateMode.change),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          InitialAvatar(user.fullName, radius: 28),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(user.fullName, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                                if (place.isNotEmpty)
+                                  Text(place, style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText)),
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                      const Divider(height: 1),
-                      _ActionTile(icon: Icons.lock_outline, label: l10n.homeLockButton, onTap: () => session.lock(null)),
-                      const Divider(height: 1),
-                      _ActionTile(
-                        icon: Icons.logout,
-                        label: l10n.homeSignOutButton,
-                        danger: true,
-                        onTap: () => _signOut(context),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                if (kDebugMode || testBuild) ...[
+                  const SizedBox(height: 16),
+                  Card(clipBehavior: Clip.antiAlias, child: LanguageSettingTile(settings: services.settings)),
                   gap,
-                  SectionHeading(l10n.settingsTestingSection),
+                  SectionHeading(l10n.settingsAccountSection),
                   Card(
                     clipBehavior: Clip.antiAlias,
                     child: Column(
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                          child: InfoRow(l10n.loginServerLabel, services.serverAddress, ltr: true),
+                        _ActionTile(
+                          icon: Icons.pin_outlined,
+                          label: l10n.pinChangeTitle,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => PinCreateScreen(services: services, mode: PinCreateMode.change),
+                            ),
+                          ),
                         ),
                         const Divider(height: 1),
+                        _ActionTile(icon: Icons.lock_outline, label: l10n.homeLockButton, onTap: () => session.lock(null)),
+                        const Divider(height: 1),
                         _ActionTile(
-                          icon: Icons.checklist,
-                          label: l10n.devHomeTitle,
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(builder: (_) => DevHomeScreen(services: services)),
-                          ),
+                          icon: Icons.logout,
+                          label: l10n.homeSignOutButton,
+                          danger: true,
+                          onTap: () => _signOut(context),
                         ),
                       ],
                     ),
                   ),
+                  if (kDebugMode || testBuild) ...[
+                    gap,
+                    SectionHeading(l10n.settingsTestingSection),
+                    Card(
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                            child: InfoRow(l10n.loginServerLabel, services.serverAddress, ltr: true),
+                          ),
+                          const Divider(height: 1),
+                          _ActionTile(
+                            icon: Icons.checklist,
+                            label: l10n.devHomeTitle,
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(builder: (_) => DevHomeScreen(services: services)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],

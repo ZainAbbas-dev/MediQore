@@ -203,6 +203,30 @@
   "@languageNameEnglish": {
     "description": "Name of the English option on the language switch. Always written in English, so an English reader can find it in either language."
   },
+  "languageLabelOther": "زبان",
+  "@languageLabelOther": {
+    "description": "The word Language in the other language, shown smaller after languageLabel on the Settings row (M3 FE-3), so either reader can find it."
+  },
+  "languageSheetTitle": "Choose language",
+  "@languageSheetTitle": {
+    "description": "Title of the language sheet opened from the Settings row."
+  },
+  "languageSheetSubtitle": "زبان منتخب کریں",
+  "@languageSheetSubtitle": {
+    "description": "Small line under the language sheet's title: the same title in the other language."
+  },
+  "languageNameUrduLatin": "Urdu",
+  "@languageNameUrduLatin": {
+    "description": "Second name of the Urdu option in the language sheet, after اردو: always in Latin letters (\"اردو / Urdu\")."
+  },
+  "languageNameEnglishUrdu": "انگریزی",
+  "@languageNameEnglishUrdu": {
+    "description": "Second name of the English option in the language sheet, after English: always in Urdu (\"English / انگریزی\")."
+  },
+  "languageSaveButton": "Save",
+  "@languageSaveButton": {
+    "description": "Button at the bottom of the language sheet: switches the app to the chosen language and keeps it."
+  },
   "loginUsername": "LHW ID",
   "@loginUsername": {
     "description": "Login field for the username, which is the LHW ID such as LHW-00001."

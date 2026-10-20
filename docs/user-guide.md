@@ -2,7 +2,7 @@
 
 Short notes for the people who use MediQore, written module by module as each one is finished (roadmap, Definition of done: "Short note added to the user guide"). Phase 1 covers Modules 1, 2 and 3 on the LHW app and the Module 10 base on the portal. All examples use synthetic data (LI-10).
 
-The app is in Urdu by default; the Urdu button labels are given with their English meaning. The language can be changed at any time in the settings (gear icon → **زبان**), and the choice is kept.
+The app is in Urdu by default; the Urdu button labels are given with their English meaning. The language can be changed at any time in the settings (gear icon → **زبان · Language** → choose **اردو / Urdu** or **English / انگریزی** → **محفوظ کریں** (Save)), and the choice is kept.
 
 ## LHW app
 

@@ -25,7 +25,7 @@ class DevHomeScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: LanguageChoice(settings: services.settings))),
+          Card(clipBehavior: Clip.antiAlias, child: LanguageSettingTile(settings: services.settings)),
           const SizedBox(height: 24),
           LargeButton(label: l10n.kitTitle, icon: Icons.widgets, onPressed: () => open(const WidgetKitScreen())),
           const SizedBox(height: 12),
