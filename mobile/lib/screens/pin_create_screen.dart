@@ -136,7 +136,6 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
                   EnterTransition(
                     key: ValueKey(('instruction', _step)),
                     duration: _stepChanged ? AppMotion.medium : Duration.zero,
-                    offset: const Offset(0, 6),
                     child: Text(stepText, textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
                   ),
                   const SizedBox(height: 12),

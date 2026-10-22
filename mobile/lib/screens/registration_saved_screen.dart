@@ -41,14 +41,10 @@ class RegistrationSavedScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 28, 16, 28 + _overlap),
                 child: Column(
                   children: [
-                    // The one celebration in the app: the tick pops in once when
-                    // the registration is saved.
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: 1),
-                      duration: AppMotion.of(context, const Duration(milliseconds: 450)),
-                      curve: Curves.easeOutBack,
-                      builder: (context, t, tick) => Transform.scale(scale: 0.6 + 0.4 * t, child: tick),
-                      child: const CircleAvatar(
+                    // The tick fades in once when the registration is saved.
+                    const EnterTransition(
+                      duration: AppMotion.long,
+                      child: CircleAvatar(
                         radius: 40,
                         backgroundColor: Colors.white,
                         child: Icon(Icons.check_rounded, size: 52, color: AppColors.primary),

@@ -25,6 +25,7 @@ import '../widgets/form_fields.dart';
 import '../widgets/offline_status_bar.dart';
 import '../widgets/step_scaffold.dart';
 import 'pulse_counter_screen.dart';
+import '../theme/app_motion.dart';
 
 /// A value outside its usual range, for the confirmation dialog.
 class _Unusual {
@@ -184,9 +185,7 @@ class _VisitScreenState extends State<VisitScreen> {
   Future<void> _countPulse() async {
     final ranges = _ranges!;
     final pulse = await Navigator.of(context).push<int>(
-      MaterialPageRoute(
-        builder: (_) => PulseCounterScreen(seconds: ranges.pulseCountSeconds, multiplier: ranges.pulseMultiplier),
-      ),
+      AppRoutes.form(PulseCounterScreen(seconds: ranges.pulseCountSeconds, multiplier: ranges.pulseMultiplier)),
     );
     if (pulse != null && mounted) setState(() => _pulse.text = '$pulse');
   }

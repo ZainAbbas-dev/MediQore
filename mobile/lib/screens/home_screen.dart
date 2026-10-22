@@ -113,8 +113,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // Opens a screen; the counts may have changed when it closes.
-  Future<void> _open(Widget screen) async {
-    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
+  Future<void> _open(Route<void> route) async {
+    await Navigator.of(context).push(route);
     await _refresh();
   }
 
@@ -170,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
               HeaderIconButton(
                 icon: const Icon(Icons.settings),
                 tooltip: l10n.homeSettingsSection,
-                onPressed: () => _open(SettingsScreen(services: _services)),
+                onPressed: () => _open(AppRoutes.screen(SettingsScreen(services: _services))),
               ),
             ],
             child: Column(
@@ -216,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   LargeButton(
                     label: l10n.homeSignInAgainButton,
                     icon: Icons.login,
-                    onPressed: () => _open(SignInAgainScreen(services: _services)),
+                    onPressed: () => _open(AppRoutes.screen(SignInAgainScreen(services: _services))),
                   ),
                   gap,
                 ],
@@ -234,16 +234,18 @@ class _HomeScreenState extends State<HomeScreen> {
                             title: l10n.patientsNewButton,
                             subtitle: l10n.homeRegisterHint,
                             primary: true,
-                            onTap: () => _open(RegisterScreen(services: _services)),
+                            onTap: () => _open(AppRoutes.form(RegisterScreen(services: _services))),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _TaskCard(
-                            icon: Icons.groups_outlined,
-                            title: l10n.homePatientsButton,
-                            subtitle: _women == null ? '' : l10n.patientsCount(_women!),
-                            onTap: () => _open(PatientListScreen(services: _services)),
+                          child: Builder(
+                            builder: (card) => _TaskCard(
+                              icon: Icons.groups_outlined,
+                              title: l10n.homePatientsButton,
+                              subtitle: _women == null ? '' : l10n.patientsCount(_women!),
+                              onTap: () => _open(AppRoutes.fromCard(card, PatientListScreen(services: _services))),
+                            ),
                           ),
                         ),
                       ],
@@ -255,11 +257,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     Card(child: EmptyNote(text: l10n.fileNoVisits, icon: Icons.event_note_outlined))
                   else
                     for (final recent in _recent) ...[
-                      _RecentVisitCard(
-                        recent: recent,
-                        onTap: recent.woman == null
-                            ? null
-                            : () => _open(PatientFileScreen(services: _services, womanId: recent.woman!.id)),
+                      Builder(
+                        builder: (card) => _RecentVisitCard(
+                          recent: recent,
+                          onTap: recent.woman == null
+                              ? null
+                              : () => _open(AppRoutes.fromCard(card, PatientFileScreen(services: _services, womanId: recent.woman!.id))),
+                        ),
                       ),
                       const SizedBox(height: 10),
                     ],

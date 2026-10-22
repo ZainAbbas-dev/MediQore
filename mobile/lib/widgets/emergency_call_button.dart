@@ -7,6 +7,7 @@ import '../app_services.dart';
 import '../auth/local_account.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_motion.dart';
 
 class EmergencyCallButton extends StatelessWidget {
   const EmergencyCallButton({super.key, required this.services, this.label});
@@ -28,6 +29,7 @@ class EmergencyCallButton extends StatelessWidget {
         ? supervisors.single
         : await showModalBottomSheet<Supervisor>(
             context: context,
+            sheetAnimationStyle: AppMotion.sheet,
             builder: (context) => SafeArea(
               child: Column(
                 mainAxisSize: MainAxisSize.min,

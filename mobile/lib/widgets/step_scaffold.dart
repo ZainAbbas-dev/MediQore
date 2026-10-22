@@ -55,15 +55,14 @@ class StepScaffold extends StatefulWidget {
 }
 
 class _StepScaffoldState extends State<StepScaffold> {
-  /// Set when the step changes: the new step slides in from the side it comes
-  /// from (the end for Next, the start for Back). The first step does not move,
-  /// because the screen itself is already arriving.
-  bool? _forward;
+  /// Set once the step has changed: each new step fades in. The first step
+  /// does not, because the form itself is already sliding up.
+  bool _stepChanged = false;
 
   @override
   void didUpdateWidget(StepScaffold oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.step != oldWidget.step) _forward = widget.step > oldWidget.step;
+    if (widget.step != oldWidget.step) _stepChanged = true;
   }
 
   @override
@@ -72,9 +71,6 @@ class _StepScaffoldState extends State<StepScaffold> {
     final theme = Theme.of(context);
     final StepScaffold(:title, :subtitle, :step, :total, :stepName, :child, :nextLabel, :onNext, :onBack, :statusBar, :busy) =
         widget;
-    final forward = _forward;
-    // "The end side" is the right in English and the left in Urdu.
-    final fromEnd = Directionality.of(context) == TextDirection.ltr ? 1.0 : -1.0;
     return Scaffold(
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -119,13 +115,7 @@ class _StepScaffoldState extends State<StepScaffold> {
             ),
           ),
           Expanded(
-            child: forward == null
-                ? child
-                : EnterTransition(
-                    key: ValueKey(step),
-                    offset: Offset((forward ? 32 : -32) * fromEnd, 0),
-                    child: child,
-                  ),
+            child: _stepChanged ? EnterTransition(key: ValueKey(step), child: child) : child,
           ),
           SafeArea(
             top: false,

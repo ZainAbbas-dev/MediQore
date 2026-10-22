@@ -22,6 +22,7 @@ import '../widgets/curved_header.dart';
 import '../widgets/gps_capture.dart';
 import '../widgets/large_button.dart';
 import 'visit_screen.dart';
+import '../theme/app_motion.dart';
 
 class PatientFileScreen extends StatefulWidget {
   const PatientFileScreen({super.key, required this.services, required this.womanId});
@@ -73,8 +74,8 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final from = _rules?.fetalMovementFromWeeks;
     final saved = await Navigator.of(context).push<LocalVisit>(
-      MaterialPageRoute(
-        builder: (_) => VisitScreen(
+      AppRoutes.form(
+        VisitScreen(
           services: widget.services,
           pregnancyId: file.pregnancy!.id,
           title: '${file.woman.name} · ${file.woman.patientCode}',

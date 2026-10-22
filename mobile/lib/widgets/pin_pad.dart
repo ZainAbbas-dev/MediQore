@@ -1,6 +1,5 @@
 // M1 FE-2: the PIN entry of the final design (screens 2–4): six dots and a
 // large keypad. Digits always read left to right, also in the Urdu layout.
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -144,17 +143,16 @@ class PinEntryController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// A wrong PIN or a mismatch: the dots shake once, the phone gives a short
-  /// buzz, and they empty, the way phones answer a wrong unlock code.
+  /// A wrong PIN or a mismatch: the phone gives a short buzz and the dots
+  /// empty; the screen says why.
   void reject() {
     _rejected = true;
     notifyListeners();
   }
 }
 
-class _PinEntryState extends State<PinEntry> with SingleTickerProviderStateMixin {
+class _PinEntryState extends State<PinEntry> {
   String _digits = '';
-  late final AnimationController _shake = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
 
   @override
   void initState() {
@@ -174,16 +172,12 @@ class _PinEntryState extends State<PinEntry> with SingleTickerProviderStateMixin
   @override
   void dispose() {
     widget.controller?.removeListener(_onController);
-    _shake.dispose();
     super.dispose();
   }
 
   void _onController() {
     setState(() => _digits = '');
-    if (widget.controller?._rejected ?? false) {
-      HapticFeedback.mediumImpact();
-      if (!(MediaQuery.maybeDisableAnimationsOf(context) ?? false)) _shake.forward(from: 0);
-    }
+    if (widget.controller?._rejected ?? false) HapticFeedback.mediumImpact();
   }
 
   void _add(String digit) {
@@ -202,13 +196,7 @@ class _PinEntryState extends State<PinEntry> with SingleTickerProviderStateMixin
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AnimatedBuilder(
-          animation: _shake,
-          // Three quick swings that die out.
-          builder: (context, dots) =>
-              Transform.translate(offset: Offset(sin(_shake.value * pi * 6) * 10 * (1 - _shake.value), 0), child: dots),
-          child: PinDots(filled: _digits.length),
-        ),
+        PinDots(filled: _digits.length),
         const SizedBox(height: 20),
         PinKeypad(onDigit: _add, onDelete: _delete, enabled: widget.enabled),
       ],

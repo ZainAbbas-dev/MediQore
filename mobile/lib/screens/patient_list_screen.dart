@@ -14,6 +14,7 @@ import '../widgets/curved_header.dart';
 import '../widgets/gps_capture.dart' show locationProblemText;
 import 'patient_file_screen.dart';
 import 'register_screen.dart';
+import '../theme/app_motion.dart';
 
 class PatientListScreen extends StatefulWidget {
   const PatientListScreen({super.key, required this.services});
@@ -84,8 +85,8 @@ class _PatientListScreenState extends State<PatientListScreen> {
     await _load();
   }
 
-  Future<void> _open(Widget screen) async {
-    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
+  Future<void> _open(Route<void> route) async {
+    await Navigator.of(context).push(route);
     await _load();
   }
 
@@ -123,10 +124,12 @@ class _PatientListScreenState extends State<PatientListScreen> {
       rows.add(
         Padding(
           padding: EdgeInsets.only(bottom: 8, top: byDistance && index == 0 ? 12 : 0),
-          child: _PatientRow(
-            patient: p,
-            byDistance: byDistance,
-            onTap: () => _open(PatientFileScreen(services: widget.services, womanId: p.woman.id)),
+          child: Builder(
+            builder: (card) => _PatientRow(
+              patient: p,
+              byDistance: byDistance,
+              onTap: () => _open(AppRoutes.fromCard(card, PatientFileScreen(services: widget.services, womanId: p.woman.id))),
+            ),
           ),
         ),
       );
@@ -136,7 +139,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.person_add_alt_1_outlined),
         label: Text(l10n.patientsNewButton),
-        onPressed: () => _open(RegisterScreen(services: widget.services)),
+        onPressed: () => _open(AppRoutes.form(RegisterScreen(services: widget.services))),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_motion.dart';
 
 /// App-wide theme for field use (M3 FE-1), in the final design chosen for
 /// Phase 1 (P0-7: Clinical Teal, docs/design/phase1-screens.md): large pill
@@ -141,6 +142,17 @@ abstract final class AppTheme {
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+      ),
+      // Screens fade in (AppMotion); forms and cards open with AppRoutes.
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FadePageTransitionsBuilder(),
+          TargetPlatform.iOS: FadePageTransitionsBuilder(),
+          TargetPlatform.linux: FadePageTransitionsBuilder(),
+          TargetPlatform.macOS: FadePageTransitionsBuilder(),
+          TargetPlatform.windows: FadePageTransitionsBuilder(),
+          TargetPlatform.fuchsia: FadePageTransitionsBuilder(),
+        },
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.surface,

@@ -119,6 +119,7 @@ class LanguageSettingTile extends StatelessWidget {
 Future<void> showLanguageSheet(BuildContext context, AppSettings settings) async {
   final chosen = await showModalBottomSheet<Locale>(
     context: context,
+    sheetAnimationStyle: AppMotion.sheet,
     isScrollControlled: true,
     useSafeArea: true,
     builder: (_) => _LanguageSheet(current: settings.locale),
