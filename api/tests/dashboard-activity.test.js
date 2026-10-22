@@ -94,19 +94,24 @@ describeDb('dashboard: LHW activity and map filters (M10 FE-1)', () => {
 
     expect(forSupervisor.districts.map((d) => d.name)).toEqual(['Area A District']);
     expect(forSupervisor.unionCouncils).toHaveLength(1);
+    expect(forSupervisor.tehsils).toEqual([expect.objectContaining({ name: 'T', districtId: forSupervisor.districts[0].id })]);
+    expect(forSupervisor.unionCouncils[0].tehsilId).toBe(forSupervisor.tehsils[0].id);
     expect(forSupervisor.lhws.map((l) => l.lhwCode)).toEqual(['LHW-A']);
     expect(forAdmin.districts.map((d) => d.name)).toEqual(['Area A District', 'Area B District']);
     expect(forAdmin.lhws.map((l) => l.lhwCode)).toEqual(['LHW-A', 'LHW-B']);
     expect(forAdmin.lhws[0]).toMatchObject({ fullName: 'Test lhw.a', districtId: forAdmin.districts[0].id });
   });
 
-  it('filters the household map by district, Union Council, LHW and time period', async () => {
+  it('filters the household map by district, tehsil, Union Council, LHW and time period', async () => {
     const villages = async (path) => (await get(admin, path)).body.households.map((h) => h.village).sort();
     const { district_id: districtA, uc_id: ucA } = await placeOf(ids.areaA);
 
     expect(await villages('/households')).toEqual(['Village A', 'Village B']);
     expect(await villages(`/households?districtId=${districtA}`)).toEqual(['Village A']);
     expect(await villages(`/households?unionCouncilId=${ucA}`)).toEqual(['Village A']);
+    const { rows: [{ tehsil_id: tehsilA }] } = await query('SELECT tehsil_id FROM union_councils WHERE id = $1', [ucA]);
+    expect(await villages(`/households?tehsilId=${tehsilA}`)).toEqual(['Village A']);
+    expect((await get(admin, `/dashboard/summary?tehsilId=${tehsilA}`)).body.registeredWomen).toBeGreaterThanOrEqual(0);
     expect(await villages(`/households?lhwId=${ids.lhwB}`)).toEqual(['Village B']);
     expect(await villages('/households?days=30')).toEqual(['Village A']);
     const [row] = (await get(admin, `/households?lhwId=${ids.lhwA}`)).body.households;
@@ -145,7 +150,7 @@ describeDb('dashboard: LHW activity and map filters (M10 FE-1)', () => {
     expect(latest.serverSeq).toBeGreaterThan(earlier.serverSeq);
     expect(new Date(latest.visitedAt) < new Date(earlier.visitedAt)).toBe(true); // pushed later, visited earlier
     expect(latest).toMatchObject({
-      pregnancyId: a.pregnancy.id, systolicBpMmhg: 118, pulseBpm: 84, bloodSugarMmolL: null,
+      pregnancyId: a.pregnancy.id, systolicBpMmhg: 118, pulseBpm: 84, bloodSugarValue: null,
       convulsions: null, recordedBy: { lhwCode: 'LHW-A', fullName: 'Test lhw.a' },
     });
     expect((await get(supervisor, `/women/${b.woman.id}/visits`)).status).toBe(404);

@@ -1,7 +1,10 @@
-// M10 FE-3: role permissions. The three roles are fixed (users.role). What each
-// role may do is listed here once: every route checks it with requirePermission
-// (middleware/auth.js), and GET /admin/roles shows this same list on the
-// portal, so the page and the API cannot disagree.
+// M10 FE-3, M1 FE-2: role permissions. The three roles are fixed (users.role).
+// Every route checks a permission with requirePermission (middleware/auth.js).
+// `roles` lists the roles that hold a permission by default; an admin can grant
+// or remove it on the portal (role_permissions, services/role-permissions.service.js),
+// except where the choice is fixed:
+//   - LHWs use only the app: they hold `sync` and nothing else, and no portal role syncs;
+//   - admins always keep `roles.manage`, so the system can never lock itself out.
 
 const ROLES = {
   lhw: { label: 'LHW', description: 'Uses the Android app only. Sees and syncs the records of her own area.' },
@@ -30,7 +33,14 @@ const PERMISSIONS = {
   'geography.manage': { roles: ['admin'], label: 'Manage districts, tehsils, Union Councils and areas' },
   'facilities.manage': { roles: ['admin'], label: 'Manage hospitals and referral centres' },
   'audit.view': { roles: ['admin'], label: 'View the audit log' },
+  'roles.manage': { roles: ['admin'], label: 'Choose which role holds which permission' },
 };
+
+// Whether an admin may change this role's hold on this permission.
+function editable(role, permission) {
+  if (role === 'lhw' || permission === 'sync') return false;
+  return !(role === 'admin' && permission === 'roles.manage');
+}
 
 function rolesFor(permission) {
   const entry = PERMISSIONS[permission];
@@ -38,4 +48,4 @@ function rolesFor(permission) {
   return entry.roles;
 }
 
-module.exports = { ROLES, PERMISSIONS, rolesFor };
+module.exports = { ROLES, PERMISSIONS, rolesFor, editable };

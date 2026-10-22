@@ -1,14 +1,18 @@
 const Joi = require('joi');
 
-const { visit_entry_checks: { vitals: VISIT_ENTRY_CHECKS } } = require('../../../clinical-rules/clinical-rules.json');
+const {
+  visit_entry_checks: { vitals: VISIT_ENTRY_CHECKS, blood_sugar_conversion: { mg_dl_per_mmol_l: MG_DL_PER_MMOL_L } },
+  gestational_age: GESTATION,
+} = require('../../../clinical-rules/clinical-rules.json');
 
 // Tables that devices may push and pull through /sync, with the fields the
 // device sends (camelCase) and the column each maps to. Only tables listed here
 // can be synced, and their names are the only identifiers ever placed in SQL.
 // Add a table here when its module is built, together with its tests.
 //
-// `sameDay` marks a table whose new records go to the supervisor conflict
-// queue when another record for the same parent has the same day (M3 FE-2).
+// `duplicateOf` marks a table whose new records are checked for a likely
+// duplicate (M3 FE-2): it names the columns that must match. A possible
+// duplicate is stored and listed on the supervisor's Conflict Review page.
 //
 // `parent` names the record a row belongs to (a woman's household, a
 // pregnancy's woman). The parent must already be on the server and in the same
@@ -16,7 +20,7 @@ const { visit_entry_checks: { vitals: VISIT_ENTRY_CHECKS } } = require('../../..
 // before its parent (an edited parent gets a higher server_seq), so devices
 // must not require the parent when they apply a pulled row.
 //
-// Every listed table has the sync base columns (id, server_seq, area_id,
+// Every listed table has the sync base columns (id, server_seq, version, area_id,
 // created_by, created_on_device, synced_at, deleted_at); see docs/schema-v1.md.
 
 const text = (max) => Joi.string().trim().max(max).empty('').allow(null).default(null);
@@ -48,6 +52,22 @@ const calendarDate = () =>
       return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value) ? value : helpers.error('any.invalid');
     });
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const dayNumber = (date) => Date.parse(`${date}T00:00:00Z`) / DAY_MS;
+
+// Gestational age in weeks on a date, from the estimated delivery date (M2 FE-1).
+function weeksOn(edd, date) {
+  return GESTATION.full_term_weeks - (dayNumber(edd) - dayNumber(date)) / 7;
+}
+
+// The estimated delivery date from the pregnancy month only: the month's
+// midpoint, as the Clinical Rules Table describes (gestational_age).
+function eddFromMonth(registeredOn, month) {
+  const weeks = (month - 0.5) * GESTATION.weeks_per_month;
+  const days = Math.round((GESTATION.full_term_weeks - weeks) * 7);
+  return new Date((dayNumber(registeredOn) + days) * DAY_MS).toISOString().slice(0, 10);
+}
+
 const TABLES = {
   // M2 FE-3: household with GPS. The first table synced end to end (P0-6).
   households: {
@@ -65,10 +85,13 @@ const TABLES = {
     },
   },
 
-  // M2 FE-1: registered woman. The patient ID is the LHW code plus a counter
-  // kept on the phone, so it is unique without a connection.
+  // M2 FE-1: registered woman. The patient ID is [LHW code]-[activation
+  // number]-[sequence] made on the phone, so it is unique without a connection.
+  // The same name and husband's name in the same household is a possible
+  // duplicate (M3 FE-2).
   women: {
     parent: { field: 'householdId', table: 'households' },
+    duplicateOf: { sameColumns: ['household_id'], sameText: ['name', 'husband_name'] },
     fields: {
       householdId: { column: 'household_id', schema: reference() },
       patientCode: {
@@ -96,9 +119,24 @@ const TABLES = {
       },
       status: { column: 'status', schema: Joi.string().valid('active', 'closed').default('active') },
       closedOn: { column: 'closed_on', schema: calendarDate().allow(null).default(null) },
+      // Estimated delivery date from the LMP date, a known EDD or the month (M2 FE-1).
+      lmpDate: { column: 'lmp_date', schema: calendarDate().allow(null).default(null) },
+      reportedEdd: { column: 'reported_edd', schema: calendarDate().allow(null).default(null) },
+      estimatedDeliveryDate: { column: 'estimated_delivery_date', schema: calendarDate().allow(null).default(null) },
+      eddBasis: { column: 'edd_basis', schema: Joi.string().valid('lmp', 'edd', 'month').allow(null).default(null) },
     },
     check(data) {
-      return data.closedOn !== null && data.status !== 'closed' ? 'closedOn is only for a closed pregnancy' : null;
+      if (data.closedOn !== null && data.status !== 'closed') return 'closedOn is only for a closed pregnancy';
+      // An app from before 22 Oct 2026 sends no date: estimate it from the month as the app does now.
+      if (data.estimatedDeliveryDate === null && data.eddBasis === null && data.lmpDate === null && data.reportedEdd === null) {
+        Object.assign(data, { eddBasis: 'month', estimatedDeliveryDate: eddFromMonth(data.registeredOn, data.pregnancyMonthAtRegistration) });
+      }
+      if (data.estimatedDeliveryDate === null || data.eddBasis === null) return 'estimatedDeliveryDate and eddBasis go together';
+      if ((data.eddBasis === 'lmp') !== (data.lmpDate !== null)) return 'lmpDate is given exactly when eddBasis is lmp';
+      if ((data.eddBasis === 'edd') !== (data.reportedEdd !== null)) return 'reportedEdd is given exactly when eddBasis is edd';
+      const [lo, hi] = GESTATION.registration_weeks;
+      const weeks = weeksOn(data.estimatedDeliveryDate, data.registeredOn);
+      return weeks < lo || weeks > hi ? `gestational age at registration must be ${lo}-${hi} weeks` : null;
     },
   },
 
@@ -120,12 +158,10 @@ const TABLES = {
   },
 
   // M3 FE-1: one home visit with its vitals and symptoms. Units are in the
-  // names and never converted in storage. Two visits for the same pregnancy on
-  // the same day (Pakistan time) are a possible duplicate: the second waits in
-  // the supervisor's conflict queue (M3 FE-2, LI-7).
+  // names and never converted in storage; blood sugar keeps the unit it was
+  // recorded in.
   visits: {
     parent: { field: 'pregnancyId', table: 'pregnancies' },
-    sameDay: { parentColumn: 'pregnancy_id', timeColumn: 'visited_at', parentField: 'pregnancyId', timeField: 'visitedAt' },
     fields: {
       pregnancyId: { column: 'pregnancy_id', schema: reference() },
       visitedAt: { column: 'visited_at', type: 'timestamp', schema: Joi.date().iso().required() },
@@ -135,11 +171,15 @@ const TABLES = {
       temperatureC: { column: 'temperature_c', type: 'number', schema: vital('temperatureC', 1) },
       // Pulse is required (M3 FE-1): read from the BP device or counted for 30 seconds.
       pulseBpm: { column: 'pulse_bpm', type: 'number', schema: vital('pulseBpm').invalid(null).required() },
-      // Optional blood sugar, always in mmol/L, with the unit the LHW typed, the
+      // Optional blood sugar with its value in the unit it was recorded in, the
       // date it was measured and its source (M3 FE-1, M4 FE-1).
-      bloodSugarMmolL: { column: 'blood_sugar_mmol_l', type: 'number', schema: vital('bloodSugarMmolL', 1) },
-      bloodSugarEnteredUnit: {
-        column: 'blood_sugar_entered_unit',
+      bloodSugarValue: {
+        column: 'blood_sugar_value',
+        type: 'number',
+        schema: Joi.number().precision(1).positive().allow(null).default(null),
+      },
+      bloodSugarUnit: {
+        column: 'blood_sugar_unit',
         schema: Joi.string().valid('mmol_l', 'mg_dl').allow(null).default(null),
       },
       bloodSugarMeasuredOn: { column: 'blood_sugar_measured_on', schema: calendarDate().allow(null).default(null) },
@@ -164,11 +204,15 @@ const TABLES = {
       feverWithWeakness: { column: 'fever_with_weakness', schema: answer() },
     },
     check(data) {
-      const details = [data.bloodSugarEnteredUnit, data.bloodSugarMeasuredOn, data.bloodSugarSource];
-      if (data.bloodSugarMmolL === null) {
+      const details = [data.bloodSugarUnit, data.bloodSugarMeasuredOn, data.bloodSugarSource];
+      if (data.bloodSugarValue === null) {
         return details.every((d) => d === null) ? null : 'blood sugar details need a blood sugar value';
       }
-      return details.every((d) => d !== null) ? null : 'a blood sugar value needs its unit, date and source';
+      if (!details.every((d) => d !== null)) return 'a blood sugar value needs its unit, date and source';
+      // The allowed range is in mmol/L; a mg/dL reading is compared after converting it.
+      const mmol = data.bloodSugarUnit === 'mg_dl' ? data.bloodSugarValue / MG_DL_PER_MMOL_L : data.bloodSugarValue;
+      const [min, max] = VISIT_ENTRY_CHECKS.bloodSugarMmolL.allowed;
+      return mmol < min || mmol > max ? 'blood sugar is outside the allowed range' : null;
     },
   },
 };
@@ -190,4 +234,4 @@ function normalise(field, value) {
   return value;
 }
 
-module.exports = { TABLES, dataSchema, normalise };
+module.exports = { TABLES, dataSchema, normalise, eddFromMonth, weeksOn };

@@ -3,10 +3,10 @@ const { supervisorAreaIds } = require('./scope.service');
 
 // Households visible to a portal user: a supervisor sees only their assigned
 // areas, an admin sees all. Used by the dashboard map and table (M10 FE-1),
-// which filter them by district, Union Council, LHW and time period. The time
+// which filter them by district, tehsil, Union Council, LHW and time period. The time
 // period counts days back from when the server received the household, never
 // from the phone's clock (LI-7).
-async function listForPortal(user, { limit, districtId, unionCouncilId, lhwId, days }) {
+async function listForPortal(user, { limit, districtId, tehsilId, unionCouncilId, lhwId, days }) {
   const params = [limit];
   const where = ['h.deleted_at IS NULL'];
   const add = (value, condition) => {
@@ -15,6 +15,7 @@ async function listForPortal(user, { limit, districtId, unionCouncilId, lhwId, d
   };
   if (user.role === 'supervisor') add(await supervisorAreaIds(db, user.id), 'h.area_id = ANY(?)');
   if (districtId) add(districtId, 't.district_id = ?');
+  if (tehsilId) add(tehsilId, 'uc.tehsil_id = ?');
   if (unionCouncilId) add(unionCouncilId, 'a.union_council_id = ?');
   if (lhwId) add(lhwId, 'h.created_by = ?');
   if (days) add(days, "h.synced_at >= now() - make_interval(days => ?)");

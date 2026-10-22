@@ -275,10 +275,13 @@ paths:
         applies: a patient ID already used (`DUPLICATE_PATIENT_ID`), a second active pregnancy for the
         same woman (`ACTIVE_PREGNANCY_EXISTS`), a second obstetric history (`DUPLICATE_RECORD`).
 
-        A new visit for a pregnancy that already has another visit on the same day (Pakistan time) is
-        not stored: it waits in the supervisor's conflict queue (status `conflict`, with `conflictId`;
-        M3 FE-2, LI-7). Resending it returns the same conflict. When the supervisor decides, the visit
-        reaches the device through pull: stored, or stored as deleted.
+        Every record carries a version (1 when created, raised by each accepted change). An edit sends
+        `baseVersion`, the version it was made on. An edit made on an older version than the server's
+        is not applied: it waits on the supervisor's Conflict Review page (status `conflict`, with
+        `conflictId`; M3 FE-2, LI-7), and resending it returns the same conflict. A woman with the same
+        name, husband's name and household as one already on the server is stored, and listed on the
+        Conflict Review page as a possible duplicate (`possibleDuplicate` holds the conflict ID). The
+        supervisor's decision reaches the device through pull.
         Every create, edit and delete writes an audit row. The device is registered on first use.
       operationId: syncPush
       requestBody:
@@ -375,6 +378,11 @@ paths:
             maximum: 500
             default: 200
         - name: districtId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: tehsilId
           in: query
           schema:
             type: string
@@ -517,13 +525,82 @@ paths:
         '404':
           $ref: '#/components/responses/Error'
 
+  /sync/config:
+    get:
+      tags: [Sync]
+      summary: What the phone needs for its area besides records (M3 FE-2)
+      description: |
+        LHW only, from an activated phone. The referral facilities (hospitals and referral centres) of
+        her district, her area's escalation contacts and current polio campaign rounds, and the
+        Clinical Rules Table in force (the newest loaded version, or the bundled one), which includes
+        the EPI configuration. `configVersion` is a hash of the answer: send it as `have` and an
+        unchanged configuration comes back as `{ configVersion, unchanged: true }` only.
+      operationId: syncConfig
+      parameters:
+        - name: have
+          in: query
+          schema:
+            type: string
+            pattern: '^[0-9a-f]{64}$'
+      responses:
+        '200':
+          description: The configuration, or only its hash when unchanged.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [configVersion, unchanged]
+                properties:
+                  configVersion:
+                    type: string
+                  unchanged:
+                    type: boolean
+                  facilities:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        kind: { type: string, enum: [hospital, referral_centre] }
+                        name: { type: string }
+                        type: { type: [string, 'null'] }
+                        phone: { type: [string, 'null'] }
+                        address: { type: [string, 'null'] }
+                        latitude: { type: [number, 'null'] }
+                        longitude: { type: [number, 'null'] }
+                  escalationContact:
+                    type: [object, 'null']
+                    properties:
+                      supervisorPhone: { type: string }
+                      secondaryName: { type: [string, 'null'] }
+                      secondaryPhone: { type: [string, 'null'] }
+                      escalateAfterMinutes: { type: integer }
+                  campaigns:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                        startsOn: { type: string, format: date }
+                        endsOn: { type: string, format: date }
+                  clinicalRules:
+                    type: object
+                    description: The whole Clinical Rules Table (clinical-rules/clinical-rules.json format).
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+
   /conflicts:
     get:
       tags: [Conflicts]
-      summary: The sync conflict review queue
+      summary: The Conflict Review page (M3 FE-2, M10 FE-3)
       description: |
-        Supervisors see their areas; admins see all. Each item has the held record and the record
-        already on the server for the same day, side by side. Newest first, at most 200.
+        Supervisors see their areas; admins see all. Each item has the record the device sent and the
+        record already on the server, side by side: an edit made on an older version (`outdated_edit`),
+        a possible duplicate woman (`possible_duplicate`), or a visit held by the earlier same-day rule
+        (`same_parent_same_day`). Newest first, at most 200.
       operationId: listConflicts
       parameters:
         - name: status
@@ -557,9 +634,14 @@ paths:
       tags: [Conflicts]
       summary: Decide a conflict
       description: |
-        `keep_both` stores the held record as well. `keep_existing` stores the held record as deleted,
-        so it stays on record and the phone that sent it drops it. `keep_incoming` stores the held
-        record and deletes the earlier one. Nothing is overwritten; each step writes an audit row.
+        The decisions depend on the reason (`resolutions` in the list):
+        - `outdated_edit`: `keep_server` sends the server's version to the phone again; `use_device`
+          applies the phone's edit as a new version.
+        - `possible_duplicate`: `different_people` keeps both; `same_person` moves the newer woman's
+          visits (or pregnancy) to the earlier one and deletes the newer records (soft).
+        - `same_parent_same_day`: `keep_both`, `keep_existing` (stored as deleted), `keep_incoming`.
+        Nothing is overwritten without a decision; each step writes an audit row, and the result
+        reaches the phone at its next pull.
       operationId: resolveConflict
       parameters:
         - $ref: '#/components/parameters/Id'
@@ -573,7 +655,7 @@ paths:
               properties:
                 resolution:
                   type: string
-                  enum: [keep_both, keep_existing, keep_incoming]
+                  enum: [keep_server, use_device, different_people, same_person, keep_both, keep_existing, keep_incoming]
       responses:
         '200':
           description: The resolved conflict.
@@ -615,6 +697,11 @@ paths:
       operationId: dashboardSummary
       parameters:
         - name: districtId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: tehsilId
           in: query
           schema:
             type: string
@@ -684,6 +771,11 @@ paths:
       operationId: lhwActivity
       parameters:
         - name: districtId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: tehsilId
           in: query
           schema:
             type: string
@@ -1110,8 +1202,11 @@ paths:
   /admin/roles:
     get:
       tags: [Admin]
-      summary: The fixed roles and what each may do (M10 FE-3)
-      description: The same permission list every route checks.
+      summary: The fixed roles and which permissions each holds (M10 FE-3)
+      description: |
+        The permissions every route checks, who holds each now (`roles`), who holds it by default, and
+        whose hold the admin may change (`editableRoles`). LHWs hold only `sync`, and admins always keep
+        `roles.manage`. Needs `roles.manage`.
       operationId: listRoles
       responses:
         '200':
@@ -1139,7 +1234,7 @@ paths:
                     type: array
                     items:
                       type: object
-                      required: [id, label, roles]
+                      required: [id, label, roles, defaultRoles, editableRoles]
                       properties:
                         id:
                           type: string
@@ -1151,9 +1246,52 @@ paths:
                           items:
                             type: string
                             enum: [lhw, supervisor, admin]
+                        defaultRoles:
+                          type: array
+                          items:
+                            type: string
+                        editableRoles:
+                          type: array
+                          items:
+                            type: string
         '401':
           $ref: '#/components/responses/Error'
         '403':
+          $ref: '#/components/responses/Error'
+
+  /admin/roles/permissions:
+    put:
+      tags: [Admin]
+      summary: Grant or remove permissions (M10 FE-3)
+      description: Each change is audited; routes follow it at once. A fixed hold is refused (409 PERMISSION_FIXED).
+      operationId: updateRolePermissions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [changes]
+              properties:
+                changes:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    type: object
+                    required: [role, permission, granted]
+                    properties:
+                      role: { type: string, enum: [lhw, supervisor, admin] }
+                      permission: { type: string }
+                      granted: { type: boolean }
+      responses:
+        '200':
+          description: The roles and permissions after the change (same shape as GET /admin/roles).
+        '400':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
           $ref: '#/components/responses/Error'
 
   /admin/geography:
@@ -1724,6 +1862,11 @@ components:
                 type: string
               phone:
                 type: string
+        activationNumber:
+          type: [integer, 'null']
+          description: |
+            LHWs only. The phone's activation number, issued at each activation (M2 FE-1). The app makes
+            Patient IDs as [LHW code]-[activation number, 2 digits]-[sequence, 4 digits].
 
     UserProfile:
       type: object
@@ -2097,12 +2240,21 @@ components:
 
     DashboardFilters:
       type: object
-      required: [districts, unionCouncils, lhws]
+      required: [districts, tehsils, unionCouncils, lhws]
       properties:
         districts:
           type: array
           items:
             $ref: '#/components/schemas/NamedRef'
+        tehsils:
+          type: array
+          items:
+            type: object
+            required: [id, name, districtId]
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              districtId: { type: string, format: uuid }
         unionCouncils:
           type: array
           items:
@@ -2211,6 +2363,24 @@ components:
           type: [string, 'null']
           format: date
           description: Only for a closed pregnancy.
+        lmpDate:
+          type: [string, 'null']
+          format: date
+          description: Given exactly when eddBasis is lmp.
+        reportedEdd:
+          type: [string, 'null']
+          format: date
+          description: A known EDD, given exactly when eddBasis is edd.
+        estimatedDeliveryDate:
+          type: [string, 'null']
+          format: date
+          description: |
+            M2 FE-1. From the LMP date (+280 days), a known EDD, or the pregnancy month (Clinical Rules
+            Table, gestational_age). The gestational age at registration must be 1-44 weeks. When an older
+            app sends no date, the server estimates it from the month.
+        eddBasis:
+          type: [string, 'null']
+          enum: [lmp, edd, month, null]
 
     ObstetricHistoryData:
       type: object
@@ -2246,7 +2416,7 @@ components:
       description: |
         One home visit (M3 FE-1). Units are in the names and never converted in storage. The bounds
         only refuse impossible values; the app asks for confirmation of implausible ones. Pulse is
-        required. A blood sugar value needs its entered unit, date and source; without a value they must
+        required. A blood sugar value needs its unit, date and source; without a value they must
         be null.
       required: [pregnancyId, visitedAt, pulseBpm]
       properties:
@@ -2278,15 +2448,14 @@ components:
           minimum: 20
           maximum: 250
           description: Read from the BP device, or counted for 30 seconds and doubled in the app.
-        bloodSugarMmolL:
+        bloodSugarValue:
           type: [number, 'null']
-          minimum: 0.5
-          maximum: 50
-          description: Always mmol/L; the app converts a value typed in mg/dL (factor from the Clinical Rules Table).
-        bloodSugarEnteredUnit:
+          description: |
+            In the unit it was recorded in (M3 FE-1). Refused outside the Clinical Rules Table's allowed
+            range (0.5-50 mmol/L, or the same range in mg/dL after dividing by 18).
+        bloodSugarUnit:
           type: [string, 'null']
           enum: [mmol_l, mg_dl, null]
-          description: The unit the LHW typed, kept for traceability.
         bloodSugarMeasuredOn:
           type: [string, 'null']
           format: date
@@ -2337,16 +2506,27 @@ components:
           format: uuid
         table:
           type: string
-          enum: [visits]
+          enum: [households, women, pregnancies, obstetric_history, visits]
         reason:
           type: string
-          enum: [same_parent_same_day]
+          enum: [outdated_edit, possible_duplicate, same_parent_same_day]
+        resolutions:
+          type: array
+          description: The decisions that fit this reason.
+          items:
+            type: string
+        baseVersion:
+          type: [integer, 'null']
+          description: For an outdated edit, the version the phone edited.
+        existingVersion:
+          type: [integer, 'null']
+          description: For an outdated edit, the server's version when it arrived.
         status:
           type: string
           enum: [pending, resolved]
         resolution:
           type: [string, 'null']
-          enum: [keep_both, keep_existing, keep_incoming, null]
+          enum: [keep_server, use_device, different_people, same_person, keep_both, keep_existing, keep_incoming, null]
         createdAt:
           type: string
           format: date-time
@@ -2376,24 +2556,29 @@ components:
               type: string
         incoming:
           type: object
-          description: The held record as the device sent it.
-          properties:
-            id:
-              type: string
-              format: uuid
-            data:
-              $ref: '#/components/schemas/VisitData'
-        existing:
-          type: [object, 'null']
-          description: The record already on the server for the same day.
+          description: The record as the device sent it.
           properties:
             id:
               type: string
               format: uuid
             deleted:
               type: boolean
+              description: For a possible duplicate, whether the stored newer record is deleted.
             data:
-              $ref: '#/components/schemas/VisitData'
+              $ref: '#/components/schemas/RecordData'
+        existing:
+          type: [object, 'null']
+          description: The record already on the server.
+          properties:
+            id:
+              type: string
+              format: uuid
+            version:
+              type: integer
+            deleted:
+              type: boolean
+            data:
+              $ref: '#/components/schemas/RecordData'
 
     RecordData:
       description: The fields of the record; which schema applies depends on `table`.
@@ -2439,6 +2624,10 @@ components:
               deleted:
                 type: boolean
                 default: false
+              baseVersion:
+                type: integer
+                minimum: 1
+                description: For an edit, the server version it was made on (M3 FE-2). None for a new record.
               data:
                 $ref: '#/components/schemas/RecordData'
 
@@ -2457,6 +2646,13 @@ components:
         serverSeq:
           type: integer
           description: Absent when rejected or held as a conflict.
+        version:
+          type: integer
+          description: The record's version on the server; absent when rejected or held as a conflict.
+        possibleDuplicate:
+          type: string
+          format: uuid
+          description: A new woman stored but listed for review as a possible duplicate (the conflict ID).
         conflictId:
           type: string
           format: uuid
@@ -2478,6 +2674,8 @@ components:
           type: string
           format: uuid
         serverSeq:
+          type: integer
+        version:
           type: integer
         createdOnDevice:
           type: [string, 'null']
@@ -2546,6 +2744,15 @@ components:
             status:
               type: string
               enum: [active, closed]
+            estimatedDeliveryDate:
+              type: string
+              format: date
+            eddBasis:
+              type: string
+              enum: [lmp, edd, month]
+            gestationalWeeks:
+              type: integer
+              description: Completed weeks today (Pakistan date), from the estimated delivery date.
         obstetricHistory:
           type: [object, 'null']
           properties:

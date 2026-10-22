@@ -16,6 +16,7 @@ describeDb('admin panel (M10 FE-3)', () => {
     get: (path) => request(app).get(`/api/v1${path}`).set('Authorization', `Bearer ${token}`),
     post: (path, body) => request(app).post(`/api/v1${path}`).set('Authorization', `Bearer ${token}`).send(body),
     patch: (path, body) => request(app).patch(`/api/v1${path}`).set('Authorization', `Bearer ${token}`).send(body),
+    put: (path, body) => request(app).put(`/api/v1${path}`).set('Authorization', `Bearer ${token}`).send(body),
     delete: (path) => request(app).delete(`/api/v1${path}`).set('Authorization', `Bearer ${token}`),
   });
   const auditFor = async (entityId) =>
@@ -39,6 +40,42 @@ describeDb('admin panel (M10 FE-3)', () => {
       expect(res.body.roles.map((r) => r.id)).toEqual(['lhw', 'supervisor', 'admin']);
       expect(res.body.permissions).toContainEqual(expect.objectContaining({ id: 'audit.view', roles: ['admin'] }));
       expect(res.body.permissions.map((p) => p.id)).toEqual(Object.keys(PERMISSIONS));
+      expect(res.body.permissions.find((p) => p.id === 'sync')).toMatchObject({ roles: ['lhw'], editableRoles: [] });
+      expect(res.body.permissions.find((p) => p.id === 'roles.manage')).toMatchObject({ roles: ['admin'], editableRoles: ['supervisor'] });
+    });
+
+    it('lets the admin grant and remove a permission, which the routes follow at once and the audit log records', async () => {
+      const supervisor = as(tokenFor(ids.supervisorA, 'supervisor'));
+      expect((await supervisor.get('/admin/audit')).status).toBe(403);
+
+      const granted = await admin.put('/admin/roles/permissions', { changes: [{ role: 'supervisor', permission: 'audit.view', granted: true }] });
+      expect(granted.status).toBe(200);
+      expect(granted.body.permissions.find((p) => p.id === 'audit.view').roles).toEqual(['supervisor', 'admin']);
+      expect((await supervisor.get('/admin/audit')).status).toBe(200);
+
+      await admin.put('/admin/roles/permissions', { changes: [{ role: 'supervisor', permission: 'audit.view', granted: false }] });
+      expect((await supervisor.get('/admin/audit')).status).toBe(403);
+      const { rows } = await query(
+        `SELECT details FROM audit_log WHERE action = 'edit' AND entity_type = 'role_permissions' ORDER BY id`,
+      );
+      expect(rows.map((r) => r.details.granted)).toEqual([true, false]);
+    });
+
+    it.each([
+      ['an LHW portal permission', { role: 'lhw', permission: 'records.view', granted: true }],
+      ['sync for a portal role', { role: 'supervisor', permission: 'sync', granted: true }],
+      ["the admin's hold on role management", { role: 'admin', permission: 'roles.manage', granted: false }],
+    ])('refuses to change %s', async (_, change) => {
+      const res = await admin.put('/admin/roles/permissions', { changes: [change] });
+
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('PERMISSION_FIXED');
+    });
+
+    it('refuses an unknown permission', async () => {
+      const res = await admin.put('/admin/roles/permissions', { changes: [{ role: 'supervisor', permission: 'everything', granted: true }] });
+
+      expect(res.status).toBe(400);
     });
 
     it.each([

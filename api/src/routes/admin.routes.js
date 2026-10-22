@@ -121,7 +121,16 @@ router.patch('/staff/:id', accounts, validate({ params: idParams, body: staffUpd
 router.post('/staff/:id/deactivate', accounts, validate({ params: idParams }), adminController.deactivateStaff);
 router.post('/staff/:id/activate', accounts, validate({ params: idParams }), adminController.activateStaff);
 router.post('/staff/:id/reset-password', accounts, validate({ params: idParams }), adminController.resetStaffPassword);
-router.get('/roles', accounts, adminController.listRoles);
+const roles = requirePermission('roles.manage');
+const rolePermissionsBody = Joi.object({
+  changes: Joi.array().items(Joi.object({
+    role: Joi.string().valid('lhw', 'supervisor', 'admin').required(),
+    permission: Joi.string().max(60).required(),
+    granted: Joi.boolean().required(),
+  })).min(1).max(50).required(),
+});
+router.get('/roles', roles, adminController.listRoles);
+router.put('/roles/permissions', roles, validate({ body: rolePermissionsBody }), adminController.updateRolePermissions);
 
 const geography = requirePermission('geography.manage');
 router.get('/geography', geography, adminController.geographyTree);

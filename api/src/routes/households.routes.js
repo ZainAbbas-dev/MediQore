@@ -11,6 +11,7 @@ const router = Router();
 const listSchema = Joi.object({
   limit: Joi.number().integer().min(1).max(500).default(200),
   districtId: Joi.string().guid(),
+  tehsilId: Joi.string().guid(),
   unionCouncilId: Joi.string().guid(),
   lhwId: Joi.string().guid(),
   days: Joi.number().integer().min(1).max(366),

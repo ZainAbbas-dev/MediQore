@@ -44,8 +44,9 @@ async function insertUser(username, role, { isActive = true } = {}) {
 // A phone already activated with an activation code (M1 FE-2).
 async function insertActivatedDevice(userId) {
   const { rows: [device] } = await db.query(
-    `INSERT INTO devices (id, user_id, activated_at, activation_secret_ref)
-     VALUES (gen_random_uuid(), $1, now(), 'test-ref') RETURNING id`,
+    `INSERT INTO devices (id, user_id, activated_at, activation_secret_ref, activation_number)
+     VALUES (gen_random_uuid(), $1, now(), 'test-ref',
+             (SELECT coalesce(max(activation_number), 0) + 1 FROM devices WHERE user_id = $1)) RETURNING id`,
     [userId],
   );
   return device.id;

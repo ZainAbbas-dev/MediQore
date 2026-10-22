@@ -20,6 +20,8 @@ const recordSchema = Joi.object({
   areaId: Joi.string().guid(),
   createdOnDevice: Joi.date().iso().required(),
   deleted: Joi.boolean().default(false),
+  // The server version the edit was made on (M3 FE-2); a new record has none.
+  baseVersion: Joi.number().integer().min(1),
   data: Joi.when('table', {
     switch: Object.entries(TABLES).map(([table, def]) => ({ is: table, then: dataSchema(def).required() })),
   }),
@@ -38,5 +40,6 @@ const pullSchema = Joi.object({
 router.use(authenticate, requirePermission('sync'));
 router.post('/push', validate({ body: pushSchema }), syncController.push);
 router.get('/pull', validate({ query: pullSchema }), syncController.pull);
+router.get('/config', validate({ query: Joi.object({ have: Joi.string().hex().length(64) }) }), syncController.config);
 
 module.exports = router;

@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const db = require('../db/pool');
 const AppError = require('../utils/app-error');
 const { writeAudit } = require('./audit.service');
@@ -83,43 +84,56 @@ async function insertRecord(client, record, { areaId, userId, deviceId, details 
   return serverSeq;
 }
 
-// M3 FE-2: a new record for the same parent on the same day as one already on
-// the server (a visit to the same pregnancy, Pakistan time) is a possible
-// duplicate from another phone or a second submission. It is not stored but
-// held in sync_conflicts for the supervisor, and the attempt is audited.
-// Resending a held record returns the same conflict. Returns the conflict, or null.
-async function sameDayConflict(client, ctx, def, record, areaId) {
-  if (!def.sameDay || record.deleted) return null;
-  const { rows: [held] } = await client.query(
-    `SELECT id FROM sync_conflicts WHERE table_name = $1 AND incoming_record_id = $2 AND status = 'pending'`,
-    [record.table, record.id],
-  );
-  if (held) return held.id;
+// Name and husband's name compared without case or extra spaces.
+const NORMALISED = (column) => `lower(regexp_replace(trim(coalesce(${column}, '')), '\\s+', ' ', 'g'))`;
 
-  const { parentColumn, timeColumn, parentField, timeField } = def.sameDay;
+// Lists a conflict for the supervisor's Conflict Review page (M3 FE-2, M10 FE-3)
+// and audits it. One pending conflict per record and reason: a resend updates
+// the payload of the pending one. Returns the conflict ID.
+async function listConflict(client, ctx, { table, record, areaId, existingId, reason, baseVersion = null, existingVersion = null }) {
+  const { rows: [conflict] } = await client.query(
+    `INSERT INTO sync_conflicts
+       (area_id, table_name, incoming_record_id, existing_record_id, incoming_payload, reason, submitted_by, device_id,
+        base_version, existing_version)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+     ON CONFLICT (table_name, incoming_record_id, reason) WHERE status = 'pending'
+     DO UPDATE SET incoming_payload = EXCLUDED.incoming_payload, base_version = EXCLUDED.base_version,
+                   existing_version = EXCLUDED.existing_version
+     RETURNING id, (xmax = 0) AS inserted`,
+    [areaId, table, record.id, existingId, JSON.stringify(record), reason, ctx.userId, ctx.deviceId, baseVersion, existingVersion],
+  );
+  if (conflict.inserted) {
+    await writeAudit(client, {
+      userId: ctx.userId, deviceId: ctx.deviceId, action: 'sync_conflict', entityType: table, entityId: record.id,
+      details: { conflictId: conflict.id, existingRecordId: existingId, reason, baseVersion, existingVersion },
+    });
+  }
+  return conflict.id;
+}
+
+// M3 FE-2: a likely duplicate patient (same name, husband's name and household)
+// is stored like any record and listed for the supervisor. Returns the
+// conflict ID, or null.
+async function possibleDuplicate(client, ctx, def, record, areaId) {
+  if (!def.duplicateOf || record.deleted) return null;
+  const params = [record.id, areaId];
+  const same = def.duplicateOf.sameColumns.map((column) => {
+    params.push(record.data[Object.keys(def.fields).find((name) => def.fields[name].column === column)]);
+    return `${column} = $${params.length}`;
+  });
+  const similar = def.duplicateOf.sameText.map((column) => {
+    params.push(record.data[Object.keys(def.fields).find((name) => def.fields[name].column === column)]);
+    return `${NORMALISED(column)} = ${NORMALISED(`$${params.length}::text`)}`;
+  });
   // Table and column names come from TABLES, never from input.
   const { rows: [other] } = await client.query(
     `SELECT id FROM ${record.table}
-     WHERE ${parentColumn} = $1 AND id <> $2 AND deleted_at IS NULL
-       AND (${timeColumn} AT TIME ZONE 'Asia/Karachi')::date = ($3::timestamptz AT TIME ZONE 'Asia/Karachi')::date
-     ORDER BY server_seq
-     LIMIT 1`,
-    [record.data[parentField], record.id, record.data[timeField]],
+     WHERE id <> $1 AND area_id = $2 AND deleted_at IS NULL AND ${[...same, ...similar].join(' AND ')}
+     ORDER BY server_seq LIMIT 1`,
+    params,
   );
   if (!other) return null;
-
-  const { rows: [conflict] } = await client.query(
-    `INSERT INTO sync_conflicts
-       (area_id, table_name, incoming_record_id, existing_record_id, incoming_payload, reason, submitted_by, device_id)
-     VALUES ($1, $2, $3, $4, $5, 'same_parent_same_day', $6, $7)
-     RETURNING id`,
-    [areaId, record.table, record.id, other.id, JSON.stringify(record), ctx.userId, ctx.deviceId],
-  );
-  await writeAudit(client, {
-    userId: ctx.userId, deviceId: ctx.deviceId, action: 'sync_conflict', entityType: record.table, entityId: record.id,
-    details: { conflictId: conflict.id, existingRecordId: other.id, reason: 'same_parent_same_day' },
-  });
-  return conflict.id;
+  return listConflict(client, ctx, { table: record.table, record, areaId, existingId: other.id, reason: 'possible_duplicate' });
 }
 
 // Applies one pushed record and returns its result for the device.
@@ -141,13 +155,12 @@ async function applyRecord(client, ctx, record) {
     if (!areaId) return { ...result, status: 'rejected', reason: 'OUT_OF_AREA' };
     const problem = await parentProblem(client, def, record, areaId);
     if (problem) return { ...result, status: 'rejected', reason: problem };
-    const conflictId = await sameDayConflict(client, ctx, def, record, areaId);
-    if (conflictId) return { ...result, status: 'conflict', conflictId };
     const serverSeq = await insertRecord(client, record, {
       areaId, userId: ctx.userId, deviceId: ctx.deviceId,
       details: areaId !== ctx.areaId ? { areaId, previousArea: true } : {},
     });
-    return { ...result, status: 'created', serverSeq };
+    const duplicateId = await possibleDuplicate(client, ctx, def, record, areaId);
+    return { ...result, status: 'created', serverSeq, version: 1, ...(duplicateId ? { possibleDuplicate: duplicateId } : {}) };
   }
 
   if (!ctx.allowedAreaIds.includes(existing.area_id)) {
@@ -155,8 +168,20 @@ async function applyRecord(client, ctx, record) {
   }
 
   // Resending the same record is harmless (roadmap, Offline sync).
+  // An identical resend is acknowledged again and never a conflict.
   if (sameAsStored(def, existing, record)) {
-    return { ...result, status: 'unchanged', serverSeq: Number(existing.server_seq) };
+    return { ...result, status: 'unchanged', serverSeq: Number(existing.server_seq), version: existing.version };
+  }
+
+  // M3 FE-2: an edit made on an older version than the server's is not applied.
+  // It waits on the Conflict Review page, and the phone keeps it held until the
+  // supervisor's decision comes back by pull.
+  if (record.baseVersion !== undefined && record.baseVersion < existing.version) {
+    const conflictId = await listConflict(client, ctx, {
+      table: record.table, record, areaId: existing.area_id, existingId: existing.id, reason: 'outdated_edit',
+      baseVersion: record.baseVersion, existingVersion: existing.version,
+    });
+    return { ...result, status: 'conflict', conflictId };
   }
 
   const problem = await parentProblem(client, def, record, existing.area_id);
@@ -167,16 +192,16 @@ async function applyRecord(client, ctx, record) {
     `UPDATE ${record.table}
      SET ${assignments}, deleted_at = CASE WHEN $2::boolean THEN coalesce(deleted_at, now()) END
      WHERE id = $1
-     RETURNING server_seq`,
+     RETURNING server_seq, version`,
     [record.id, record.deleted, ...values],
   );
   const serverSeq = Number(updated.server_seq);
   await writeAudit(client, {
     userId: ctx.userId, deviceId: ctx.deviceId,
     action: record.deleted && existing.deleted_at === null ? 'delete' : 'edit',
-    entityType: record.table, entityId: record.id, details: { serverSeq },
+    entityType: record.table, entityId: record.id, details: { serverSeq, version: updated.version },
   });
-  return { ...result, status: 'updated', serverSeq };
+  return { ...result, status: 'updated', serverSeq, version: updated.version };
 }
 
 // Runs applyRecord inside a savepoint, so a record that breaks a database
@@ -220,6 +245,7 @@ function toRecord(table, def, row) {
     id: row.id,
     areaId: row.area_id,
     serverSeq: Number(row.server_seq),
+    version: row.version,
     createdOnDevice: row.created_on_device,
     syncedAt: row.synced_at,
     deleted: row.deleted_at !== null,
@@ -255,4 +281,66 @@ async function pull(user, since, limit) {
   }, { readOnly: true });
 }
 
-module.exports = { push, pull, insertRecord };
+// The Clinical Rules Table in the repository, used when the server has loaded none.
+const BUNDLED_RULES = require('../../../clinical-rules/clinical-rules.json');
+
+// GET /sync/config?have=: what the phone needs for its area besides records
+// (M3 FE-2): referral facilities of her district, her area's escalation
+// contacts and polio campaign rounds, and the Clinical Rules Table in force
+// (its EPI configuration included). `configVersion` is a hash of the answer;
+// when the phone already has it, only the hash comes back.
+async function config(user, have) {
+  await requireActivatedDevice(db, user.deviceId, user);
+  const areaId = await lhwAreaId(db, user.id);
+  const { rows: [place] } = await db.query(
+    `SELECT t.district_id FROM areas a
+     JOIN union_councils u ON u.id = a.union_council_id
+     JOIN tehsils t ON t.id = u.tehsil_id
+     WHERE a.id = $1`,
+    [areaId],
+  );
+  const { rows: facilities } = await db.query(
+    `SELECT id, 'hospital' AS kind, name, facility_type AS type, phone, address, latitude, longitude
+     FROM hospitals WHERE district_id = $1 AND deleted_at IS NULL AND (area_id IS NULL OR area_id = $2)
+     UNION ALL
+     SELECT id, 'referral_centre' AS kind, name, centre_type AS type, phone, address, latitude, longitude
+     FROM referral_centres WHERE district_id = $1 AND deleted_at IS NULL AND (area_id IS NULL OR area_id = $2)
+     ORDER BY name, id`,
+    [place.district_id, areaId],
+  );
+  const { rows: contacts } = await db.query(
+    `SELECT supervisor_phone, secondary_name, secondary_phone, escalate_after_minutes
+     FROM escalation_contacts WHERE area_id = $1 AND deleted_at IS NULL`,
+    [areaId],
+  );
+  const { rows: campaigns } = await db.query(
+    `SELECT id, name, starts_on, ends_on FROM campaigns
+     WHERE area_id = $1 AND deleted_at IS NULL AND ends_on >= (now() AT TIME ZONE 'Asia/Karachi')::date
+     ORDER BY starts_on, id`,
+    [areaId],
+  );
+  const { rows: [loaded] } = await db.query(
+    `SELECT content FROM clinical_rules_versions
+     WHERE review_status <> 'retired' AND effective_from <= (now() AT TIME ZONE 'Asia/Karachi')::date
+     ORDER BY effective_from DESC, created_at DESC LIMIT 1`,
+  );
+  const clinicalRules = loaded ? loaded.content : BUNDLED_RULES;
+  const answer = {
+    facilities: facilities.map((f) => ({
+      id: f.id, kind: f.kind, name: f.name, type: f.type, phone: f.phone, address: f.address,
+      latitude: f.latitude === null ? null : Number(f.latitude), longitude: f.longitude === null ? null : Number(f.longitude),
+    })),
+    escalationContact: contacts.length
+      ? {
+        supervisorPhone: contacts[0].supervisor_phone, secondaryName: contacts[0].secondary_name,
+        secondaryPhone: contacts[0].secondary_phone, escalateAfterMinutes: contacts[0].escalate_after_minutes,
+      }
+      : null,
+    campaigns: campaigns.map((c) => ({ id: c.id, name: c.name, startsOn: c.starts_on, endsOn: c.ends_on })),
+    clinicalRules,
+  };
+  const configVersion = crypto.createHash('sha256').update(JSON.stringify(answer)).digest('hex');
+  return have === configVersion ? { configVersion, unchanged: true } : { configVersion, unchanged: false, ...answer };
+}
+
+module.exports = { push, pull, config, insertRecord, toRecord };

@@ -11,6 +11,7 @@ const router = Router();
 // The dashboard filters; the period applies to the map only (GET /households).
 const placeQuery = Joi.object({
   districtId: Joi.string().guid(),
+  tehsilId: Joi.string().guid(),
   unionCouncilId: Joi.string().guid(),
   lhwId: Joi.string().guid(),
 });

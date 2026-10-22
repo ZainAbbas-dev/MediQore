@@ -97,7 +97,14 @@ async function sessionBody(client, user, deviceId) {
     refreshExpiresAt: refresh.expiresAt.toISOString(),
     user: await usersService.profile(client, user.id),
   };
-  if (user.role === 'lhw') body.supervisors = await supervisorsFor(client, user.id);
+  if (user.role === 'lhw') {
+    body.supervisors = await supervisorsFor(client, user.id);
+    // M2 FE-1: the phone's activation number, part of every Patient ID it makes.
+    if (deviceId) {
+      const { rows: [device] } = await client.query('SELECT activation_number FROM devices WHERE id = $1', [deviceId]);
+      body.activationNumber = device ? device.activation_number : null;
+    }
+  }
   return body;
 }
 
@@ -138,12 +145,20 @@ async function activate({ username, password, activationCode, deviceId, deviceMo
     }
 
     const secretRef = activation.newSecretRef();
+    // Each activation of the account gets the next activation number (M2 FE-1); the
+    // account row lock keeps two phones activating at once from taking the same one.
+    await client.query('SELECT 1 FROM users WHERE id = $1 FOR UPDATE', [user.id]);
+    const { rows: [{ next }] } = await client.query(
+      'SELECT coalesce(max(activation_number), 0) + 1 AS next FROM devices WHERE user_id = $1',
+      [user.id],
+    );
     await client.query(
-      `INSERT INTO devices (id, user_id, model, activated_at, activation_secret_ref, last_seen_at)
-       VALUES ($1, $2, $3, now(), $4, now())
+      `INSERT INTO devices (id, user_id, model, activated_at, activation_secret_ref, last_seen_at, activation_number)
+       VALUES ($1, $2, $3, now(), $4, now(), $5)
        ON CONFLICT (id) DO UPDATE SET model = coalesce(EXCLUDED.model, devices.model), activated_at = now(),
-         activation_secret_ref = EXCLUDED.activation_secret_ref, last_seen_at = now()`,
-      [deviceId, user.id, deviceModel || null, secretRef],
+         activation_secret_ref = EXCLUDED.activation_secret_ref, last_seen_at = now(),
+         activation_number = EXCLUDED.activation_number`,
+      [deviceId, user.id, deviceModel || null, secretRef, next],
     );
     await activation.consumeCode(client, code.id, deviceId);
     const body = await startSession(client, user, deviceId, 'activated');

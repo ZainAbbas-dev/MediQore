@@ -3,7 +3,7 @@ const staffService = require('../services/staff.service');
 const geographyService = require('../services/geography.service');
 const facilitiesService = require('../services/facilities.service');
 const auditService = require('../services/audit.service');
-const { ROLES, PERMISSIONS } = require('../auth/permissions');
+const rolePermissions = require('../services/role-permissions.service');
 
 // M1 FE-1, FE-3: LHW accounts.
 
@@ -110,11 +110,12 @@ async function listAudit(req, res) {
   res.json({ ...(await auditService.list(req.query)), actions: auditService.ACTIONS, entityTypes: await auditService.entityTypes() });
 }
 
-function listRoles(req, res) {
-  res.json({
-    roles: Object.entries(ROLES).map(([id, role]) => ({ id, ...role })),
-    permissions: Object.entries(PERMISSIONS).map(([id, permission]) => ({ id, ...permission })),
-  });
+async function listRoles(req, res) {
+  res.json(await rolePermissions.matrix());
+}
+
+async function updateRolePermissions(req, res) {
+  res.json(await rolePermissions.update(req.user, req.body.changes));
 }
 
 module.exports = {
@@ -122,6 +123,6 @@ module.exports = {
   issueActivationCode,
   listStaff, createStaff, updateStaff, deactivateStaff, activateStaff, resetStaffPassword,
   geographyTree, createUnit, renameUnit, deleteUnit,
-  listFacilities, createFacility, updateFacility, deleteFacility,
+  listFacilities, createFacility, updateFacility, deleteFacility, updateRolePermissions,
   listAudit, listRoles,
 };

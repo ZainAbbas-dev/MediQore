@@ -18,7 +18,11 @@ function registration({ code = `LHW-A-${String(Math.floor(Math.random() * 1e4)).
   };
   const pregnancy = {
     table: 'pregnancies', id: randomUUID(), createdOnDevice: '2026-10-01T09:30:00.000Z',
-    data: { womanId: woman.id, registeredOn: '2026-10-01', pregnancyMonthAtRegistration: 3 },
+    // M2 FE-1: LMP 10 Jul 2026, so the estimated delivery date is 280 days later.
+    data: {
+      womanId: woman.id, registeredOn: '2026-10-01', pregnancyMonthAtRegistration: 3,
+      lmpDate: '2026-07-10', eddBasis: 'lmp', estimatedDeliveryDate: '2027-04-16',
+    },
   };
   const history = {
     table: 'obstetric_history', id: randomUUID(), createdOnDevice: '2026-10-01T09:30:00.000Z',
@@ -83,7 +87,7 @@ describeDb('Module 2: registration records through sync, and the portal list', (
       const res = await request(app).get(`/api/v1/sync/pull?since=${before.nextSince}`).set('Authorization', `Bearer ${lhwA}`);
 
       const byTable = Object.fromEntries(res.body.records.map((r) => [r.table, r]));
-      expect(byTable.pregnancies.data).toEqual({ ...reg.pregnancy.data, status: 'active', closedOn: null });
+      expect(byTable.pregnancies.data).toEqual({ ...reg.pregnancy.data, status: 'active', closedOn: null, reportedEdd: null });
       expect(byTable.obstetric_history.data).toEqual(reg.history.data);
       expect(byTable.women.data).toEqual(reg.woman.data);
       expect(byTable.women.areaId).toBe(ids.areaA);

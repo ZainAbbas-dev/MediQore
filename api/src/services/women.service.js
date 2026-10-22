@@ -1,7 +1,10 @@
 const db = require('../db/pool');
 const AppError = require('../utils/app-error');
 const { supervisorAreaIds } = require('./scope.service');
-const { TABLES, normalise } = require('../sync/tables');
+const { TABLES, normalise, weeksOn } = require('../sync/tables');
+
+// Today's date in Pakistan (UTC+5, no daylight saving).
+const pakistanToday = () => new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 // M2 FE-1, FE-2: registered women for the portal (M10 FE-1 shows registered
 // patients), with how many visits each has had (M3 FE-1). A supervisor sees only their assigned areas, an admin sees all.
@@ -26,6 +29,7 @@ async function listForPortal(user, { search, limit }) {
             h.id AS household_id, h.village, h.address, h.latitude, h.longitude,
             lp.lhw_code AS registered_by_code, u.full_name AS registered_by_name,
             p.registered_on, p.pregnancy_month_at_registration, p.status AS pregnancy_status,
+            p.estimated_delivery_date, p.edd_basis,
             o.previous_pregnancies, o.previous_c_sections, o.stillbirths, o.known_conditions,
             v.visit_count, v.last_visit_at,
             count(*) OVER () AS total
@@ -35,7 +39,7 @@ async function listForPortal(user, { search, limit }) {
      JOIN users u ON u.id = w.created_by
      LEFT JOIN lhw_profiles lp ON lp.user_id = w.created_by
      LEFT JOIN LATERAL (
-       SELECT registered_on, pregnancy_month_at_registration, status FROM pregnancies
+       SELECT registered_on, pregnancy_month_at_registration, status, estimated_delivery_date, edd_basis FROM pregnancies
        WHERE woman_id = w.id AND deleted_at IS NULL
        ORDER BY (status = 'active') DESC, server_seq DESC LIMIT 1
      ) p ON true
@@ -74,6 +78,10 @@ async function listForPortal(user, { search, limit }) {
         registeredOn: row.registered_on,
         monthAtRegistration: row.pregnancy_month_at_registration,
         status: row.pregnancy_status,
+        // M2 FE-1: estimated delivery date and today's gestational age (Pakistan date).
+        estimatedDeliveryDate: row.estimated_delivery_date,
+        eddBasis: row.edd_basis,
+        gestationalWeeks: Math.floor(weeksOn(row.estimated_delivery_date, pakistanToday())),
       },
       obstetricHistory: row.previous_pregnancies === null ? null : {
         previousPregnancies: row.previous_pregnancies,

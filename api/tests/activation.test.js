@@ -99,7 +99,12 @@ describeDb('sign-in from the app (M1 FE-2)', () => {
       const old = await activate({ username: 'lhw.b', password: PASSWORD, activationCode: first, deviceId: phone });
       expect(old.status).toBe(400);
       expect(old.body.error.code).toBe('ACTIVATION_CODE_INVALID');
-      expect((await activate({ username: 'lhw.b', password: PASSWORD, activationCode: second, deviceId: phone })).status).toBe(200);
+      const activated = await activate({ username: 'lhw.b', password: PASSWORD, activationCode: second, deviceId: phone });
+      expect(activated.status).toBe(200);
+      // M2 FE-1: her fixture phone was activation 1, so this one is 2.
+      expect(activated.body.activationNumber).toBe(2);
+      const { rows: [device] } = await query('SELECT activation_number FROM devices WHERE id = $1', [phone]);
+      expect(device.activation_number).toBe(2);
     });
 
     it('are for admins only, and only for active LHWs', async () => {

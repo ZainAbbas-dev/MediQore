@@ -3,6 +3,7 @@ const config = require('../config');
 const AppError = require('../utils/app-error');
 const usersService = require('../services/users.service');
 const { rolesFor } = require('../auth/permissions');
+const rolePermissions = require('../services/role-permissions.service');
 
 // M1 FE-2: requires a valid JWT access token (Authorization: Bearer <token>) and
 // an active account. Sets req.user = { id, role, fullName, deviceId }; deviceId
@@ -44,11 +45,18 @@ function requireRole(...roles) {
   };
 }
 
-// Permission check for a route (M10 FE-3), used after authenticate. The roles
-// that hold each permission are listed once in auth/permissions.js:
+// Permission check for a route (M10 FE-3), used after authenticate. Who holds
+// each permission comes from auth/permissions.js and the admin's choices
+// (services/role-permissions.service.js):
 //   router.get('/', authenticate, requirePermission('records.view'), controller.list);
 function requirePermission(permission) {
-  return requireRole(...rolesFor(permission)); // an unknown name fails at startup
+  rolesFor(permission); // an unknown name fails at startup
+  return async (req, res, next) => {
+    if (!req.user || !(await rolePermissions.allows(req.user.role, permission))) {
+      throw new AppError(403, 'FORBIDDEN', 'Your role cannot use this route');
+    }
+    next();
+  };
 }
 
 module.exports = { authenticate, requireRole, requirePermission };

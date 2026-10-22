@@ -17,7 +17,7 @@ const LAST_SYNC = `greatest(
 // The dashboard filters as SQL: `areaColumn` must lie in the viewer's areas and
 // the chosen district and Union Council; `byColumn` is the LHW who made the
 // record. Returns the conditions to AND together; values go into `params`.
-function placeConditions(params, { areaIds, districtId, unionCouncilId, lhwId }, areaColumn, byColumn) {
+function placeConditions(params, { areaIds, districtId, tehsilId, unionCouncilId, lhwId }, areaColumn, byColumn) {
   const conditions = [];
   const add = (value, condition) => {
     params.push(value);
@@ -27,6 +27,10 @@ function placeConditions(params, { areaIds, districtId, unionCouncilId, lhwId },
   if (districtId) {
     add(districtId, `${areaColumn} IN (SELECT a.id FROM areas a JOIN union_councils uc ON uc.id = a.union_council_id
       JOIN tehsils t ON t.id = uc.tehsil_id WHERE t.district_id = ?)`);
+  }
+  if (tehsilId) {
+    add(tehsilId, `${areaColumn} IN (SELECT a.id FROM areas a JOIN union_councils uc ON uc.id = a.union_council_id
+      WHERE uc.tehsil_id = ?)`);
   }
   if (unionCouncilId) add(unionCouncilId, `${areaColumn} IN (SELECT id FROM areas WHERE union_council_id = ?)`);
   if (lhwId && byColumn) add(lhwId, `${byColumn} = ?`);
@@ -80,17 +84,18 @@ async function filters(viewer) {
   const params = areaIds ? [areaIds] : [];
   const inScope = areaIds ? 'AND a.id = ANY($1)' : '';
   const { rows: places } = await db.query(
-    `SELECT DISTINCT d.id AS district_id, d.name AS district_name, uc.id AS uc_id, uc.name AS uc_name
+    `SELECT DISTINCT d.id AS district_id, d.name AS district_name, t.id AS tehsil_id, t.name AS tehsil_name,
+            uc.id AS uc_id, uc.name AS uc_name
      FROM areas a
      JOIN union_councils uc ON uc.id = a.union_council_id
      JOIN tehsils t ON t.id = uc.tehsil_id
      JOIN districts d ON d.id = t.district_id
      WHERE a.deleted_at IS NULL ${inScope}
-     ORDER BY d.name, uc.name`,
+     ORDER BY d.name, t.name, uc.name`,
     params,
   );
   const { rows: lhws } = await db.query(
-    `SELECT u.id, u.full_name, p.lhw_code, a.union_council_id, t.district_id
+    `SELECT u.id, u.full_name, p.lhw_code, a.union_council_id, uc.tehsil_id, t.district_id
      FROM users u
      JOIN lhw_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
      JOIN areas a ON a.id = p.area_id
@@ -101,12 +106,18 @@ async function filters(viewer) {
     params,
   );
   const districts = new Map();
-  for (const row of places) districts.set(row.district_id, { id: row.district_id, name: row.district_name });
+  const tehsils = new Map();
+  for (const row of places) {
+    districts.set(row.district_id, { id: row.district_id, name: row.district_name });
+    tehsils.set(row.tehsil_id, { id: row.tehsil_id, name: row.tehsil_name, districtId: row.district_id });
+  }
   return {
     districts: [...districts.values()],
-    unionCouncils: places.map((row) => ({ id: row.uc_id, name: row.uc_name, districtId: row.district_id })),
+    tehsils: [...tehsils.values()],
+    unionCouncils: places.map((row) => ({ id: row.uc_id, name: row.uc_name, tehsilId: row.tehsil_id, districtId: row.district_id })),
     lhws: lhws.map((row) => ({
-      id: row.id, lhwCode: row.lhw_code, fullName: row.full_name, unionCouncilId: row.union_council_id, districtId: row.district_id,
+      id: row.id, lhwCode: row.lhw_code, fullName: row.full_name, unionCouncilId: row.union_council_id,
+      tehsilId: row.tehsil_id, districtId: row.district_id,
     })),
   };
 }

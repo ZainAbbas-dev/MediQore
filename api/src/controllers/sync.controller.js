@@ -8,4 +8,8 @@ async function pull(req, res) {
   res.json(await syncService.pull(req.user, req.query.since, req.query.limit));
 }
 
-module.exports = { push, pull };
+async function config(req, res) {
+  res.json(await syncService.config(req.user, req.query.have));
+}
+
+module.exports = { push, pull, config };
