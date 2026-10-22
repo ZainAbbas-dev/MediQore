@@ -68,7 +68,7 @@ What the new tests cover:
 - record versions: an accepted edit raises `version`; a resend is never a conflict; an edit made on an older version waits for **Keep the server's version** or **Use the phone's edit**, for households and pregnancies;
 - possible duplicate women (same name, husband's name and household): stored, listed, and merged only after a confirmation;
 - the Patient ID with the activation number, and the app's duplicate warning before registering;
-- the pregnancy dated by month, LMP or card EDD, the EDD and weeks, and the fetal-movement question only from 28 weeks (proposal, pending clinical review);
+- the pregnancy dated by month, LMP or card EDD, the EDD and weeks, and the fetal-movement question only from 22 weeks (first felt at 16–22 weeks, confirmed by the Clinical Advisor; Rules Table 0.3.0, to be signed);
 - vitals outside the normal range flagged in amber; blood sugar stored in the unit it was recorded in;
 - `GET /sync/config` and a newer downloaded Clinical Rules Table on the phone; area reassignment clears the old area only when nothing waits;
 - role permissions edited on the portal, followed by the routes and the portal's pages at once; the tehsil filter;

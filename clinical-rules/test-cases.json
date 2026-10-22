@@ -1,6 +1,6 @@
 {
   "description": "Shared test cases for the Clinical Rules Table (one or more per rule). The app's and the API's rule code must give the same results. Visits use the sync field names; a missing field is unanswered.",
-  "rules_version": "0.2.0",
+  "rules_version": "0.3.0",
   "maternal_visits": [
     { "name": "healthy visit", "visit": { "systolicBpMmhg": 118, "diastolicBpMmhg": 76, "temperatureC": 36.8, "fetalMovement": "normal", "anaemiaSigns": "none", "bleeding": false, "swelling": false, "convulsions": false, "severeHeadache": false, "blurredVision": false, "severeAbdominalPain": false, "fastBreathing": false, "feverWithWeakness": false }, "result": "none", "triggered": [], "flags": [] },
     { "name": "systolic 160 is severe hypertension", "visit": { "systolicBpMmhg": 160, "diastolicBpMmhg": 95 }, "result": "emergency", "triggered": ["severe_hypertension", "raised_bp"], "flags": [] },

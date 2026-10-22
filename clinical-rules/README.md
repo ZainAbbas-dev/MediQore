@@ -2,7 +2,7 @@
 
 `clinical-rules.json` is MediQore's one versioned Clinical Rules Table (scope M4 FE-4, LI-12; roadmap "Architecture and conventions", "Clinical rules"). Every clinical rule the app or the server uses is read from it, never written in code.
 
-**Status: version 0.1.0, pending clinical review.** The values are WHO-referenced defaults chosen by the team. No Clinical Advisor has reviewed them yet, so the table may be used only with synthetic data (LI-10). It must be signed before any use with real patients.
+**Status: version 0.3.0, pending clinical review.** The values are WHO-referenced defaults chosen by the team. The Clinical Advisor has confirmed the fetal-movement window (16–22 weeks) and the normal pulse (60–100) but has not signed the table yet, so the table may be used only with synthetic data (LI-10). It must be signed before any use with real patients.
 
 ## What it holds
 
@@ -53,7 +53,7 @@ Fields use the sync field names of the API (`docs/openapi.yaml`). An unanswered 
 
 The roadmap's most urgent open item is finding a Clinical Advisor (an obstetrician or community-health doctor) by 27 Dec 2026.
 
-[`review-checklist-v0.1.0.pdf`](review-checklist-v0.1.0.pdf) is the printable checklist for the advisor, made from this version of the table: every rule with its value and source and an Agree / Change box, the decisions the scope leaves to the advisor (the `review_note`s), and a sign-off page. Make a new checklist when the version changes. Keep the signed copy with the project records, not in this public repository, if it shows the advisor's contact details.
+[`review-checklist-v0.3.0.pdf`](review-checklist-v0.3.0.pdf) is the printable checklist for the advisor, made from this version of the table: every rule with its value and source and an Agree / Change box, the decisions the scope leaves to the advisor (the `review_note`s), and a sign-off page. Make a new checklist when the version changes. Keep the signed copy with the project records, not in this public repository, if it shows the advisor's contact details.
 
 When the advisor has reviewed every section:
 

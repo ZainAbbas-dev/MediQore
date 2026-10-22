@@ -1,6 +1,6 @@
 {
   "name": "MediQore Clinical Rules Table",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "status": "pending clinical review",
   "effective_from": "2026-10-22",
   "notice": "Version 0 for the prototype on synthetic data only (LI-10). Every value is a WHO-referenced default that the Clinical Advisor has not yet reviewed. Do not use with real patients until the table is signed (M4 FE-4, LI-12).",
@@ -37,7 +37,7 @@
   "visit_entry_checks": {
     "description": "Typing-error checks on the visit form (M3 FE-1). A value outside 'allowed' cannot be saved and the server refuses it. A value inside 'allowed' but outside 'plausible' is saved only after the LHW confirms it. A value outside 'normal' is highlighted on the form (SRS FR3.3); it does not change the risk level.",
     "reference": "roadmap",
-    "review_note": "Only systolic BP 60-250 comes from the roadmap; the other ranges are proposals for the Clinical Advisor. The 'normal' ranges follow WHO PCPNC 2015 (raised BP from 140/90, fever from 38 °C, systolic below 90 a sign of shock); the pulse range 60-100 is a proposal.",
+    "review_note": "Only systolic BP 60-250 comes from the roadmap; the other ranges are proposals for the Clinical Advisor. The 'normal' ranges follow WHO PCPNC 2015 (raised BP from 140/90, fever from 38 °C, systolic below 90 a sign of shock); the pulse range 60-100 was confirmed by the Clinical Advisor on 22 Oct 2026 (to be signed with the table).",
     "vitals": {
       "systolicBpMmhg": { "unit": "mmHg", "decimals": 0, "allowed": [20, 300], "plausible": [60, 250], "normal": [90, 139] },
       "diastolicBpMmhg": { "unit": "mmHg", "decimals": 0, "allowed": [10, 200], "plausible": [30, 150], "normal": [60, 89] },
@@ -61,8 +61,9 @@
     "levels": ["green", "yellow", "red"],
     "model_class_to_level": { "low": "green", "mid": "yellow", "high": "red" },
     "emergency_level": "red",
-    "fetal_movement_from_weeks": 28,
-    "fetal_movement_note": "Before this gestational age the visit form shows fetal movement as 'Not applicable yet' and records no answer, so the fetal-movement rules cannot fire (M3 FE-1, M4 FE-4). The 28-week value is a proposal for the Clinical Advisor.",
+    "fetal_movement_onset_weeks": [16, 22],
+    "fetal_movement_from_weeks": 22,
+    "fetal_movement_note": "Before this gestational age the visit form shows fetal movement as 'Not applicable yet' and records no answer, so the fetal-movement rules cannot fire (M3 FE-1, M4 FE-4). The Clinical Advisor confirmed on 22 Oct 2026 that a pregnant woman first feels fetal movement between 16 and 22 weeks (fetal_movement_onset_weeks); the form asks from the end of that window, 22 weeks, when every woman should feel it, so absent movement before then is never flagged. To be signed with the table.",
     "fields": {
       "systolicBpMmhg": "number",
       "diastolicBpMmhg": "number",

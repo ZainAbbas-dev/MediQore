@@ -119,9 +119,15 @@ describe('gestational age (M2 FE-1)', () => {
     }
   });
 
-  test('the fetal-movement threshold is a gestational age inside a pregnancy', () => {
-    const weeks = table.maternal_risk.fetal_movement_from_weeks;
-    assert.ok(Number.isInteger(weeks) && weeks > 12 && weeks < ga.full_term_weeks);
+  test('fetal movement is asked from the end of the 16-22 week window when it is first felt (Clinical Advisor, 22 Oct 2026)', () => {
+    const [first, last] = table.maternal_risk.fetal_movement_onset_weeks;
+    assert.deepEqual([first, last], [16, 22]);
+    assert.equal(table.maternal_risk.fetal_movement_from_weeks, last);
+    assert.ok(last < ga.full_term_weeks);
+  });
+
+  test('the normal pulse is 60-100 beats a minute (Clinical Advisor, 22 Oct 2026)', () => {
+    assert.deepEqual(table.visit_entry_checks.vitals.pulseBpm.normal, [60, 100]);
   });
 });
 
