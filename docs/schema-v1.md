@@ -58,6 +58,7 @@ Each change is a new migration in `db/migrations/`; v1's files are not edited.
 | `activation-replaces-otp` | Drops `otp_codes` and the index on phones waiting for approval; adds indexes on activated phones and on unused activation codes. A phone is activated when `devices.activated_at` is set; phones approved under the earlier scheme must be activated again | M1 FE-2 |
 | `refresh-token-replacement` | `refresh_tokens.replaced_by`: the token that replaced a used one, so a token whose answer was lost on a weak network can be used once more while its replacement is unused | M1 FE-2, M3 FE-2 |
 | `device-last-sync` | `devices.last_sync_at`: the server's time of the phone's latest push or pull, for each LHW's last sync on the dashboard, even when the phone had nothing new to send | M10 FE-1 |
+| `phase1-roadmap-oct22` | Roadmap of 22 Oct 2026: `version` on every synced table (raised by the `assign_server_seq` trigger); `devices.activation_number` for the Patient ID; pregnancy `lmp_date`, `reported_edd`, `estimated_delivery_date` (required) and `edd_basis`; visit `blood_sugar_value` with `blood_sugar_unit` (replacing `blood_sugar_mmol_l`); `sync_conflicts.base_version`, `existing_version` and the reasons `outdated_edit`, `possible_duplicate`, `same_parent_same_day`; `role_permissions` (the admin's changes to the role defaults) | M1 FE-2, M2 FE-1, M3 FE-1, FE-2, M10 FE-3 |
 
 ### What `final-scope-data-model` changes
 
@@ -93,8 +94,10 @@ The scope and roadmap name the tables but not every column. These choices were m
 9. **`audit_log.action` values** are `create`, `edit`, `delete`, `referral`, `alert`, `login` and `sync_conflict`. Alert attempts are logged with their channel and status in `details`.
 10. **Danger-sign checklist answers** are nullable booleans: NULL means "not asked", so visits recorded before the checklist stay honest. The Phase 1 visit form requires every answer.
 11. **Pulse is required** (M3 FE-1), but `visits.pulse_bpm` stays nullable in the database because earlier synced visits may lack it. The API requires it from Phase 1.
-12. **Blood sugar** is always stored in mmol/L. The unit the LHW typed (`mmol_l` or `mg_dl`) is kept in `blood_sugar_entered_unit` for traceability; the date and the source (`glucometer` or `lab_report`) are stored with it.
+12. **Blood sugar** is stored with the unit it was recorded in (`blood_sugar_value`, `blood_sugar_unit` `mmol_l` or `mg_dl`), as the root rules say; it is converted to mmol/L (÷ 18) only before inference and for range checks. The date and the source (`glucometer` or `lab_report`) are stored with it. `phase1-roadmap-oct22` moved earlier visits' mmol/L values into the new columns.
 13. **Activation secret:** the server stores only a reference (`devices.activation_secret_ref`) to where the per-device secret is held, never the secret in plain text. The API derives the secret from the reference with a server key (HMAC-SHA256), so nothing secret is in the database (`api/src/services/activation.service.js`).
 14. **Outcome place** is `home`, `health_facility` or `other`.
 15. **Hep B birth dose and other area-dependent doses** are marked `rollout_by_area` in `epi_schedule`. Which areas switch them on is set in the Clinical Rules Table's EPI section in Phase 3.
 16. **`otp_codes`** (the earlier phone-approval code) was dropped by `activation-replaces-otp` in the Phase 1 revision.
+17. **Versions** (`phase1-roadmap-oct22`): every synced row has `version`, 1 on insert and raised by one on every accepted change. An edit made on an older version goes to the Conflict Review page instead of overwriting (M3 FE-2).
+18. **Expected delivery date:** every pregnancy has `estimated_delivery_date` and `edd_basis` (`lmp`, `edd` or `month`); `lmp_date` or `reported_edd` must be present when the basis says so.

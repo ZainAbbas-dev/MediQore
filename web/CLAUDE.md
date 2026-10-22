@@ -24,11 +24,11 @@ React portal for Module 10: dashboard, map, alerts, reports and admin panel. Fol
 - The portal is for supervisors and admins only (`PORTAL_ROLES` in `src/auth/context.js`); an LHW who signs in is turned away.
 - A failed refresh, or 403 `ACCOUNT_INACTIVE`, signs the user out. Sign-out revokes the refresh token.
 - Every page except `/login` sits behind `RequireAuth` and inside `AppLayout`. Add each new Module 10 screen as a route in `src/App.jsx` and as a sidebar link in `src/layout/AppLayout.jsx`.
-  - Wrap role-specific routes in `RequireRole roles={[...]}`, and hide their sidebar links from other roles. The API checks roles too.
+  - Wrap each route in `RequirePermission permission="..."` (`src/auth/RequirePermission.jsx`) and show its sidebar link only when `can(user, permission)` (`src/auth/context.js`). The session's `user.permissions` comes from the API (the admin's choices on the Roles page); an older stored session falls back to the role's defaults. The API checks the same permission.
 - Show passwords and one-time codes only once, right after the API returns them. Never store them in state that outlives the dialog or notice.
-- The dashboard map auto-refreshes every 5 minutes and can be filtered by district, Union Council, LHW and time period (M10 FE-1, Phase 1).
+- The dashboard map auto-refreshes every 5 minutes and can be filtered by district, tehsil, Union Council, LHW and time period (M10 FE-1, Phase 1).
 - Admin actions must show up in the audit log viewer (M10 FE-3); the API writes the audit rows.
-- Admin pages sit under `admin/` routes inside `RequireRole roles={['admin']}`, with their links in the sidebar's **Administration** navigation. What each role may do is decided by the API (`api/src/auth/permissions.js`); the Roles page only shows it.
+- Admin pages sit under `admin/` routes, each behind its permission, with their links in the sidebar's **Administration** navigation (shown when the account holds any of them). Who holds what is decided by the API (`api/src/auth/permissions.js` defaults plus the admin's changes on the Roles page).
 
 ## Layout
 
@@ -48,8 +48,8 @@ React portal for Module 10: dashboard, map, alerts, reports and admin panel. Fol
     - **Households with GPS**: the map, with how many it shows;
     - **LHW activity** from `GET /dashboard/lhw-activity`: last sync, women, visits this week and in total, last visit, last sign-in. An active LHW whose last sync is `STALE_AFTER_DAYS` (2) days old or more, or who never synced, is highlighted; this is a display hint, not the FE-4 inactivity detection (Phase 2);
     - refreshes every 5 minutes and on **Reload**; each part loads on its own, so one failure does not hide the others.
-  - `WomenPage` (`/women`, admins and supervisors, M2 FE-1–3): registered women with their pregnancy file in short and their visit count and last visit (M3), from `GET /women`, with search. The visit count opens her visits (`GET /women/:id/visits`): vitals, blood sugar with unit, source and date, symptoms and the danger signs answered yes, with the decision-support note (LI-5).
-  - `ConflictsPage` (`/conflicts`, admins and supervisors, M3 FE-2): the sync conflict queue from `GET /conflicts?status=…`. Each held visit sits next to the stored one, with differing fields highlighted, and three decisions (`POST /conflicts/:id/resolve`: keep both, keep the stored visit, keep the held visit). Decided conflicts show who decided and when.
+  - `WomenPage` (`/women`, admins and supervisors, M2 FE-1–3): registered women with their pregnancy file in short (expected delivery date, weeks today and how it was dated) and their visit count and last visit (M3), from `GET /women`, with search. The visit count opens her visits (`GET /women/:id/visits`): vitals, blood sugar in its recorded unit, with source and date, symptoms and the danger signs answered yes, with the decision-support note (LI-5).
+  - `ConflictsPage` (`/conflicts`, `conflicts.resolve`, M3 FE-2, M10 FE-3): the Conflict Review queue from `GET /conflicts?status=…`. Each conflict shows its kind and compares the two versions field by field for its table (differences highlighted): an edit made on an older version (server vs phone; **Keep the server's version** or **Use the phone's edit**), a possible duplicate woman (earlier vs new registration; **Different women: keep both** or **Same woman: merge**, which asks first), or a legacy same-day visit (keep both, the stored or the held visit). The buttons come from the conflict's `resolutions`; decided conflicts show who decided and when.
   - `PinResetPage` (`/pin-reset`, admins and supervisors, M1 FE-2): **PIN reset codes**. Pick the LHW (from `GET /dashboard/filters`, so a supervisor sees only their areas), type the 6-digit code on her phone, and read back the 8-digit reply from `POST /pin-reset/reply-code`, shown once.
   - `LhwsPage` (`/admin/lhws`, admins, M1 FE-1–3, final design screen 21):
     - lists LHW accounts with the phone state (activated on a date, code issued, not activated), status (Active, Waiting to activate, Deactivated) and last sign-in, with search and a status filter in the header;
@@ -62,7 +62,7 @@ React portal for Module 10: dashboard, map, alerts, reports and admin panel. Fol
     - `StaffPage` (`/admin/staff`): supervisor and admin accounts. Create with a chosen username (password shown once), supervisor areas with `AreaChecklist`, role change (never for your own account). **Edit** also holds reset password and deactivate (never your own account); a deactivated account shows **Activate** in its row.
     - `GeographyPage` (`/admin/geography`, **Geography** in the sidebar): four columns (district, tehsil, Union Council, area); choosing a unit shows its children. Add, rename, delete; a unit in use is refused with the API's reason.
     - `FacilitiesPage` (`/admin/facilities`): hospitals and referral centres as two tabs, by district, with optional area and GPS.
-    - `RolesPage` (`/admin/roles`): the permission table from `GET /admin/roles`.
+    - `RolesPage` (`/admin/roles`, `roles.manage`): the permission table from `GET /admin/roles`; the cells the API marks editable are checkboxes, saved together with **Save changes** (`PUT /admin/roles/permissions`, audited); the fixed ones show ✓ or –.
     - `AuditPage` (`/admin/audit`): the audit log, filtered by user, action, record type and dates; changes read "field: from → to"; a sign-out (a login entry with the result `logout`) reads **Sign-out**; **Show older entries** pages back.
 - `src/components/`:
   - `AreaMap.jsx`: Leaflet map centred on Pakistan that draws households with GPS. It fits to the households when they change, but keeps the user's zoom when an automatic refresh brings the same ones.
@@ -93,4 +93,4 @@ npm test           # Jest
 npm run build      # production build in dist/
 ```
 
-Demo sign-in after `npm run seed:demo` in `db/`: `supervisor.demo` or `admin.demo`, password `demo-password`. Both see the dashboard, **Registered women**, **Sync conflicts** and **PIN reset codes**; `admin.demo` also sees **Administration**, where **LHW accounts** generates the activation code for `lhw.demo`'s phone. The synthetic data (`npm run seed:synthetic`) includes a few held same-day visits for the conflict queue, and DHQ and THQ hospitals.
+Demo sign-in after `npm run seed:demo` in `db/`: `supervisor.demo` or `admin.demo`, password `demo-password`. Both see the dashboard, **Registered women**, **Sync conflicts** and **PIN reset codes**; `admin.demo` also sees **Administration**, where **LHW accounts** generates the activation code for `lhw.demo`'s phone. The synthetic data (`npm run seed:synthetic`) includes a few possible duplicate women for the Conflict Review page, and DHQ and THQ hospitals.

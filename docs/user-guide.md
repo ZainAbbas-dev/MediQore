@@ -24,7 +24,7 @@ The app is in Urdu by default; the Urdu button labels are given with their Engli
   2. The pregnancy month (tap a number from 1 to 9).
   3. Her home: the same home as a woman already registered, or the village and address. Outdoors, tap **مقام محفوظ کریں** (record location) for GPS; it can be added later from her file.
   4. Earlier pregnancies, C-sections and stillbirths (the − and + buttons), and any known illness.
-- **اندراج محفوظ کریں** (save registration) gives her patient ID, for example `LHW-00001-0007`. It works without the internet. Then open her file, register another woman, or **ہوم پر جائیں** (go to home).
+- **اندراج محفوظ کریں** (save registration) gives her patient ID, for example `LHW-00001-03-0007` (her LHW ID, the phone's activation number, then her number). It works without the internet. Then open her file, register another woman, or **ہوم پر جائیں** (go to home).
 - The X at the top of the form closes it without saving.
 - Her file shows the risk factors from her history, for example "Previous C-section". They are for information and do not change a risk colour.
 - **رجسٹرڈ خواتین** (registered women) lists them by village, or **قریب ترین پہلے** (nearest first) by distance from where you stand; search by name, ID or village.

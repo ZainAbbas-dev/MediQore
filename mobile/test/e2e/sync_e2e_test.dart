@@ -5,7 +5,7 @@
 //
 // Needs the demo accounts (`npm run seed:demo` in db/). Set E2E_PASSWORD if the
 // demo password was changed. Each run adds synthetic records (households,
-// three registrations, three visits, one decided sync conflict) and seven
+// three registrations, three visits, one decided edit conflict) and seven
 // activated test phones for lhw.demo.
 import 'dart:convert';
 
@@ -201,7 +201,7 @@ void main() {
   );
 
   test(
-    'a woman registered offline on one phone reaches the portal and the next phone, and patient IDs continue (M2)',
+    'a woman registered offline on one phone reaches the portal and the next phone, whose patient IDs carry its own activation number (M2)',
     () async {
       final phone1 = await signedInNewPhone();
       final woman = await phone1.patients.register(
@@ -240,8 +240,11 @@ void main() {
         const RegistrationInput(name: 'E2E Second Woman', age: 25, pregnancyMonth: 2, village: 'End-to-end village'),
         by: phone2.session.user!,
       );
-      int number(String code) => int.parse(code.split('-').last);
-      expect(number(next.patientCode), greaterThan(number(woman.patientCode)));
+      // Each phone's IDs carry its own activation number, so the two never clash before a sync (M2 FE-1).
+      String activation(String code) => code.split('-').reversed.elementAt(1);
+      expect(next.patientCode, startsWith(phone2.session.user!.patientCodePrefix!));
+      expect(activation(next.patientCode), isNot(activation(woman.patientCode)));
+      expect(next.patientCode, isNot(woman.patientCode));
       expect((await phone2.session.sync()).rejected, 0);
 
       // ignore: avoid_print
@@ -255,14 +258,16 @@ void main() {
   );
 
   test(
-    'a visit reaches the server; a same-day visit from another phone waits for the supervisor, whose decision reaches it (M3)',
+    'visits from two phones on the same day are both stored; an edit made on an older version waits for the supervisor, whose decision reaches the phone (M3)',
     () async {
       final phone1 = await signedInNewPhone();
       final woman = await phone1.patients.register(
         const RegistrationInput(name: 'E2E Visit Woman', age: 24, pregnancyMonth: 6, village: 'End-to-end village'),
         by: phone1.session.user!,
       );
-      final pregnancyId = (await phone1.patients.file(woman.id))!.pregnancy!.id;
+      final file = (await phone1.patients.file(woman.id))!;
+      final pregnancyId = file.pregnancy!.id;
+      final householdId = file.household!.id;
       await phone1.visits.record(
         VisitInput(
           pregnancyId: pregnancyId,
@@ -287,8 +292,7 @@ void main() {
       final first = await phone1.session.sync();
       expect((first.pushed, first.rejected, first.held), (5, 0, 0), reason: 'the real server takes the visit as the app sends it');
 
-      // Another phone downloads her visit, then records a second one the same day:
-      // a possible duplicate, which the server holds instead of storing (M3 FE-2).
+      // Another phone downloads her file and records a second visit the same day: both are stored.
       final phone2 = await signedInNewPhone();
       expect((await phone2.visits.forPregnancy(pregnancyId)).single.syncStatus, SyncStatus.synced);
       final second = await phone2.visits.record(
@@ -296,31 +300,39 @@ void main() {
         by: phone2.session.user!,
       );
       final report = await phone2.session.sync();
-      expect((report.held, report.rejected), (1, 0));
-      final held = (await phone2.visits.forPregnancy(pregnancyId)).firstWhere((v) => v.visit.id == second.id);
-      expect(held.syncStatus, SyncStatus.held);
-
-      // The supervisor portal's queue has it with both visits; the admin keeps both.
-      final token = await adminToken();
-      final pending = ((await send('GET', '/conflicts?status=pending', token: token))['conflicts'] as List).cast<Map>();
-      final conflict = pending.singleWhere((c) => (c['incoming'] as Map)['id'] == second.id);
-      expect(conflict['woman'], containsPair('patientCode', woman.patientCode));
-      expect((conflict['incoming'] as Map)['data'], containsPair('systolicBpMmhg', 150));
-      expect((conflict['existing'] as Map)['data'], containsPair('systolicBpMmhg', 118));
-      await send('POST', '/conflicts/${conflict['id']}/resolve', token: token, body: {'resolution': 'keep_both'});
-
-      // The decision reaches the phone at its next sync.
-      await phone2.session.sync();
+      expect((report.held, report.rejected), (0, 0));
       final visits = await phone2.visits.forPregnancy(pregnancyId);
       expect(visits.map((v) => v.syncStatus), [SyncStatus.synced, SyncStatus.synced]);
       expect(visits.first.visit.id, second.id, reason: 'numbered by the server after the first visit');
-      expect(visits.first.visit.conflictId, isNull);
+
+      // Both phones record the home's GPS; the second edit was made on the older version.
+      await phone1.households.setLocation(householdId, latitude: 33.61, longitude: 73.01);
+      expect((await phone1.session.sync()).held, 0);
+      await phone2.households.setLocation(householdId, latitude: 33.62, longitude: 73.02);
+      expect((await phone2.session.sync()).held, 1);
+
+      // The supervisor portal's Conflict Review has both versions; the admin uses the phone's edit.
+      final token = await adminToken();
+      final pending = ((await send('GET', '/conflicts?status=pending', token: token))['conflicts'] as List).cast<Map>();
+      final conflict = pending.singleWhere((c) => (c['incoming'] as Map)['id'] == householdId);
+      expect(conflict['reason'], 'outdated_edit');
+      expect(conflict['resolutions'], ['keep_server', 'use_device']);
+      expect((conflict['incoming'] as Map)['data'], containsPair('latitude', 33.62));
+      expect((conflict['existing'] as Map)['data'], containsPair('latitude', 33.61));
+      await send('POST', '/conflicts/${conflict['id']}/resolve', token: token, body: {'resolution': 'use_device'});
+
+      // The decision reaches both phones at their next sync.
+      for (final phone in [phone2, phone1]) {
+        await phone.session.sync();
+        final home = (await phone.households.all()).singleWhere((h) => h.id == householdId);
+        expect((home.latitude, home.conflictId), (33.62, null));
+      }
 
       final summary = await send('GET', '/dashboard/summary', token: token);
       expect(summary['visitsThisWeek'], greaterThanOrEqualTo(2));
 
       // ignore: avoid_print
-      print('E2E M3 OK: ${woman.patientCode}, conflict ${conflict['id']} kept both');
+      print('E2E M3 OK: ${woman.patientCode}, conflict ${conflict['id']} used the phone\'s edit');
       for (final phone in [phone1, phone2]) {
         await phone.session.signOut();
         await phone.dispose();

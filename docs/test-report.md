@@ -37,7 +37,7 @@ Short notes per module, as the roadmap's Definition of done asks ("Short note ad
 
 - Covered by tests: the three-step visit (required pulse, the 30-second pulse counter, blood sugar with unit, date and source and its mg/dL conversion, the six danger-sign questions, range checks from the Clinical Rules Table), the encrypted database (wrong key refused, older databases moved to the random key), and sync:
   - outbox push in batches with priority, pull by server number, idempotent resend;
-  - same-day conflicts held for the supervisor and the decision reaching the phone;
+  - edits made on an older version and possible duplicate women held for the supervisor's Conflict Review, and the decision reaching the phone;
   - refused records kept on the phone, counted on the home screen and sent again at every sync;
   - tokens refreshed at every sync, with the newest stored token;
   - the open app syncing after a save, when the network returns, while records wait and every 10 minutes otherwise;
@@ -49,6 +49,30 @@ Short notes per module, as the roadmap's Definition of done asks ("Short note ad
 
 - Covered by tests: dashboard cards (registered women, visits this week, LHWs synced today, conflicts) and LHW activity, all filtered by district, Union Council and LHW, an LHW whose last sync is 2 days old highlighted, the map and its period filter, the 5-minute refresh, a woman's visits, LHW accounts with the activation code banner, supervisor and admin accounts, geography, hospitals and referral centres, roles and the audit log, role checks and area scoping on every route.
 - Checked in a browser at desktop and phone width (no sideways scroll), on synthetic data.
+
+## Phase 1 roadmap check, 22 October 2026 (`dev`)
+
+Cross-check of Modules 1, 2, 3 and 10 against the roadmap of 22 Oct 2026, and the new transitions.
+
+| Suite | Result |
+|---|---|
+| Mobile unit and widget tests | 225 passed, 5 skipped (the end-to-end tests); `flutter analyze` clean; every screen on a 320 × 640 phone in Urdu and English |
+| Mobile end to end against the local API | 5 passed: Phase 0 record path, M1 activation and PIN-reset reply code, M2 registration with each phone's activation number in the Patient ID, M3 visits from two phones on the same day (both stored) and an edit made on an older version decided on the portal, background sync |
+| API | 217 passed; lint clean |
+| Portal | 73 passed; lint and production build clean |
+| Database | 34 passed; the new migration up, down and up again |
+| Clinical Rules Table | 89 passed |
+
+What the new tests cover:
+
+- record versions: an accepted edit raises `version`; a resend is never a conflict; an edit made on an older version waits for **Keep the server's version** or **Use the phone's edit**, for households and pregnancies;
+- possible duplicate women (same name, husband's name and household): stored, listed, and merged only after a confirmation;
+- the Patient ID with the activation number, and the app's duplicate warning before registering;
+- the pregnancy dated by month, LMP or card EDD, the EDD and weeks, and the fetal-movement question only from 28 weeks (proposal, pending clinical review);
+- vitals outside the normal range flagged in amber; blood sugar stored in the unit it was recorded in;
+- `GET /sync/config` and a newer downloaded Clinical Rules Table on the phone; area reassignment clears the old area only when nothing waits;
+- role permissions edited on the portal, followed by the routes and the portal's pages at once; the tehsil filter;
+- transitions: 150–250 ms, linear or ease-out; screens fade, forms slide up, cards expand into their screen; none with "Remove animations".
 
 ## Open items
 
