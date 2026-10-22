@@ -24,11 +24,16 @@ const SUGAR_SOURCE = { glucometer: 'glucometer', lab_report: 'lab report' };
 const yesNo = (value) => (value ? 'Yes' : 'No');
 const orDash = (value, unit = '') => (value === null || value === undefined ? '–' : `${value}${unit}`);
 
+// Blood sugar is stored in the unit it was recorded in (M3 FE-1).
+const SUGAR_UNIT = { mmol_l: 'mmol/L', mg_dl: 'mg/dL' };
 function bloodSugar(v) {
-  if (v.bloodSugarMmolL === null) return 'Not tested';
-  const typed = v.bloodSugarEnteredUnit === 'mg_dl' ? ', typed in mg/dL' : '';
-  return `${v.bloodSugarMmolL} mmol/L (${SUGAR_SOURCE[v.bloodSugarSource] ?? v.bloodSugarSource}, ${v.bloodSugarMeasuredOn}${typed})`;
+  if (v.bloodSugarValue === null || v.bloodSugarValue === undefined) return 'Not tested';
+  const unit = SUGAR_UNIT[v.bloodSugarUnit] ?? v.bloodSugarUnit;
+  return `${v.bloodSugarValue} ${unit} (${SUGAR_SOURCE[v.bloodSugarSource] ?? v.bloodSugarSource}, ${v.bloodSugarMeasuredOn})`;
 }
+
+// How the expected delivery date was set (M2 FE-1).
+const EDD_BASIS = { lmp: 'from LMP', edd: 'from her card', month: 'from the month' };
 
 function Visit({ visit }) {
   const yes = DANGER_SIGNS.filter(([key]) => visit[key] === true).map(([, label]) => label);
@@ -206,7 +211,10 @@ export default function WomenPage() {
                   <th className="col-name">Name</th>
                   <th>Age</th>
                   <th className="col-place">Village</th>
-                  <th>Month at registration</th>
+                  <th>
+                    Expected delivery
+                    <div className="muted">weeks today</div>
+                  </th>
                   <th>Registered on</th>
                   <th title="Previous pregnancies / previous C-sections / stillbirths">
                     History
@@ -235,7 +243,21 @@ export default function WomenPage() {
                       {w.household.village || '–'}
                       <div className="muted">{w.areaName}</div>
                     </td>
-                    <td>{w.pregnancy ? w.pregnancy.monthAtRegistration : '–'}</td>
+                    <td className="nowrap">
+                      {w.pregnancy?.estimatedDeliveryDate ? (
+                        <>
+                          {w.pregnancy.estimatedDeliveryDate}
+                          <div className="muted">
+                            {w.pregnancy.status === 'active' && w.pregnancy.gestationalWeeks !== null
+                              ? `${w.pregnancy.gestationalWeeks} weeks · `
+                              : ''}
+                            {EDD_BASIS[w.pregnancy.eddBasis] ?? ''}
+                          </div>
+                        </>
+                      ) : (
+                        '–'
+                      )}
+                    </td>
                     <td className="nowrap">{w.pregnancy ? w.pregnancy.registeredOn : '–'}</td>
                     <td>{historyText(w.obstetricHistory)}</td>
                     <td>{w.obstetricHistory?.knownConditions || '–'}</td>

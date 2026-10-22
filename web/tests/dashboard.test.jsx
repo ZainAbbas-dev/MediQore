@@ -23,13 +23,19 @@ const household = {
 
 const filters = {
   districts: [{ id: 'd1', name: 'Rawalpindi' }, { id: 'd2', name: 'Attock' }],
+  tehsils: [
+    { id: 't1', name: 'Gujar Khan', districtId: 'd1' },
+    { id: 't3', name: 'Kahuta', districtId: 'd1' },
+    { id: 't2', name: 'Fateh Jang', districtId: 'd2' },
+  ],
   unionCouncils: [
-    { id: 'uc1', name: 'UC 1', districtId: 'd1' },
-    { id: 'uc2', name: 'UC 2', districtId: 'd2' },
+    { id: 'uc1', name: 'UC 1', tehsilId: 't1', districtId: 'd1' },
+    { id: 'uc3', name: 'UC 3', tehsilId: 't3', districtId: 'd1' },
+    { id: 'uc2', name: 'UC 2', tehsilId: 't2', districtId: 'd2' },
   ],
   lhws: [
-    { id: 'l1', lhwCode: 'LHW-00007', fullName: 'Sana Iqbal', unionCouncilId: 'uc1', districtId: 'd1' },
-    { id: 'l2', lhwCode: 'LHW-00009', fullName: 'Hina Bibi', unionCouncilId: 'uc2', districtId: 'd2' },
+    { id: 'l1', lhwCode: 'LHW-00007', fullName: 'Sana Iqbal', unionCouncilId: 'uc1', tehsilId: 't1', districtId: 'd1' },
+    { id: 'l2', lhwCode: 'LHW-00009', fullName: 'Hina Bibi', unionCouncilId: 'uc2', tehsilId: 't2', districtId: 'd2' },
   ],
 };
 
@@ -134,6 +140,32 @@ describe('dashboard (M10 FE-1)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(await screen.findByText('1 on map')).toBeInTheDocument();
     expect(screen.getByLabelText('District')).toHaveValue('');
+  });
+
+  it('filters by tehsil, offering only its Union Councils and LHWs', async () => {
+    const fetchMock = dashboardApi({
+      'GET /households?districtId=d1': [200, { households: [household] }],
+      'GET /dashboard/summary?districtId=d1': [200, summary],
+      'GET /dashboard/lhw-activity?districtId=d1': [200, activity],
+      'GET /households?districtId=d1&tehsilId=t3': [200, { households: [] }],
+      'GET /dashboard/summary?districtId=d1&tehsilId=t3': [200, { ...summary, registeredWomen: 4 }],
+      'GET /dashboard/lhw-activity?districtId=d1&tehsilId=t3': [200, { lhws: [] }],
+    });
+    renderApp('/', { session: supervisorSession });
+    await screen.findByRole('option', { name: 'Rawalpindi' });
+
+    fireEvent.change(screen.getByLabelText('District'), { target: { value: 'd1' } });
+    expect(within(screen.getByLabelText('Tehsil')).getAllByRole('option').map((o) => o.textContent)).toEqual(['All', 'Gujar Khan', 'Kahuta']);
+    fireEvent.change(screen.getByLabelText('Tehsil'), { target: { value: 't3' } });
+
+    expect(await screen.findByText('4')).toBeInTheDocument();
+    expect(requested(fetchMock, '/households?districtId=d1&tehsilId=t3')).toBe(1);
+    expect(requested(fetchMock, '/dashboard/lhw-activity?districtId=d1&tehsilId=t3')).toBe(1);
+    expect(within(screen.getByLabelText('Union Council')).getAllByRole('option').map((o) => o.textContent)).toEqual(['All', 'UC 3']);
+    expect(within(screen.getByLabelText('LHW')).getAllByRole('option').map((o) => o.textContent)).toEqual(['All']);
+
+    fireEvent.change(screen.getByLabelText('District'), { target: { value: 'd2' } });
+    expect(screen.getByLabelText('Tehsil')).toHaveValue('');
   });
 
   it('refreshes itself every five minutes and on Reload', async () => {

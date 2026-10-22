@@ -17,7 +17,9 @@ const woman = {
   areaName: 'Area 0101-1',
   household: { id: 'h1', village: 'Dhok Syedan', address: 'House 12', latitude: 33.6844, longitude: 73.0479 },
   registeredBy: { lhwCode: 'LHW-00007', fullName: 'Sana Iqbal' },
-  pregnancy: { registeredOn: '2026-10-01', monthAtRegistration: 3, status: 'active' },
+  pregnancy: {
+    registeredOn: '2026-10-01', monthAtRegistration: 3, status: 'active', estimatedDeliveryDate: '2027-04-08', eddBasis: 'lmp', gestationalWeeks: 16,
+  },
   obstetricHistory: { previousPregnancies: 2, previousCSections: 1, stillbirths: 0, knownConditions: 'Asthma' },
   visits: { count: 4, lastVisitAt: '2026-10-03T06:30:00.000Z' },
   serverSeq: 12,
@@ -30,7 +32,7 @@ describe('registered women (M2, M10 FE-1)', () => {
     renderApp('/women', { session: supervisorSession });
 
     const row = (await screen.findByText('LHW-00007-0003')).closest('tr');
-    for (const text of ['26', 'Area 0101-1', '3', '2026-10-01', '2 / 1 / 0', 'Asthma', 'LHW-00007', 'Recorded', '4']) {
+    for (const text of ['26', 'Area 0101-1', '2027-04-08', '16 weeks · from LMP', '2026-10-01', '2 / 1 / 0', 'Asthma', 'LHW-00007', 'Recorded', '4']) {
       expect(within(row).getByText(text)).toBeInTheDocument();
     }
     expect(within(row).getByText(formatWhen('2026-10-03T06:30:00.000Z', new Date(), { withTime: false }))).toBeInTheDocument();
@@ -44,13 +46,13 @@ describe('registered women (M2, M10 FE-1)', () => {
     const visit = {
       id: 'v2', pregnancyId: 'p1', visitedAt: '2026-10-03T06:30:00.000Z',
       systolicBpMmhg: 150, diastolicBpMmhg: 96, weightKg: 58.5, temperatureC: 37.9, pulseBpm: 104,
-      bloodSugarMmolL: 7.8, bloodSugarEnteredUnit: 'mg_dl', bloodSugarMeasuredOn: '2026-10-02', bloodSugarSource: 'glucometer',
+      bloodSugarValue: 140, bloodSugarUnit: 'mg_dl', bloodSugarMeasuredOn: '2026-10-02', bloodSugarSource: 'glucometer',
       fetalMovement: 'reduced', swelling: true, bleeding: false, fever: true, anaemiaSigns: 'severe', urineSymptoms: false,
       convulsions: false, severeHeadache: true, blurredVision: true, severeAbdominalPain: false, fastBreathing: false, feverWithWeakness: false,
       recordedBy: { lhwCode: 'LHW-00007', fullName: 'Sana Iqbal' }, serverSeq: 40, syncedAt: '2026-10-03T07:00:00.000Z',
     };
     const earlier = {
-      ...visit, id: 'v1', serverSeq: 31, bloodSugarMmolL: null, bloodSugarEnteredUnit: null, bloodSugarMeasuredOn: null,
+      ...visit, id: 'v1', serverSeq: 31, bloodSugarValue: null, bloodSugarUnit: null, bloodSugarMeasuredOn: null,
       bloodSugarSource: null, severeHeadache: null, blurredVision: null, convulsions: null, severeAbdominalPain: null,
       fastBreathing: null, feverWithWeakness: null,
     };
@@ -66,7 +68,7 @@ describe('registered women (M2, M10 FE-1)', () => {
     const [latest, first] = await within(dialog).findAllByRole('article');
     expect(latest).toHaveTextContent('150/96 mmHg');
     expect(latest).toHaveTextContent('104 /min');
-    expect(latest).toHaveTextContent('7.8 mmol/L (glucometer, 2026-10-02, typed in mg/dL)');
+    expect(latest).toHaveTextContent('140 mg/dL (glucometer, 2026-10-02)');
     expect(latest).toHaveTextContent('Markedly reduced');
     expect(within(latest).getByText('Danger signs: Severe headache, Blurred vision')).toBeInTheDocument();
     expect(first).toHaveTextContent('Not tested');

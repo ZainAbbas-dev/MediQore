@@ -1,12 +1,36 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { useAuth } from '../auth/context';
+import { can, useAuth } from '../auth/context';
 import NavIcon from './NavIcon';
 
 // Portal frame: sidebar navigation and the signed-in user. Each Module 10
-// screen adds its link here as it is built. Administration (M10 FE-3) is for
-// admins only; the API checks the same.
+// screen adds its link here as it is built. Each link shows only when the
+// account's role holds the page's permission (M10 FE-3); the API checks the same.
+const MAIN_LINKS = [
+  { to: '/', icon: 'dashboard', label: 'Dashboard', permission: 'records.view', end: true },
+  { to: '/women', icon: 'women', label: 'Registered women', permission: 'records.view' },
+  { to: '/conflicts', icon: 'conflicts', label: 'Sync conflicts', permission: 'conflicts.resolve' },
+  { to: '/pin-reset', icon: 'key', label: 'PIN reset codes', permission: 'pin_reset.reply' },
+];
+
+const ADMIN_LINKS = [
+  { to: '/admin/lhws', icon: 'person', label: 'LHW accounts', permission: 'accounts.manage' },
+  { to: '/admin/staff', icon: 'staff', label: 'Supervisors and admins', permission: 'accounts.manage' },
+  { to: '/admin/geography', icon: 'map', label: 'Geography', permission: 'geography.manage' },
+  { to: '/admin/facilities', icon: 'hospital', label: 'Hospitals', permission: 'facilities.manage' },
+  { to: '/admin/roles', icon: 'shield', label: 'Roles', permission: 'roles.manage' },
+  { to: '/admin/audit', icon: 'history', label: 'Audit log', permission: 'audit.view' },
+];
+
+const renderLink = (link) => (
+  <NavLink key={link.to} to={link.to} end={link.end}>
+    <NavIcon name={link.icon} />
+    {link.label}
+  </NavLink>
+);
+
 export default function AppLayout() {
   const { user, logout } = useAuth();
+  const admin = ADMIN_LINKS.filter((link) => can(user, link.permission));
 
   return (
     <div className="layout">
@@ -18,50 +42,12 @@ export default function AppLayout() {
           MediQore
         </div>
         <nav aria-label="Main">
-          <NavLink to="/" end>
-            <NavIcon name="dashboard" />
-            Dashboard
-          </NavLink>
-          <NavLink to="/women">
-            <NavIcon name="women" />
-            Registered women
-          </NavLink>
-          <NavLink to="/conflicts">
-            <NavIcon name="conflicts" />
-            Sync conflicts
-          </NavLink>
-          <NavLink to="/pin-reset">
-            <NavIcon name="key" />
-            PIN reset codes
-          </NavLink>
+          {MAIN_LINKS.filter((link) => can(user, link.permission)).map(renderLink)}
         </nav>
-        {user?.role === 'admin' && (
+        {admin.length > 0 && (
           <nav aria-label="Administration">
             <div className="nav-heading">Administration</div>
-            <NavLink to="/admin/lhws">
-              <NavIcon name="person" />
-              LHW accounts
-            </NavLink>
-            <NavLink to="/admin/staff">
-              <NavIcon name="staff" />
-              Supervisors and admins
-            </NavLink>
-            <NavLink to="/admin/geography">
-              <NavIcon name="map" />
-              Geography
-            </NavLink>
-            <NavLink to="/admin/facilities">
-              <NavIcon name="hospital" />
-              Hospitals
-            </NavLink>
-            <NavLink to="/admin/roles">
-              <NavIcon name="shield" />
-              Roles
-            </NavLink>
-            <NavLink to="/admin/audit">
-              <NavIcon name="history" />
-              Audit log
-            </NavLink>
+            {admin.map(renderLink)}
           </nav>
         )}
         <div className="sidebar-footer">

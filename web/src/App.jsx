@@ -4,7 +4,7 @@
 // admin panel (M10 FE-3): accounts, areas, hospitals, roles and the audit log.
 import { Route, Routes } from 'react-router-dom';
 import RequireAuth from './auth/RequireAuth';
-import RequireRole from './auth/RequireRole';
+import RequirePermission from './auth/RequirePermission';
 import AppLayout from './layout/AppLayout';
 import AuditPage from './pages/AuditPage';
 import ConflictsPage from './pages/ConflictsPage';
@@ -25,18 +25,30 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route element={<RequireAuth />}>
         <Route element={<AppLayout />}>
-          <Route index element={<DashboardPage />} />
-          <Route element={<RequireRole roles={['admin', 'supervisor']} />}>
+          <Route element={<RequirePermission permission="records.view" />}>
+            <Route index element={<DashboardPage />} />
             <Route path="women" element={<WomenPage />} />
+          </Route>
+          <Route element={<RequirePermission permission="conflicts.resolve" />}>
             <Route path="conflicts" element={<ConflictsPage />} />
+          </Route>
+          <Route element={<RequirePermission permission="pin_reset.reply" />}>
             <Route path="pin-reset" element={<PinResetPage />} />
           </Route>
-          <Route element={<RequireRole roles={['admin']} />}>
+          <Route element={<RequirePermission permission="accounts.manage" />}>
             <Route path="admin/lhws" element={<LhwsPage />} />
             <Route path="admin/staff" element={<StaffPage />} />
+          </Route>
+          <Route element={<RequirePermission permission="geography.manage" />}>
             <Route path="admin/geography" element={<GeographyPage />} />
+          </Route>
+          <Route element={<RequirePermission permission="facilities.manage" />}>
             <Route path="admin/facilities" element={<FacilitiesPage />} />
+          </Route>
+          <Route element={<RequirePermission permission="roles.manage" />}>
             <Route path="admin/roles" element={<RolesPage />} />
+          </Route>
+          <Route element={<RequirePermission permission="audit.view" />}>
             <Route path="admin/audit" element={<AuditPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />

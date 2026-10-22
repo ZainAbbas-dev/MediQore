@@ -33,6 +33,12 @@ async function allows(role, permission) {
   return holds(await overrides(), role, permission);
 }
 
+// The permissions a role holds now; the portal shows only the pages they open.
+async function held(role) {
+  const map = await overrides();
+  return Object.keys(PERMISSIONS).filter((permission) => holds(map, role, permission));
+}
+
 // GET /admin/roles: the roles, and for each permission who holds it and whether that can change.
 async function matrix() {
   const map = await overrides();
@@ -73,4 +79,4 @@ async function update(viewer, changes) {
   return matrix();
 }
 
-module.exports = { allows, matrix, update, forget };
+module.exports = { allows, held, matrix, update, forget };

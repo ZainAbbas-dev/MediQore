@@ -1897,6 +1897,13 @@ components:
           description: |
             LHWs only. The highest number already used in a patient ID with this LHW code (M2 FE-1),
             0 if none. The app's patient counter continues after it, so a new phone never reuses an ID.
+        permissions:
+          type: array
+          items:
+            type: string
+          description: |
+            Supervisors and admins only. The permissions the role holds at sign-in or refresh, after the
+            admin's changes on the Roles page (M10 FE-3); the portal shows only the pages they open.
 
     RefreshRequest:
       type: object

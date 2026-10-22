@@ -5,7 +5,7 @@ const request = require('supertest');
 const { createApp } = require('../src/app');
 const { loginThrottle } = require('../src/services/login-throttle');
 const { PERMISSIONS } = require('../src/auth/permissions');
-const { describeDb, resetDatabase, createFixtures, tokenFor, closePool, query } = require('./db');
+const { describeDb, resetDatabase, createFixtures, tokenFor, closePool, query, PASSWORD } = require('./db');
 
 const app = createApp();
 
@@ -59,6 +59,18 @@ describeDb('admin panel (M10 FE-3)', () => {
         `SELECT details FROM audit_log WHERE action = 'edit' AND entity_type = 'role_permissions' ORDER BY id`,
       );
       expect(rows.map((r) => r.details.granted)).toEqual([true, false]);
+    });
+
+    it("sends each portal account the permissions its role holds now, so the portal shows only those pages", async () => {
+      const login = () => request(app).post('/api/v1/auth/login').send({ username: 'supervisor.a', password: PASSWORD });
+      expect((await login()).body.user.permissions).toEqual(['records.view', 'conflicts.resolve', 'pin_reset.reply']);
+
+      await admin.put('/admin/roles/permissions', { changes: [{ role: 'supervisor', permission: 'geography.manage', granted: true }] });
+      expect((await login()).body.user.permissions).toContain('geography.manage');
+      await admin.put('/admin/roles/permissions', { changes: [{ role: 'supervisor', permission: 'geography.manage', granted: false }] });
+
+      const adminLogin = await request(app).post('/api/v1/auth/login').send({ username: 'admin', password: PASSWORD });
+      expect(adminLogin.body.user.permissions).toEqual(Object.keys(PERMISSIONS).filter((p) => p !== 'sync'));
     });
 
     it.each([

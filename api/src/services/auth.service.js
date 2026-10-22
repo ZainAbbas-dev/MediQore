@@ -7,6 +7,7 @@ const { writeAudit } = require('./audit.service');
 const { loginThrottle, LoginThrottle } = require('./login-throttle');
 const tokens = require('./tokens.service');
 const usersService = require('./users.service');
+const rolePermissions = require('./role-permissions.service');
 
 // M1 FE-2: sign-in for the app and the portal.
 // - Password check with bcrypt, rate-limited per client address and username.
@@ -97,6 +98,8 @@ async function sessionBody(client, user, deviceId) {
     refreshExpiresAt: refresh.expiresAt.toISOString(),
     user: await usersService.profile(client, user.id),
   };
+  // M10 FE-3: what the portal may show this account, as the admin set it.
+  if (user.role !== 'lhw') body.user.permissions = await rolePermissions.held(user.role);
   if (user.role === 'lhw') {
     body.supervisors = await supervisorsFor(client, user.id);
     // M2 FE-1: the phone's activation number, part of every Patient ID it makes.

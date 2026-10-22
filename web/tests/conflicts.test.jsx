@@ -32,6 +32,7 @@ const pending = {
   id: '7c6b5a49-3827-4e16-9d0c-bafedcba9876',
   table: 'visits',
   reason: 'same_parent_same_day',
+  resolutions: ['keep_both', 'keep_existing', 'keep_incoming'],
   status: 'pending',
   resolution: null,
   createdAt: '2026-10-03T07:00:00.000Z',
@@ -66,7 +67,7 @@ describe('sync conflict queue (M3 FE-2, M10)', () => {
 
     const card = await screen.findByRole('region', { name: 'Conflict LHW-00007-0003' });
     expect(within(card).getByRole('heading', { name: 'Synthetic Woman (LHW-00007-0003)' })).toBeInTheDocument();
-    expect(card).toHaveTextContent('Same-day visit sent by LHW-00007 in Area 0101-1');
+    expect(card).toHaveTextContent('Same-day visit sent by LHW-00007. Area 0101-1');
 
     const systolic = within(card).getByRole('rowheader', { name: 'Systolic BP' }).closest('tr');
     expect(within(systolic).getByText('120 mmHg')).toBeInTheDocument();
@@ -77,7 +78,6 @@ describe('sync conflict queue (M3 FE-2, M10)', () => {
     expect(bleeding).toHaveClass('differs');
     expect(within(card).getByRole('rowheader', { name: 'Weight' }).closest('tr')).not.toHaveClass('differs');
     expect(within(card).getByRole('rowheader', { name: 'Blood sugar' }).closest('tr')).toHaveTextContent('–7.8 mmol/L');
-    expect(within(card).getByRole('rowheader', { name: 'Blood sugar typed in' }).closest('tr')).toHaveTextContent('mg/dL');
     expect(within(card).getByRole('rowheader', { name: 'Blood sugar source' }).closest('tr')).toHaveTextContent('Lab report');
     const headache = within(card).getByRole('rowheader', { name: 'Severe headache' }).closest('tr');
     expect(headache).toHaveClass('differs');
@@ -99,7 +99,7 @@ describe('sync conflict queue (M3 FE-2, M10)', () => {
 
     const notice = await screen.findByRole('region', { name: 'Decision saved' });
     expect(notice).toHaveTextContent('Both visits kept for Synthetic Woman (LHW-00007-0003).');
-    expect(await screen.findByText('No visits are waiting for a decision.')).toBeInTheDocument();
+    expect(await screen.findByText('Nothing is waiting for a decision.')).toBeInTheDocument();
     const post = fetchMock.mock.calls.find(([, options]) => options.method === 'POST');
     expect(post[0]).toMatch(new RegExp(`/conflicts/${pending.id}/resolve$`));
     expect(JSON.parse(post[1].body)).toEqual({ resolution: 'keep_both' });
@@ -128,7 +128,7 @@ describe('sync conflict queue (M3 FE-2, M10)', () => {
       'GET /conflicts?status=resolved': [200, { conflicts: [resolved] }],
     });
     renderApp('/conflicts', { session: supervisorSession });
-    expect(await screen.findByText('No visits are waiting for a decision.')).toBeInTheDocument();
+    expect(await screen.findByText('Nothing is waiting for a decision.')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Show'), { target: { value: 'resolved' } });
 
@@ -147,6 +147,96 @@ describe('sync conflict queue (M3 FE-2, M10)', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Keep both visits' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('This conflict has already been resolved');
+  });
+
+  it('an edit made on an older version: compares the server with the phone and sends keep_server or use_device', async () => {
+    const outdated = {
+      ...pending,
+      id: '1f2e3d4c-5b6a-4978-8a9b-0c1d2e3f4a5b',
+      table: 'households',
+      reason: 'outdated_edit',
+      resolutions: ['keep_server', 'use_device'],
+      baseVersion: 1,
+      existingVersion: 2,
+      woman: null,
+      existing: { id: 'h1', version: 2, deleted: false, data: { village: 'Second phone', address: null } },
+      incoming: { id: 'h1', deleted: false, data: { village: 'Stale edit', address: null } },
+    };
+    const fetchMock = mockApi({
+      'GET /conflicts?status=pending': [200, { conflicts: [outdated] }],
+      [`POST /conflicts/${outdated.id}/resolve`]: [200, { conflict: { ...outdated, status: 'resolved', resolution: 'use_device' } }],
+    });
+    renderApp('/conflicts', { session: supervisorSession });
+
+    const card = await screen.findByRole('region', { name: `Conflict ${outdated.id}` });
+    expect(card).toHaveTextContent('Edit of a household sent by LHW-00007 from version 1; the server has version 2.');
+    expect(within(card).getByRole('columnheader', { name: 'Server (version 2)' })).toBeInTheDocument();
+    const village = within(card).getByRole('rowheader', { name: 'Village' }).closest('tr');
+    expect(village).toHaveClass('differs');
+    expect(village).toHaveTextContent('Second phoneStale edit');
+    expect(within(card).queryByRole('button', { name: 'Keep both visits' })).not.toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: "Keep the server's version" })).toBeInTheDocument();
+
+    fireEvent.click(within(card).getByRole('button', { name: "Use the phone's edit" }));
+
+    expect(await screen.findByRole('region', { name: 'Decision saved' })).toHaveTextContent("Phone's edit applied as the new version");
+    const post = fetchMock.mock.calls.find(([, options]) => options.method === 'POST');
+    expect(JSON.parse(post[1].body)).toEqual({ resolution: 'use_device' });
+  });
+
+  describe('a possible duplicate woman', () => {
+    const duplicate = {
+      ...pending,
+      id: '2a3b4c5d-6e7f-4a8b-9c0d-1e2f3a4b5c6d',
+      table: 'women',
+      reason: 'possible_duplicate',
+      resolutions: ['different_people', 'same_person'],
+      woman: { name: 'Synthetic Woman', patientCode: 'LHW-00007-01-0003' },
+      existing: { id: 'w1', version: 1, deleted: false, data: { patientCode: 'LHW-00007-01-0003', name: 'Synthetic Woman', age: 26, husbandName: 'Synthetic Husband' } },
+      incoming: { id: 'w2', deleted: false, data: { patientCode: 'LHW-00007-02-0001', name: 'Synthetic Woman', age: 27, husbandName: 'Synthetic Husband' } },
+    };
+    let fetchMock;
+
+    beforeEach(() => {
+      fetchMock = mockApi({
+        'GET /conflicts?status=pending': [200, { conflicts: [duplicate] }],
+        [`POST /conflicts/${duplicate.id}/resolve`]: [200, { conflict: { ...duplicate, status: 'resolved', resolution: 'same_person' } }],
+      });
+    });
+
+    afterEach(() => jest.restoreAllMocks());
+
+    it('shows both registrations and merges only after a confirmation', async () => {
+      const confirm = jest.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+      renderApp('/conflicts', { session: supervisorSession });
+
+      const card = await screen.findByRole('region', { name: 'Conflict LHW-00007-01-0003' });
+      expect(card).toHaveTextContent("same name, husband's name and household");
+      expect(within(card).getByRole('rowheader', { name: 'Patient ID' }).closest('tr')).toHaveTextContent('LHW-00007-01-0003LHW-00007-02-0001');
+      expect(within(card).getByRole('rowheader', { name: "Husband's name" }).closest('tr')).not.toHaveClass('differs');
+
+      fireEvent.click(within(card).getByRole('button', { name: 'Same woman: merge' }));
+      expect(confirm).toHaveBeenCalledTimes(1);
+      expect(fetchMock.mock.calls.some(([, options]) => options.method === 'POST')).toBe(false);
+
+      fireEvent.click(within(card).getByRole('button', { name: 'Same woman: merge' }));
+
+      expect(await screen.findByRole('region', { name: 'Decision saved' })).toHaveTextContent('Merged into the earlier record');
+      const post = fetchMock.mock.calls.find(([, options]) => options.method === 'POST');
+      expect(JSON.parse(post[1].body)).toEqual({ resolution: 'same_person' });
+    });
+
+    it('"Different women" keeps both without asking', async () => {
+      const confirm = jest.spyOn(window, 'confirm');
+      renderApp('/conflicts', { session: supervisorSession });
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Different women: keep both' }));
+
+      await screen.findByRole('region', { name: 'Decision saved' });
+      expect(confirm).not.toHaveBeenCalled();
+      const post = fetchMock.mock.calls.find(([, options]) => options.method === 'POST');
+      expect(JSON.parse(post[1].body)).toEqual({ resolution: 'different_people' });
+    });
   });
 
   it('is in the sidebar for supervisors and admins', async () => {

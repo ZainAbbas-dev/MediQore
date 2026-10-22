@@ -130,6 +130,21 @@ describeDb('Conflict Review: versions and possible duplicates (M3 FE-2, M10 FE-3
         expect(row).toEqual({ village: 'Stale edit', version: 3 });
       });
 
+      it('a pregnancy edit shows the stored pregnancy and the woman it belongs to', async () => {
+        const { woman, pregnancy, history } = registration({ code: 'LHW-A-01-0002', householdId: household.id });
+        await push([woman, pregnancy, history]);
+        await push([{ ...pregnancy, baseVersion: 1, data: { ...pregnancy.data, status: 'closed', closedOn: '2026-10-20' } }]);
+        const res = await push([{ ...pregnancy, baseVersion: 1, data: { ...pregnancy.data, status: 'closed', closedOn: '2026-10-19' } }]);
+        const { conflictId: pregnancyConflict } = res.body.results[0];
+
+        const listed = await get(supervisor, '/conflicts');
+
+        expect(listed.body.conflicts.find((c) => c.id === pregnancyConflict)).toMatchObject({
+          table: 'pregnancies', woman: { patientCode: 'LHW-A-01-0002' },
+          existing: { version: 2, data: { closedOn: '2026-10-20' } }, incoming: { data: { closedOn: '2026-10-19' } },
+        });
+      });
+
       it('accepts only the decisions that fit the reason', async () => {
         const res = await resolve(conflictId, 'same_person');
 

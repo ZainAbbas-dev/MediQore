@@ -237,8 +237,53 @@ describe('roles and the audit log (M10 FE-3)', () => {
     renderApp('/admin/roles', { session: adminSession });
 
     const row = (await screen.findByRole('rowheader', { name: 'View the audit log' })).closest('tr');
-    expect(within(row).getByLabelText('Admin: allowed')).toHaveTextContent('✓');
-    expect(within(row).getByLabelText('Supervisor: not allowed')).toHaveTextContent('–');
+    expect(within(row).getByLabelText('Admin: allowed (fixed)')).toHaveTextContent('✓');
+    expect(within(row).getByLabelText('Supervisor: not allowed (fixed)')).toHaveTextContent('–');
+  });
+
+  it('lets the admin tick an editable permission and save it', async () => {
+    const roles = [
+      { id: 'lhw', label: 'LHW', description: 'App only' },
+      { id: 'supervisor', label: 'Supervisor', description: 'Their areas' },
+      { id: 'admin', label: 'Admin', description: 'Everything' },
+    ];
+    const audit = (held) => ({ id: 'audit.view', label: 'View the audit log', roles: held, editableRoles: ['supervisor', 'admin'] });
+    const fetchMock = mockApi({
+      'GET /admin/roles': [200, { roles, permissions: [audit(['admin'])] }],
+      'PUT /admin/roles/permissions': [200, { roles, permissions: [audit(['supervisor', 'admin'])] }],
+    });
+    renderApp('/admin/roles', { session: adminSession });
+
+    const save = await screen.findByRole('button', { name: 'Save changes' });
+    expect(save).toBeDisabled();
+    const box = screen.getByRole('checkbox', { name: 'Supervisor: View the audit log' });
+    expect(box).not.toBeChecked();
+    fireEvent.click(box);
+    expect(save).toBeEnabled();
+    fireEvent.click(save);
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Permissions saved.');
+    expect(screen.getByRole('checkbox', { name: 'Supervisor: View the audit log' })).toBeChecked();
+    const put = fetchMock.mock.calls.find(([, options]) => options.method === 'PUT');
+    expect(JSON.parse(put[1].body)).toEqual({ changes: [{ role: 'supervisor', permission: 'audit.view', granted: true }] });
+  });
+
+  it("shows a supervisor only the pages their role's permissions open", async () => {
+    mockApi({ 'GET /admin/audit': [200, { entries: [], nextBefore: null, actions: [], entityTypes: [] }] });
+    const session = { ...supervisorSession, user: { ...supervisorSession.user, permissions: ['conflicts.resolve', 'audit.view'] } };
+    renderApp('/admin/audit', { session });
+
+    const admin = await screen.findByRole('navigation', { name: 'Administration' });
+    expect(within(admin).getAllByRole('link').map((link) => link.textContent)).toEqual(['Audit log']);
+    const main = screen.getByRole('navigation', { name: 'Main' });
+    expect(within(main).getAllByRole('link').map((link) => link.textContent)).toEqual(['Sync conflicts']);
+    expect(screen.queryByText('Not available')).not.toBeInTheDocument();
+  });
+
+  it('turns a page away when the role no longer holds its permission', async () => {
+    renderApp('/admin/roles', { session: supervisorSession });
+
+    expect(await screen.findByRole('heading', { name: 'Not available' })).toBeInTheDocument();
   });
 
   const entry = (id, extra = {}) => ({

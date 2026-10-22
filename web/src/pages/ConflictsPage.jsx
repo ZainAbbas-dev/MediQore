@@ -1,7 +1,13 @@
-// M3 FE-2, M10 base: the sync conflict review queue. When a phone sends a visit
-// for a pregnancy that already has a visit on the same day, the server holds it
-// here instead of storing it (LI-7). A supervisor of the area, or an admin,
-// compares the two visits and decides; every decision is in the audit log.
+// M3 FE-2, M10 FE-3: the supervisor's Conflict Review page. Nothing a phone
+// sends is overwritten without a decision here (LI-7):
+// - outdated_edit: an edit made on an older version of the record than the
+//   server's. It was not applied; keep the server's version or use the phone's.
+// - possible_duplicate: a woman registered with the same name, husband's name
+//   and household as one already on the server. Both are stored; decide whether
+//   they are different women or the same woman (merged into the earlier record).
+// - same_parent_same_day: a visit held by the earlier same-day rule.
+// A supervisor of the area, or an admin, decides; every decision is in the
+// audit log, and the phone gets it at its next sync.
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../auth/context';
 
@@ -12,37 +18,96 @@ const answer = (value) => (value === null || value === undefined ? 'Not asked' :
 const orDash = (labels) => (value) => (value === null || value === undefined ? '–' : (labels[value] ?? value));
 const withUnit = (unit) => (value) => (value === null || value === undefined ? '–' : `${value} ${unit}`);
 
-// The visit's fields as the phone sends them (docs/openapi.yaml, VisitData).
-const VISIT_FIELDS = [
-  ['visitedAt', 'Visit time (phone clock)', formatTime],
-  ['systolicBpMmhg', 'Systolic BP', withUnit('mmHg')],
-  ['diastolicBpMmhg', 'Diastolic BP', withUnit('mmHg')],
-  ['weightKg', 'Weight', withUnit('kg')],
-  ['temperatureC', 'Temperature', withUnit('°C')],
-  ['pulseBpm', 'Pulse', withUnit('/min')],
-  ['bloodSugarMmolL', 'Blood sugar', withUnit('mmol/L')],
-  ['bloodSugarEnteredUnit', 'Blood sugar typed in', orDash({ mmol_l: 'mmol/L', mg_dl: 'mg/dL' })],
-  ['bloodSugarMeasuredOn', 'Blood sugar measured on', orDash({})],
-  ['bloodSugarSource', 'Blood sugar source', orDash({ glucometer: 'Glucometer', lab_report: 'Lab report' })],
-  ['fetalMovement', 'Fetal movement', (value) => value ?? 'Not assessed'],
-  ['swelling', 'Swelling', yesNo],
-  ['bleeding', 'Bleeding', yesNo],
-  ['fever', 'Fever', yesNo],
-  ['anaemiaSigns', 'Anaemia signs', (value) => value ?? 'none'],
-  ['urineSymptoms', 'Urine symptoms', yesNo],
-  ['convulsions', 'Convulsions or fits', answer],
-  ['severeHeadache', 'Severe headache', answer],
-  ['blurredVision', 'Blurred vision', answer],
-  ['severeAbdominalPain', 'Severe or upper abdominal pain', answer],
-  ['fastBreathing', 'Fast or difficult breathing', answer],
-  ['feverWithWeakness', 'Fever with weakness', answer],
-];
+const SUGAR_UNITS = { mmol_l: 'mmol/L', mg_dl: 'mg/dL' };
+// Blood sugar is stored with the unit it was typed in; visits held before
+// 22 Oct 2026 carry it in mmol/L only.
+const bloodSugar = (value, data) => {
+  if (value !== null && value !== undefined) return `${value} ${SUGAR_UNITS[data.bloodSugarUnit] ?? ''}`.trim();
+  return data.bloodSugarMmolL === null || data.bloodSugarMmolL === undefined ? '–' : `${data.bloodSugarMmolL} mmol/L`;
+};
+const text = (value) => (value === null || value === undefined || value === '' ? '–' : String(value));
+
+// Each synced record's fields as the phone sends them (docs/openapi.yaml).
+const FIELDS = {
+  visits: [
+    ['visitedAt', 'Visit time (phone clock)', formatTime],
+    ['systolicBpMmhg', 'Systolic BP', withUnit('mmHg')],
+    ['diastolicBpMmhg', 'Diastolic BP', withUnit('mmHg')],
+    ['weightKg', 'Weight', withUnit('kg')],
+    ['temperatureC', 'Temperature', withUnit('°C')],
+    ['pulseBpm', 'Pulse', withUnit('/min')],
+    ['bloodSugarValue', 'Blood sugar', bloodSugar],
+    ['bloodSugarMeasuredOn', 'Blood sugar measured on', orDash({})],
+    ['bloodSugarSource', 'Blood sugar source', orDash({ glucometer: 'Glucometer', lab_report: 'Lab report' })],
+    ['fetalMovement', 'Fetal movement', (value) => value ?? 'Not assessed'],
+    ['swelling', 'Swelling', yesNo],
+    ['bleeding', 'Bleeding', yesNo],
+    ['fever', 'Fever', yesNo],
+    ['anaemiaSigns', 'Anaemia signs', (value) => value ?? 'none'],
+    ['urineSymptoms', 'Urine symptoms', yesNo],
+    ['convulsions', 'Convulsions or fits', answer],
+    ['severeHeadache', 'Severe headache', answer],
+    ['blurredVision', 'Blurred vision', answer],
+    ['severeAbdominalPain', 'Severe or upper abdominal pain', answer],
+    ['fastBreathing', 'Fast or difficult breathing', answer],
+    ['feverWithWeakness', 'Fever with weakness', answer],
+  ],
+  women: [
+    ['patientCode', 'Patient ID', text],
+    ['name', 'Name', text],
+    ['age', 'Age', text],
+    ['husbandName', "Husband's name", text],
+    ['contactNumber', 'Contact number', text],
+  ],
+  households: [
+    ['village', 'Village', text],
+    ['address', 'Address', text],
+    ['householdNumber', 'Household number', text],
+    ['latitude', 'Latitude', text],
+    ['longitude', 'Longitude', text],
+  ],
+  pregnancies: [
+    ['registeredOn', 'Registered on', text],
+    ['pregnancyMonthAtRegistration', 'Month at registration', text],
+    ['lmpDate', 'Last menstrual period', text],
+    ['reportedEdd', 'EDD on her card', text],
+    ['estimatedDeliveryDate', 'Expected delivery date', text],
+    ['eddBasis', 'Dated by', orDash({ lmp: 'LMP', edd: 'Card EDD', month: 'Month' })],
+    ['status', 'Status', text],
+    ['closedOn', 'Closed on', text],
+  ],
+  obstetric_history: [
+    ['previousPregnancies', 'Earlier pregnancies', text],
+    ['previousCSections', 'C-sections', text],
+    ['stillbirths', 'Stillbirths', text],
+    ['knownConditions', 'Known illness', (value) => (Array.isArray(value) ? value.join(', ') || 'none' : text(value))],
+  ],
+};
+
+const RECORD_NAMES = {
+  visits: 'visit',
+  women: 'woman',
+  households: 'household',
+  pregnancies: 'pregnancy',
+  obstetric_history: 'pregnancy history',
+};
 
 // What each decision does, in the words shown on its button and after it.
 const RESOLUTIONS = {
+  keep_server: { button: "Keep the server's version", done: "Server's version kept; the phone's edit was dropped" },
+  use_device: { button: "Use the phone's edit", done: "Phone's edit applied as the new version" },
+  different_people: { button: 'Different women: keep both', done: 'Kept as two different women' },
+  same_person: { button: 'Same woman: merge', done: 'Merged into the earlier record' },
   keep_both: { button: 'Keep both visits', done: 'Both visits kept' },
   keep_existing: { button: 'Keep the stored visit', done: 'Stored visit kept; the held one was a duplicate' },
   keep_incoming: { button: 'Keep the held visit', done: 'Held visit kept; it replaced the stored one' },
+};
+
+// The decisions each reason allows, as the API lists them in `resolutions`.
+const RESOLUTIONS_BY_REASON = {
+  outdated_edit: ['keep_server', 'use_device'],
+  possible_duplicate: ['different_people', 'same_person'],
+  same_parent_same_day: ['keep_both', 'keep_existing', 'keep_incoming'],
 };
 
 const STATUSES = [
@@ -51,9 +116,37 @@ const STATUSES = [
   ['all', 'All'],
 ];
 
-function VisitComparison({ conflict }) {
+// The two columns and the sentence under each conflict's heading.
+function describe(conflict) {
+  const who = conflict.submittedBy.lhwCode || conflict.submittedBy.fullName || 'an LHW';
+  const record = RECORD_NAMES[conflict.table] ?? conflict.table;
+  if (conflict.reason === 'outdated_edit') {
+    return {
+      kind: 'Edit made on an older version',
+      text: `Edit of a ${record} sent by ${who} from version ${conflict.baseVersion ?? '–'}; the server has version ${
+        conflict.existingVersion ?? '–'
+      }. The edit was not applied.`,
+      columns: [`Server (version ${conflict.existing?.version ?? conflict.existingVersion ?? '–'})`, "Phone's edit"],
+    };
+  }
+  if (conflict.reason === 'possible_duplicate') {
+    return {
+      kind: 'Possible duplicate',
+      text: `Woman registered by ${who} with the same name, husband's name and household as an earlier one. Both are stored.`,
+      columns: ['Earlier registration', 'New registration'],
+    };
+  }
+  return {
+    kind: 'Same-day visit',
+    text: `Same-day visit sent by ${who}.`,
+    columns: ['Stored visit', 'Held visit'],
+  };
+}
+
+function Comparison({ conflict, columns }) {
   const existing = conflict.existing?.data ?? {};
-  const incoming = conflict.incoming.data;
+  const incoming = conflict.incoming.data ?? {};
+  const fields = FIELDS[conflict.table] ?? Object.keys(incoming).map((key) => [key, key, text]);
   return (
     <div className="table-scroll">
       <table className="comparison">
@@ -61,20 +154,24 @@ function VisitComparison({ conflict }) {
           <tr>
             <th>Field</th>
             <th>
-              Stored visit
+              {columns[0]}
               {conflict.existing?.deleted && <span className="badge off">deleted</span>}
             </th>
-            <th>Held visit</th>
+            <th>
+              {columns[1]}
+              {conflict.incoming.deleted && <span className="badge off">deleted</span>}
+            </th>
           </tr>
         </thead>
         <tbody>
-          {VISIT_FIELDS.map(([field, label, format]) => {
-            const differs = format(existing[field]) !== format(incoming[field]);
+          {fields.map(([field, label, format]) => {
+            const stored = conflict.existing ? format(existing[field], existing) : '–';
+            const sent = format(incoming[field], incoming);
             return (
-              <tr key={field} className={differs ? 'differs' : undefined}>
+              <tr key={field} className={stored !== sent ? 'differs' : undefined}>
                 <th scope="row">{label}</th>
-                <td>{conflict.existing ? format(existing[field]) : '–'}</td>
-                <td>{format(incoming[field])}</td>
+                <td>{stored}</td>
+                <td>{sent}</td>
               </tr>
             );
           })}
@@ -108,6 +205,10 @@ export default function ConflictsPage() {
   }, [load]);
 
   async function resolve(conflict, resolution) {
+    // Merging moves her visits and deletes the newer record, so it is confirmed first.
+    if (resolution === 'same_person' && !window.confirm('Merge the new registration into the earlier one? Her visits move to the earlier record and the new record is deleted.')) {
+      return;
+    }
     setBusyId(conflict.id);
     setError(null);
     try {
@@ -125,9 +226,10 @@ export default function ConflictsPage() {
     <>
       <h1>Sync conflicts</h1>
       <p className="muted">
-        When a phone sends a visit for a pregnancy that already has a visit on the same day, the visit is held here
-        instead of being stored, so nothing is overwritten. Compare the two visits and decide. The LHW&apos;s phone gets
-        the decision at its next sync. Fields that differ are highlighted.
+        Nothing a phone sends is overwritten without a decision here. An edit made on an older version of a record
+        waits until you keep the server&apos;s version or use the phone&apos;s; a woman registered twice with the same
+        name, husband&apos;s name and household is shown with the earlier registration. Compare and decide; fields that
+        differ are highlighted. The LHW&apos;s phone gets the decision at its next sync.
       </p>
       <div className="toolbar">
         <label htmlFor="conflict-status">Show</label>
@@ -147,7 +249,7 @@ export default function ConflictsPage() {
       {decided && (
         <section className="notice" aria-label="Decision saved">
           <p>
-            {RESOLUTIONS[decided.resolution].done}
+            {RESOLUTIONS[decided.resolution]?.done ?? decided.resolution}
             {decided.woman && ` for ${decided.woman.name} (${decided.woman.patientCode})`}.
           </p>
           <button type="button" className="secondary" onClick={() => setDecided(null)}>
@@ -156,41 +258,44 @@ export default function ConflictsPage() {
         </section>
       )}
       {conflicts && conflicts.length === 0 && (
-        <p className="muted">{status === 'pending' ? 'No visits are waiting for a decision.' : 'No conflicts to show.'}</p>
+        <p className="muted">{status === 'pending' ? 'Nothing is waiting for a decision.' : 'No conflicts to show.'}</p>
       )}
-      {conflicts?.map((conflict) => (
-        <section key={conflict.id} className="conflict" aria-label={`Conflict ${conflict.woman?.patientCode ?? conflict.id}`}>
-          <h2>
-            {conflict.woman ? `${conflict.woman.name} (${conflict.woman.patientCode})` : 'Visit'}
-            {conflict.status === 'resolved' && <span className="badge ok">decided</span>}
-          </h2>
-          <p className="muted">
-            Same-day visit sent by {conflict.submittedBy.lhwCode || conflict.submittedBy.fullName || 'an LHW'} in{' '}
-            {conflict.areaName}, held {formatTime(conflict.createdAt)}.
-          </p>
-          <VisitComparison conflict={conflict} />
-          {conflict.status === 'pending' ? (
-            <div className="row-actions">
-              {Object.entries(RESOLUTIONS).map(([resolution, { button }]) => (
-                <button
-                  key={resolution}
-                  type="button"
-                  className={resolution === 'keep_both' ? undefined : 'secondary'}
-                  disabled={busyId === conflict.id}
-                  onClick={() => resolve(conflict, resolution)}
-                >
-                  {button}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p>
-              {RESOLUTIONS[conflict.resolution]?.done ?? conflict.resolution}, by {conflict.resolvedBy ?? '–'} on{' '}
-              {formatTime(conflict.resolvedAt)}.
+      {conflicts?.map((conflict) => {
+        const about = describe(conflict);
+        const resolutions = conflict.resolutions ?? RESOLUTIONS_BY_REASON[conflict.reason] ?? [];
+        return (
+          <section key={conflict.id} className="conflict" aria-label={`Conflict ${conflict.woman?.patientCode ?? conflict.id}`}>
+            <h2>
+              {conflict.woman ? `${conflict.woman.name} (${conflict.woman.patientCode})` : about.kind}
+              {conflict.status === 'resolved' && <span className="badge ok">decided</span>}
+            </h2>
+            <p className="muted">
+              <span className="badge wait">{about.kind}</span> {about.text} {conflict.areaName}, {formatTime(conflict.createdAt)}.
             </p>
-          )}
-        </section>
-      ))}
+            <Comparison conflict={conflict} columns={about.columns} />
+            {conflict.status === 'pending' ? (
+              <div className="row-actions">
+                {resolutions.map((resolution, index) => (
+                  <button
+                    key={resolution}
+                    type="button"
+                    className={index === 0 ? undefined : 'secondary'}
+                    disabled={busyId === conflict.id}
+                    onClick={() => resolve(conflict, resolution)}
+                  >
+                    {RESOLUTIONS[resolution]?.button ?? resolution}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p>
+                {RESOLUTIONS[conflict.resolution]?.done ?? conflict.resolution}, by {conflict.resolvedBy ?? '–'} on{' '}
+                {formatTime(conflict.resolvedAt)}.
+              </p>
+            )}
+          </section>
+        );
+      })}
     </>
   );
 }

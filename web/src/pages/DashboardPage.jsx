@@ -2,11 +2,11 @@
 // registered women, visits this week, LHWs synced today and sync conflicts to
 // review; the households with GPS on a map; and each LHW's activity: last sync,
 // women registered, visits, last visit and last sign-in, with an LHW who has not
-// synced for days highlighted. Everything follows the filters (district, Union
+// synced for days highlighted. Everything follows the filters (district, tehsil, Union
 // Council, LHW; the period applies to the map), and the page refreshes itself
 // every five minutes or on Reload. Supervisors see only their areas; the API
 // scopes every list.
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/context';
 import AreaMap from '../components/AreaMap';
@@ -22,8 +22,8 @@ const PERIODS = [
   ['30', 'Last 30 days'],
   ['90', 'Last 90 days'],
 ];
-const EMPTY_FILTERS = { districtId: '', unionCouncilId: '', lhwId: '', days: '' };
-const NO_OPTIONS = { districts: [], unionCouncils: [], lhws: [] };
+const EMPTY_FILTERS = { districtId: '', tehsilId: '', unionCouncilId: '', lhwId: '', days: '' };
+const NO_OPTIONS = { districts: [], tehsils: [], unionCouncils: [], lhws: [] };
 
 function queryString(values) {
   const params = new URLSearchParams();
@@ -45,15 +45,15 @@ export default function DashboardPage() {
 
   useEffect(() => {
     request('/dashboard/filters')
-      .then(setOptions)
+      .then((data) => setOptions({ ...NO_OPTIONS, ...data }))
       .catch(() => setOptions(NO_OPTIONS)); // the page works without filters
   }, [request]);
 
   // Each part loads on its own, so one failure does not hide the rest.
   useEffect(() => {
     let cancelled = false;
-    const { districtId, unionCouncilId, lhwId } = filters;
-    const place = queryString({ districtId, unionCouncilId, lhwId });
+    const { districtId, tehsilId, unionCouncilId, lhwId } = filters;
+    const place = queryString({ districtId, tehsilId, unionCouncilId, lhwId });
     Promise.allSettled([
       request(`/dashboard/summary${place}`),
       request(`/households${queryString(filters)}`),
@@ -78,16 +78,23 @@ export default function DashboardPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const unionCouncils = useMemo(
-    () => options.unionCouncils.filter((uc) => !filters.districtId || uc.districtId === filters.districtId),
+  // Each list keeps only the places inside the wider choices.
+  const inside = useCallback(
+    (item) =>
+      (!filters.districtId || item.districtId === filters.districtId) && (!filters.tehsilId || item.tehsilId === filters.tehsilId),
+    [filters.districtId, filters.tehsilId],
+  );
+  const tehsils = useMemo(
+    () => options.tehsils.filter((t) => !filters.districtId || t.districtId === filters.districtId),
     [options, filters.districtId],
   );
+  const unionCouncils = useMemo(() => options.unionCouncils.filter(inside), [options, inside]);
   const lhws = useMemo(
     () =>
       options.lhws.filter(
-        (l) => (!filters.districtId || l.districtId === filters.districtId) && (!filters.unionCouncilId || l.unionCouncilId === filters.unionCouncilId),
+        (l) => inside(l) && (!filters.unionCouncilId || l.unionCouncilId === filters.unionCouncilId),
       ),
-    [options, filters.districtId, filters.unionCouncilId],
+    [options, inside, filters.unionCouncilId],
   );
 
   // A narrower place clears the choices that are no longer inside it.
@@ -95,7 +102,8 @@ export default function DashboardPage() {
     const value = event.target.value;
     setFilters((current) => {
       const next = { ...current, [field]: value };
-      if (field === 'districtId') {
+      if (field === 'districtId') next.tehsilId = '';
+      if (field === 'districtId' || field === 'tehsilId') {
         next.unionCouncilId = '';
         next.lhwId = '';
       }
@@ -124,6 +132,17 @@ export default function DashboardPage() {
               {options.districts.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            Tehsil
+            <select value={filters.tehsilId} onChange={setFilter('tehsilId')}>
+              <option value="">All</option>
+              {tehsils.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
                 </option>
               ))}
             </select>

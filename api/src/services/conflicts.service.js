@@ -47,14 +47,15 @@ function recordData(table, row) {
   return Object.fromEntries(Object.entries(def.fields).map(([name, field]) => [name, normalise(field, row[field.column])]));
 }
 
-// The woman a conflict is about: the visit's, the record itself, or the one
-// living in the household.
+// The woman a conflict is about: the visit's, the record itself, or the
+// pregnancy's or history's woman.
 const LIST_SQL = `
   SELECT c.*, a.name AS area_name,
          su.full_name AS submitted_by_name, sp.lhw_code AS submitted_by_code,
          ru.full_name AS resolved_by_name,
-         coalesce(vw.name, ew.name) AS woman_name, coalesce(vw.patient_code, ew.patient_code) AS patient_code,
-         coalesce(to_jsonb(ev.*), to_jsonb(ew.*), to_jsonb(eh.*)) AS existing_row,
+         coalesce(vw.name, ew.name, pw.name) AS woman_name,
+         coalesce(vw.patient_code, ew.patient_code, pw.patient_code) AS patient_code,
+         coalesce(to_jsonb(ev.*), to_jsonb(ew.*), to_jsonb(eh.*), to_jsonb(ep.*), to_jsonb(eo.*)) AS existing_row,
          to_jsonb(iw.*) AS incoming_row
   FROM sync_conflicts c
   JOIN areas a ON a.id = c.area_id
@@ -67,6 +68,9 @@ const LIST_SQL = `
   LEFT JOIN women ew ON c.table_name = 'women' AND ew.id = c.existing_record_id
   LEFT JOIN women iw ON c.table_name = 'women' AND c.reason = 'possible_duplicate' AND iw.id = c.incoming_record_id
   LEFT JOIN households eh ON c.table_name = 'households' AND eh.id = c.existing_record_id
+  LEFT JOIN pregnancies ep ON c.table_name = 'pregnancies' AND ep.id = c.existing_record_id
+  LEFT JOIN obstetric_history eo ON c.table_name = 'obstetric_history' AND eo.id = c.existing_record_id
+  LEFT JOIN women pw ON pw.id = coalesce(ep.woman_id, eo.woman_id)
   WHERE true`;
 
 function toConflict(row) {
@@ -91,7 +95,7 @@ function toConflict(row) {
     incoming: {
       id: incoming.id,
       data: incoming.data,
-      deleted: row.incoming_row ? row.incoming_row.deleted_at !== null : undefined,
+      deleted: row.incoming_row ? row.incoming_row.deleted_at !== null : Boolean(incoming.deleted),
     },
     existing: existing
       ? { id: existing.id, version: existing.version, deleted: existing.deleted_at !== null, data: recordData(row.table_name, existing) }
