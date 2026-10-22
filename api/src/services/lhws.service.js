@@ -5,6 +5,7 @@ const AppError = require('../utils/app-error');
 const activation = require('./activation.service');
 const { writeAudit } = require('./audit.service');
 const tokens = require('./tokens.service');
+const { managedAreaIds } = require('./scope.service');
 
 // M1 FE-1, FE-3: LHW accounts, managed by admins on the portal.
 // - Creating an LHW issues a unique LHW ID (LHW-00001, ...), which is also the
@@ -17,6 +18,8 @@ const tokens = require('./tokens.service');
 // - Admins give an LHW a one-time activation code for the first sign-in on a
 //   phone (M1 FE-2). It is shown once and stored only as a hash.
 // Every change writes an audit row with the admin as the user (M10 FE-3).
+// A supervisor an admin gave `accounts.manage` sees and manages only the LHWs
+// of their own areas, and can place an LHW only in those areas.
 
 // No look-alike characters (0/O, 1/l/I), so a password read aloud or copied by
 // hand is not mistyped.
@@ -67,21 +70,34 @@ function toLhw(row) {
   };
 }
 
-async function findLhw(client, id, { lock = false } = {}) {
-  const { rows: [row] } = await client.query(`${LHW_SQL} AND u.id = $1${lock ? ' FOR UPDATE OF u' : ''}`, [id]);
+// `areas` limits the search to a supervisor's areas (null: every area).
+async function findLhw(client, id, { lock = false, areas = null } = {}) {
+  const params = [id];
+  let scope = '';
+  if (areas) {
+    params.push(areas);
+    scope = ' AND p.area_id = ANY($2)';
+  }
+  const { rows: [row] } = await client.query(`${LHW_SQL} AND u.id = $1${scope}${lock ? ' FOR UPDATE OF u' : ''}`, params);
   if (!row) throw new AppError(404, 'NOT_FOUND', 'No LHW with this ID');
   return row;
 }
 
-async function requireArea(client, areaId) {
+async function requireArea(client, areaId, areas = null) {
   const { rowCount } = await client.query('SELECT 1 FROM areas WHERE id = $1 AND deleted_at IS NULL', [areaId]);
   if (!rowCount) throw new AppError(400, 'UNKNOWN_AREA', 'This area does not exist');
+  if (areas && !areas.includes(areaId)) throw new AppError(403, 'OUT_OF_AREA', 'This area is not one of yours');
 }
 
 // GET /admin/lhws
-async function list({ search, areaId, status }) {
+async function list(viewer, { search, areaId, status }) {
   const params = [];
   let sql = LHW_SQL;
+  const areas = await managedAreaIds(db, viewer);
+  if (areas) {
+    params.push(areas);
+    sql += ` AND p.area_id = ANY($${params.length})`;
+  }
   if (search) {
     params.push(`%${search.toLowerCase()}%`);
     sql += ` AND (lower(u.full_name) LIKE $${params.length} OR lower(p.lhw_code) LIKE $${params.length})`;
@@ -99,7 +115,7 @@ async function list({ search, areaId, status }) {
 // POST /admin/lhws
 async function create(admin, { fullName, areaId, phone }) {
   return db.withTransaction(async (client) => {
-    await requireArea(client, areaId);
+    await requireArea(client, areaId, await managedAreaIds(client, admin));
     const { rows: [{ n }] } = await client.query("SELECT nextval('lhw_code_seq') AS n");
     const lhwCode = `LHW-${String(n).padStart(5, '0')}`;
     const password = newPassword();
@@ -120,7 +136,8 @@ async function create(admin, { fullName, areaId, phone }) {
 // PATCH /admin/lhws/:id: name, phone and area (reassignment).
 async function update(admin, id, changes) {
   return db.withTransaction(async (client) => {
-    const before = await findLhw(client, id, { lock: true });
+    const areas = await managedAreaIds(client, admin);
+    const before = await findLhw(client, id, { lock: true, areas });
     const changed = {};
     if (changes.fullName !== undefined && changes.fullName !== before.full_name) {
       await client.query('UPDATE users SET full_name = $2 WHERE id = $1', [id, changes.fullName]);
@@ -131,7 +148,7 @@ async function update(admin, id, changes) {
       changed.phone = { from: before.phone, to: changes.phone || null };
     }
     if (changes.areaId !== undefined && changes.areaId !== before.area_id) {
-      await requireArea(client, changes.areaId);
+      await requireArea(client, changes.areaId, areas);
       // Records made in the old area and synced later keep that area (see sync.service).
       await client.query(
         'UPDATE lhw_profiles SET previous_area_id = area_id, area_id = $2, updated_at = now() WHERE user_id = $1',
@@ -149,7 +166,7 @@ async function update(admin, id, changes) {
 // POST /admin/lhws/:id/deactivate and /activate
 async function setActive(admin, id, active) {
   return db.withTransaction(async (client) => {
-    const before = await findLhw(client, id, { lock: true });
+    const before = await findLhw(client, id, { lock: true, areas: await managedAreaIds(client, admin) });
     if (before.is_active !== active) {
       await client.query('UPDATE users SET is_active = $2 WHERE id = $1', [id, active]);
       if (!active) {
@@ -169,7 +186,7 @@ async function setActive(admin, id, active) {
 // in once with the new password when the app next connects.
 async function resetPassword(admin, id) {
   return db.withTransaction(async (client) => {
-    const before = await findLhw(client, id, { lock: true });
+    const before = await findLhw(client, id, { lock: true, areas: await managedAreaIds(client, admin) });
     const password = newPassword();
     await client.query('UPDATE users SET password_hash = $2 WHERE id = $1', [id, await bcrypt.hash(password, 10)]);
     await tokens.revokeAllForUser(client, id);
@@ -182,7 +199,7 @@ async function resetPassword(admin, id) {
 // first sign-in on a phone. Earlier unused codes stop working.
 async function issueActivationCode(admin, id) {
   return db.withTransaction(async (client) => {
-    const lhw = await findLhw(client, id, { lock: true });
+    const lhw = await findLhw(client, id, { lock: true, areas: await managedAreaIds(client, admin) });
     if (!lhw.is_active) throw new AppError(409, 'ACCOUNT_INACTIVE', 'Activate the account before giving it an activation code');
     const issued = await activation.issueCode(client, { userId: id, issuedBy: admin.id });
     // Never log the code itself.
@@ -194,16 +211,18 @@ async function issueActivationCode(admin, id) {
   });
 }
 
-// GET /admin/areas: every area with its Union Council, tehsil and district, for pickers.
-async function listAreas() {
+// GET /admin/areas: every area (a supervisor's own) with its Union Council, tehsil and district, for pickers.
+async function listAreas(viewer) {
+  const areas = await managedAreaIds(db, viewer);
   const { rows } = await db.query(
     `SELECT a.id, a.name, uc.name AS union_council, t.name AS tehsil, d.name AS district
      FROM areas a
      JOIN union_councils uc ON uc.id = a.union_council_id
      JOIN tehsils t ON t.id = uc.tehsil_id
      JOIN districts d ON d.id = t.district_id
-     WHERE a.deleted_at IS NULL
+     WHERE a.deleted_at IS NULL AND ($1::uuid[] IS NULL OR a.id = ANY($1))
      ORDER BY d.name, t.name, uc.name, a.name`,
+    [areas],
   );
   return {
     areas: rows.map((r) => ({ id: r.id, name: r.name, unionCouncil: r.union_council, tehsil: r.tehsil, district: r.district })),

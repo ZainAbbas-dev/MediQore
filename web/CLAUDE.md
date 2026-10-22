@@ -36,7 +36,7 @@ React portal for Module 10: dashboard, map, alerts, reports and admin panel. Fol
 - `src/App.jsx`: routes (`/login`, then the guarded layout with the dashboard, the supervisor pages, the admin pages and a not-found page).
 - `src/auth/`:
   - `AuthProvider.jsx`: sign-in state and `request()`. The access and refresh tokens are kept in `sessionStorage`, for this tab only.
-  - `RequireRole.jsx`: shows a route only to the given roles.
+  - `RequirePermission.jsx`: shows a route only to accounts holding its permission.
   - `context.js`: `useAuth()` and `PORTAL_ROLES`.
   - `RequireAuth.jsx`: the auth guard.
 - `src/layout/AppLayout.jsx`: sidebar with the main navigation, the **Administration** navigation for admins, the signed-in user and Sign out. Each link has an outlined icon from `NavIcon.jsx` (inline SVG paths of the Material icons the app uses, no icon library).
@@ -51,7 +51,7 @@ React portal for Module 10: dashboard, map, alerts, reports and admin panel. Fol
   - `WomenPage` (`/women`, admins and supervisors, M2 FE-1–3): registered women with their pregnancy file in short (expected delivery date, weeks today and how it was dated) and their visit count and last visit (M3), from `GET /women`, with search. The visit count opens her visits (`GET /women/:id/visits`): vitals, blood sugar in its recorded unit, with source and date, symptoms and the danger signs answered yes, with the decision-support note (LI-5).
   - `ConflictsPage` (`/conflicts`, `conflicts.resolve`, M3 FE-2, M10 FE-3): the Conflict Review queue from `GET /conflicts?status=…`. Each conflict shows its kind and compares the two versions field by field for its table (differences highlighted): an edit made on an older version (server vs phone; **Keep the server's version** or **Use the phone's edit**), a possible duplicate woman (earlier vs new registration; **Different women: keep both** or **Same woman: merge**, which asks first), or a legacy same-day visit (keep both, the stored or the held visit). The buttons come from the conflict's `resolutions`; decided conflicts show who decided and when.
   - `PinResetPage` (`/pin-reset`, admins and supervisors, M1 FE-2): **PIN reset codes**. Pick the LHW (from `GET /dashboard/filters`, so a supervisor sees only their areas), type the 6-digit code on her phone, and read back the 8-digit reply from `POST /pin-reset/reply-code`, shown once.
-  - `LhwsPage` (`/admin/lhws`, admins, M1 FE-1–3, final design screen 21):
+  - `LhwsPage` (`/admin/lhws`, `accounts.manage`, M1 FE-1–3, final design screen 21; a supervisor given the permission sees and manages only the LHWs of their areas):
     - lists LHW accounts with the phone state (activated on a date, code issued, not activated), status (Active, Waiting to activate, Deactivated) and last sign-in, with search and a status filter in the header;
     - each row offers the next step for its state (**New activation code** while waiting, **Activate** when deactivated) and **Edit**; the Edit dialog also holds **New activation code**, **Reset password** and **Deactivate**;
     - creates an LHW and shows the issued LHW ID and password once;
@@ -59,7 +59,7 @@ React portal for Module 10: dashboard, map, alerts, reports and admin panel. Fol
     - edits and reassigns; the note says the phone's unsynced records keep the old area (M1 FE-3);
     - resets the password; the phone keeps its data and PIN (LI-8).
   - Admin panel (admins, M10 FE-3):
-    - `StaffPage` (`/admin/staff`): supervisor and admin accounts. Create with a chosen username (password shown once), supervisor areas with `AreaChecklist`, role change (never for your own account). **Edit** also holds reset password and deactivate (never your own account); a deactivated account shows **Activate** in its row.
+    - `StaffPage` (`/admin/staff`, `staff.manage`, admins only): supervisor and admin accounts. Create with a chosen username (password shown once), supervisor areas with `AreaChecklist`, role change (never for your own account). **Edit** also holds reset password and deactivate (never your own account); a deactivated account shows **Activate** in its row.
     - `GeographyPage` (`/admin/geography`, **Geography** in the sidebar): four columns (district, tehsil, Union Council, area); choosing a unit shows its children. Add, rename, delete; a unit in use is refused with the API's reason.
     - `FacilitiesPage` (`/admin/facilities`): hospitals and referral centres as two tabs, by district, with optional area and GPS.
     - `RolesPage` (`/admin/roles`, `roles.manage`): the permission table from `GET /admin/roles`; the cells the API marks editable are checkboxes, saved together with **Save changes** (`PUT /admin/roles/permissions`, audited); the fixed ones show ✓ or –.

@@ -14,7 +14,7 @@ const MAIN_LINKS = [
 
 const ADMIN_LINKS = [
   { to: '/admin/lhws', icon: 'person', label: 'LHW accounts', permission: 'accounts.manage' },
-  { to: '/admin/staff', icon: 'staff', label: 'Supervisors and admins', permission: 'accounts.manage' },
+  { to: '/admin/staff', icon: 'staff', label: 'Supervisors and admins', permission: 'staff.manage' },
   { to: '/admin/geography', icon: 'map', label: 'Geography', permission: 'geography.manage' },
   { to: '/admin/facilities', icon: 'hospital', label: 'Hospitals', permission: 'facilities.manage' },
   { to: '/admin/roles', icon: 'shield', label: 'Roles', permission: 'roles.manage' },

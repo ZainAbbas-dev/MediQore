@@ -8,7 +8,7 @@ export const PORTAL_ROLES = ['supervisor', 'admin'];
 const ROLE_DEFAULTS = {
   supervisor: ['records.view', 'conflicts.resolve', 'pin_reset.reply'],
   admin: [
-    'records.view', 'conflicts.resolve', 'pin_reset.reply', 'accounts.manage', 'geography.manage',
+    'records.view', 'conflicts.resolve', 'pin_reset.reply', 'accounts.manage', 'staff.manage', 'geography.manage',
     'facilities.manage', 'audit.view', 'roles.manage',
   ],
 };

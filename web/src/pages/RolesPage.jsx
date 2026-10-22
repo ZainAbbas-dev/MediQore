@@ -61,11 +61,13 @@ export default function RolesPage() {
       <p className="muted">
         Every account has one of three roles. This is what each role may do; the server checks it on every request. Tick
         or clear a box and save to change it; every change is in the audit log, and an account sees the change at its
-        next sign-in. LHWs only sync from the app, and admins always keep role management. Give a role to an account under{' '}
+        next sign-in. LHWs only sync from the app. Give a role to an account under{' '}
         <Link to="/admin/lhws">LHW accounts</Link> or <Link to="/admin/staff">Supervisors and admins</Link>.
       </p>
       <p className="muted">
-        The administration permissions are not limited to areas: a supervisor given one manages it for every area.
+        An administration permission given to supervisors works only on each supervisor&apos;s own areas: their LHWs,
+        the hospitals of their districts and what they and their LHWs did in the audit log. Role management, supervisor
+        and admin accounts and the geography stay with admins.
       </p>
       {error && (
         <p className="error" role="alert">

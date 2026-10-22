@@ -15,14 +15,20 @@ const ACTIONS = ['create', 'edit', 'delete', 'referral', 'alert', 'login', 'sync
 
 // GET /admin/audit: the audit log viewer, newest first, filtered by user (part
 // of a username or name), action, record type and dates. Dates are whole days,
-// Pakistan time. Pages go back with `before`, the last row's id.
-async function list({ user, action, entityType, from, to, before, limit }) {
+// Pakistan time. Pages go back with `before`, the last row's id. A supervisor
+// an admin gave `audit.view` sees only what they and the LHWs of their areas did.
+async function list(viewer, { user, action, entityType, from, to, before, limit }) {
   const params = [];
   const where = ['true'];
   const add = (value, condition) => {
     params.push(value);
     where.push(condition.replaceAll('?', `$${params.length}`));
   };
+  if (viewer.role !== 'admin') {
+    add(viewer.id, `(l.user_id = ? OR l.user_id IN (
+      SELECT p.user_id FROM lhw_profiles p JOIN supervisor_areas s ON s.area_id = p.area_id
+      WHERE s.supervisor_id = ? AND s.deleted_at IS NULL AND p.deleted_at IS NULL))`);
+  }
   if (user) add(`%${user.toLowerCase()}%`, '(lower(u.username) LIKE ? OR lower(u.full_name) LIKE ?)');
   if (action) add(action, 'l.action = ?');
   if (entityType) add(entityType, 'l.entity_type = ?');

@@ -4,7 +4,11 @@
 // or remove it on the portal (role_permissions, services/role-permissions.service.js),
 // except where the choice is fixed:
 //   - LHWs use only the app: they hold `sync` and nothing else, and no portal role syncs;
-//   - admins always keep `roles.manage`, so the system can never lock itself out.
+//   - admins always keep `roles.manage`, so the system can never lock itself out;
+//   - only admins manage roles, supervisor and admin accounts and the geography:
+//     none of these is limited to an area, and a supervisor holding one could
+//     give themselves more. The other administration permissions a supervisor
+//     may be given apply to their own areas only (services/scope.service.js).
 
 const ROLES = {
   lhw: { label: 'LHW', description: 'Uses the Android app only. Sees and syncs the records of her own area.' },
@@ -28,18 +32,22 @@ const PERMISSIONS = {
   },
   'accounts.manage': {
     roles: ['admin'],
-    label: 'Create and manage LHW, supervisor and admin accounts, give activation codes and reset passwords',
+    label: 'Create and manage LHW accounts, give activation codes and reset passwords',
   },
+  'staff.manage': { roles: ['admin'], label: 'Create and manage supervisor and admin accounts' },
   'geography.manage': { roles: ['admin'], label: 'Manage districts, tehsils, Union Councils and areas' },
   'facilities.manage': { roles: ['admin'], label: 'Manage hospitals and referral centres' },
   'audit.view': { roles: ['admin'], label: 'View the audit log' },
   'roles.manage': { roles: ['admin'], label: 'Choose which role holds which permission' },
 };
 
+// Permissions only admins hold: they are not limited to areas.
+const ADMIN_ONLY = ['roles.manage', 'staff.manage', 'geography.manage'];
+
 // Whether an admin may change this role's hold on this permission.
 function editable(role, permission) {
   if (role === 'lhw' || permission === 'sync') return false;
-  return !(role === 'admin' && permission === 'roles.manage');
+  return !ADMIN_ONLY.includes(permission);
 }
 
 function rolesFor(permission) {

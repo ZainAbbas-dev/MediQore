@@ -1,12 +1,15 @@
 const db = require('../db/pool');
 const AppError = require('../utils/app-error');
 const { writeAudit } = require('./audit.service');
+const { managedAreaIds } = require('./scope.service');
 
 // M10 FE-3: hospitals and referral centres, kept by admins on the portal. Each
 // serves a district (and optionally one area). The LHW app will pull them to
 // find the nearest hospital offline (M5 FE-1, Phase 2), so they carry the sync
 // base columns: the database numbers each change (server_seq) and deletes are
-// soft. Every change writes an audit row.
+// soft. Every change writes an audit row. A supervisor an admin gave
+// `facilities.manage` works only on the districts of their own areas, and a
+// facility tied to an area only in one of those areas.
 
 // Table and column names come only from here.
 const KINDS = {
@@ -60,10 +63,31 @@ function toFacility(row) {
   };
 }
 
-async function find(client, def, id) {
+// The districts of a supervisor's areas, and the areas themselves (null: everything).
+async function managedPlaces(client, viewer) {
+  const areas = await managedAreaIds(client, viewer);
+  if (!areas) return null;
+  const { rows } = await client.query(
+    `SELECT DISTINCT t.district_id FROM areas a JOIN union_councils uc ON uc.id = a.union_council_id
+     JOIN tehsils t ON t.id = uc.tehsil_id WHERE a.id = ANY($1)`,
+    [areas],
+  );
+  return { areas, districts: rows.map((row) => row.district_id) };
+}
+
+const inPlaces = (places, row) =>
+  !places || (places.districts.includes(row.district_id) && (!row.area_id || places.areas.includes(row.area_id)));
+
+async function find(client, def, id, places = null) {
   const { rows: [row] } = await client.query(`${selectSql(def)} AND f.id = $1`, [id]);
-  if (!row) throw new AppError(404, 'NOT_FOUND', `No ${def.label} with this ID`);
+  if (!row || !inPlaces(places, row)) throw new AppError(404, 'NOT_FOUND', `No ${def.label} with this ID`);
   return row;
+}
+
+function requirePlaces(places, districtId, areaId) {
+  if (!inPlaces(places, { district_id: districtId, area_id: areaId ?? null })) {
+    throw new AppError(403, 'OUT_OF_AREA', 'This district or area is not one of yours');
+  }
 }
 
 // The district must exist; an area, if given, must be in that district.
@@ -80,10 +104,15 @@ async function checkPlace(client, districtId, areaId) {
 }
 
 // GET /admin/hospitals and /admin/referral-centres
-async function list(kindName, { districtId, search }) {
+async function list(viewer, kindName, { districtId, search }) {
   const def = kind(kindName);
   const params = [];
   let sql = selectSql(def);
+  const places = await managedPlaces(db, viewer);
+  if (places) {
+    params.push(places.districts, places.areas);
+    sql += ` AND f.district_id = ANY($1) AND (f.area_id IS NULL OR f.area_id = ANY($2))`;
+  }
   if (districtId) {
     params.push(districtId);
     sql += ` AND f.district_id = $${params.length}`;
@@ -101,6 +130,7 @@ async function create(admin, kindName, values) {
   const def = kind(kindName);
   return db.withTransaction(async (client) => {
     await checkPlace(client, values.districtId, values.areaId);
+    requirePlaces(await managedPlaces(client, admin), values.districtId, values.areaId);
     const fields = Object.keys(FIELDS).filter((field) => values[field] !== undefined);
     const columns = fields.map((field) => columnOf(def, field));
     // created_on_device stays NULL: made on the portal, not on a phone. The
@@ -123,7 +153,8 @@ async function create(admin, kindName, values) {
 async function update(admin, kindName, id, values) {
   const def = kind(kindName);
   return db.withTransaction(async (client) => {
-    const before = await find(client, def, id);
+    const places = await managedPlaces(client, admin);
+    const before = await find(client, def, id, places);
     const current = toFacility(before);
     const now = {
       name: current.name, type: current.type, districtId: current.district.id, areaId: current.area?.id ?? null,
@@ -135,7 +166,10 @@ async function update(admin, kindName, id, values) {
     }
     const districtId = values.districtId ?? now.districtId;
     const areaId = values.areaId !== undefined ? values.areaId : now.areaId;
-    if (changes.districtId || changes.areaId) await checkPlace(client, districtId, areaId);
+    if (changes.districtId || changes.areaId) {
+      await checkPlace(client, districtId, areaId);
+      requirePlaces(places, districtId, areaId);
+    }
     const latitude = values.latitude !== undefined ? values.latitude : now.latitude;
     const longitude = values.longitude !== undefined ? values.longitude : now.longitude;
     if ((latitude === null) !== (longitude === null)) {
@@ -157,7 +191,7 @@ async function update(admin, kindName, id, values) {
 async function remove(admin, kindName, id) {
   const def = kind(kindName);
   return db.withTransaction(async (client) => {
-    const before = await find(client, def, id);
+    const before = await find(client, def, id, await managedPlaces(client, admin));
     await client.query(`UPDATE ${def.table} SET deleted_at = now() WHERE id = $1`, [id]);
     await writeAudit(client, { userId: admin.id, action: 'delete', entityType: def.table, entityId: id, details: { name: before.name } });
   });

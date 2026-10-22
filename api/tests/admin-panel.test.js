@@ -41,7 +41,7 @@ describeDb('admin panel (M10 FE-3)', () => {
       expect(res.body.permissions).toContainEqual(expect.objectContaining({ id: 'audit.view', roles: ['admin'] }));
       expect(res.body.permissions.map((p) => p.id)).toEqual(Object.keys(PERMISSIONS));
       expect(res.body.permissions.find((p) => p.id === 'sync')).toMatchObject({ roles: ['lhw'], editableRoles: [] });
-      expect(res.body.permissions.find((p) => p.id === 'roles.manage')).toMatchObject({ roles: ['admin'], editableRoles: ['supervisor'] });
+      expect(res.body.permissions.find((p) => p.id === 'roles.manage')).toMatchObject({ roles: ['admin'], editableRoles: [] });
     });
 
     it('lets the admin grant and remove a permission, which the routes follow at once and the audit log records', async () => {
@@ -65,9 +65,9 @@ describeDb('admin panel (M10 FE-3)', () => {
       const login = () => request(app).post('/api/v1/auth/login').send({ username: 'supervisor.a', password: PASSWORD });
       expect((await login()).body.user.permissions).toEqual(['records.view', 'conflicts.resolve', 'pin_reset.reply']);
 
-      await admin.put('/admin/roles/permissions', { changes: [{ role: 'supervisor', permission: 'geography.manage', granted: true }] });
-      expect((await login()).body.user.permissions).toContain('geography.manage');
-      await admin.put('/admin/roles/permissions', { changes: [{ role: 'supervisor', permission: 'geography.manage', granted: false }] });
+      await admin.put('/admin/roles/permissions', { changes: [{ role: 'supervisor', permission: 'facilities.manage', granted: true }] });
+      expect((await login()).body.user.permissions).toContain('facilities.manage');
+      await admin.put('/admin/roles/permissions', { changes: [{ role: 'supervisor', permission: 'facilities.manage', granted: false }] });
 
       const adminLogin = await request(app).post('/api/v1/auth/login').send({ username: 'admin', password: PASSWORD });
       expect(adminLogin.body.user.permissions).toEqual(Object.keys(PERMISSIONS).filter((p) => p !== 'sync'));
@@ -77,6 +77,9 @@ describeDb('admin panel (M10 FE-3)', () => {
       ['an LHW portal permission', { role: 'lhw', permission: 'records.view', granted: true }],
       ['sync for a portal role', { role: 'supervisor', permission: 'sync', granted: true }],
       ["the admin's hold on role management", { role: 'admin', permission: 'roles.manage', granted: false }],
+      ['role management for supervisors', { role: 'supervisor', permission: 'roles.manage', granted: true }],
+      ['supervisor and admin accounts for supervisors', { role: 'supervisor', permission: 'staff.manage', granted: true }],
+      ['the geography for supervisors', { role: 'supervisor', permission: 'geography.manage', granted: true }],
     ])('refuses to change %s', async (_, change) => {
       const res = await admin.put('/admin/roles/permissions', { changes: [change] });
 

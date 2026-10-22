@@ -37,6 +37,8 @@ export default function App() {
           </Route>
           <Route element={<RequirePermission permission="accounts.manage" />}>
             <Route path="admin/lhws" element={<LhwsPage />} />
+          </Route>
+          <Route element={<RequirePermission permission="staff.manage" />}>
             <Route path="admin/staff" element={<StaffPage />} />
           </Route>
           <Route element={<RequirePermission permission="geography.manage" />}>

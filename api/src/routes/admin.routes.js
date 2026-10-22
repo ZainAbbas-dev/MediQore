@@ -115,12 +115,13 @@ router.post('/lhws/:id/activate', accounts, validate({ params: idParams }), admi
 router.post('/lhws/:id/reset-password', accounts, validate({ params: idParams }), adminController.resetPassword);
 router.post('/lhws/:id/activation-code', accounts, validate({ params: idParams }), adminController.issueActivationCode);
 
-router.get('/staff', accounts, validate({ query: staffListQuery }), adminController.listStaff);
-router.post('/staff', accounts, validate({ body: staffCreateBody }), adminController.createStaff);
-router.patch('/staff/:id', accounts, validate({ params: idParams, body: staffUpdateBody }), adminController.updateStaff);
-router.post('/staff/:id/deactivate', accounts, validate({ params: idParams }), adminController.deactivateStaff);
-router.post('/staff/:id/activate', accounts, validate({ params: idParams }), adminController.activateStaff);
-router.post('/staff/:id/reset-password', accounts, validate({ params: idParams }), adminController.resetStaffPassword);
+const staff = requirePermission('staff.manage');
+router.get('/staff', staff, validate({ query: staffListQuery }), adminController.listStaff);
+router.post('/staff', staff, validate({ body: staffCreateBody }), adminController.createStaff);
+router.patch('/staff/:id', staff, validate({ params: idParams, body: staffUpdateBody }), adminController.updateStaff);
+router.post('/staff/:id/deactivate', staff, validate({ params: idParams }), adminController.deactivateStaff);
+router.post('/staff/:id/activate', staff, validate({ params: idParams }), adminController.activateStaff);
+router.post('/staff/:id/reset-password', staff, validate({ params: idParams }), adminController.resetStaffPassword);
 const roles = requirePermission('roles.manage');
 const rolePermissionsBody = Joi.object({
   changes: Joi.array().items(Joi.object({

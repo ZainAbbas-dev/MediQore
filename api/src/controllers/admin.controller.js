@@ -8,11 +8,11 @@ const rolePermissions = require('../services/role-permissions.service');
 // M1 FE-1, FE-3: LHW accounts.
 
 async function listAreas(req, res) {
-  res.json(await lhwsService.listAreas());
+  res.json(await lhwsService.listAreas(req.user));
 }
 
 async function listLhws(req, res) {
-  res.json(await lhwsService.list(req.query));
+  res.json(await lhwsService.list(req.user, req.query));
 }
 
 async function createLhw(req, res) {
@@ -88,7 +88,7 @@ async function deleteUnit(req, res) {
 // ('hospitals' or 'referral-centres', see facilities.service KINDS).
 
 const listFacilities = (kind) => async (req, res) => {
-  res.json(await facilitiesService.list(kind, req.query));
+  res.json(await facilitiesService.list(req.user, kind, req.query));
 };
 
 const createFacility = (kind) => async (req, res) => {
@@ -107,7 +107,7 @@ const deleteFacility = (kind) => async (req, res) => {
 // M10 FE-3: the audit log viewer and role permissions.
 
 async function listAudit(req, res) {
-  res.json({ ...(await auditService.list(req.query)), actions: auditService.ACTIONS, entityTypes: await auditService.entityTypes() });
+  res.json({ ...(await auditService.list(req.user, req.query)), actions: auditService.ACTIONS, entityTypes: await auditService.entityTypes() });
 }
 
 async function listRoles(req, res) {

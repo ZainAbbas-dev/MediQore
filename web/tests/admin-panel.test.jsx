@@ -270,11 +270,12 @@ describe('roles and the audit log (M10 FE-3)', () => {
 
   it("shows a supervisor only the pages their role's permissions open", async () => {
     mockApi({ 'GET /admin/audit': [200, { entries: [], nextBefore: null, actions: [], entityTypes: [] }] });
-    const session = { ...supervisorSession, user: { ...supervisorSession.user, permissions: ['conflicts.resolve', 'audit.view'] } };
+    const session = { ...supervisorSession, user: { ...supervisorSession.user, permissions: ['conflicts.resolve', 'accounts.manage', 'audit.view'] } };
     renderApp('/admin/audit', { session });
 
     const admin = await screen.findByRole('navigation', { name: 'Administration' });
-    expect(within(admin).getAllByRole('link').map((link) => link.textContent)).toEqual(['Audit log']);
+    // Supervisor and admin accounts need staff.manage, which only admins hold.
+    expect(within(admin).getAllByRole('link').map((link) => link.textContent)).toEqual(['LHW accounts', 'Audit log']);
     const main = screen.getByRole('navigation', { name: 'Main' });
     expect(within(main).getAllByRole('link').map((link) => link.textContent)).toEqual(['Sync conflicts']);
     expect(screen.queryByText('Not available')).not.toBeInTheDocument();

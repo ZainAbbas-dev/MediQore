@@ -31,4 +31,10 @@ async function supervisorAreaIds(db, userId) {
   return rows.map((row) => row.area_id);
 }
 
-module.exports = { lhwAreaId, lhwAreas, supervisorAreaIds };
+// M10 FE-3: the areas an administration page may touch: every area for an
+// admin (null), only their own for a supervisor an admin gave the permission to.
+async function managedAreaIds(db, viewer) {
+  return viewer.role === 'admin' ? null : supervisorAreaIds(db, viewer.id);
+}
+
+module.exports = { lhwAreaId, lhwAreas, supervisorAreaIds, managedAreaIds };
