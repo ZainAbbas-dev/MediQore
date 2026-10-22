@@ -44,11 +44,12 @@ class AppServices {
     this.location = const GeolocatorLocationService(),
     this.dialer = const UrlLauncherDialer(),
     bool autoSync = true,
-    this.clinicalRules,
+    ClinicalRules? clinicalRules,
     this.backgroundScheduler = const NoBackgroundScheduler(),
     SyncGate? syncGate,
     Stream<bool>? connectivity,
-  }) : settings = settings ?? AppSettings() {
+  }) : settings = settings ?? AppSettings(),
+       _bundledRules = clinicalRules {
     session = Session(
       opener: opener,
       api: api,
@@ -98,9 +99,18 @@ class AppServices {
   /// The phone's GPS, for the home location (M2 FE-3).
   final LocationService location;
 
-  /// The Clinical Rules Table bundled with the app, read at start (P0-11). The
-  /// screens that use it read the file themselves when this is null.
-  final ClinicalRules? clinicalRules;
+  /// The Clinical Rules Table bundled with the app, read at start (P0-11).
+  final ClinicalRules? _bundledRules;
+
+  /// The Clinical Rules Table in use: the one the server sent (M3 FE-2) when
+  /// it is newer than the bundled copy, otherwise the bundled one. The screens
+  /// that use it read the bundled file themselves when this is null.
+  ClinicalRules? get clinicalRules {
+    final downloaded = session.downloadedRules;
+    final bundled = _bundledRules;
+    if (downloaded != null && (bundled == null || downloaded.isNewerThan(bundled))) return downloaded;
+    return bundled;
+  }
 
   /// The visit form's range checks (M3 FE-1).
   VisitRanges? get visitRanges => clinicalRules?.visitRanges;

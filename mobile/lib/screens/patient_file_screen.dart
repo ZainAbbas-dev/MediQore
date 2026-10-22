@@ -69,14 +69,16 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
     }
   }
 
-  Future<void> _newVisit(PatientFile file, AppLocalizations l10n) async {
+  Future<void> _newVisit(PatientFile file, AppLocalizations l10n, {int? weeksToday}) async {
     final messenger = ScaffoldMessenger.of(context);
+    final from = _rules?.fetalMovementFromWeeks;
     final saved = await Navigator.of(context).push<LocalVisit>(
       MaterialPageRoute(
         builder: (_) => VisitScreen(
           services: widget.services,
           pregnancyId: file.pregnancy!.id,
           title: '${file.woman.name} · ${file.woman.patientCode}',
+          fetalMovementFromWeeks: from != null && weeksToday != null && weeksToday < from ? from : null,
         ),
       ),
     );
@@ -119,6 +121,17 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
     const gap = SizedBox(height: 12);
 
     final rules = _rules;
+    // M2 FE-1: the estimated delivery date and today's gestational age.
+    final edd = rules == null || pregnancy == null
+        ? null
+        : rules.gestationalAge.eddOf(
+            estimatedDeliveryDate: pregnancy.estimatedDeliveryDate,
+            registeredOn: pregnancy.registeredOn,
+            month: pregnancy.pregnancyMonthAtRegistration,
+          );
+    final weeksToday = edd == null || pregnancy?.status != 'active'
+        ? null
+        : rules!.gestationalAge.completedWeeksOn(edd, DateTime.now());
     final flags = rules == null || history == null
         ? const <String>[]
         : rules.obstetricFlags({
@@ -174,7 +187,7 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
                   child: Row(
                     children: [
                       _Stat(woman.age?.toString() ?? '–', l10n.fileStatAge),
-                      _Stat(pregnancy == null ? '–' : '${pregnancy.pregnancyMonthAtRegistration}', l10n.fileStatMonth),
+                      _Stat(weeksToday == null ? '–' : '$weeksToday', l10n.fileStatWeeks),
                       _Stat('${_visits.length}', l10n.fileStatVisits),
                     ],
                   ),
@@ -190,7 +203,7 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
                 Align(alignment: AlignmentDirectional.centerStart, child: SyncStatusChip(file.syncStatus)),
                 if (pregnancy != null && pregnancy.status == 'active') ...[
                   gap,
-                  LargeButton(label: l10n.fileNewVisitButton, icon: Icons.add, onPressed: () => _newVisit(file, l10n)),
+                  LargeButton(label: l10n.fileNewVisitButton, icon: Icons.add, onPressed: () => _newVisit(file, l10n, weeksToday: weeksToday)),
                 ],
                 if (pregnancy != null) ...[
                   gap,
@@ -271,6 +284,15 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
                     children: [
                       InfoRow(l10n.fileRegisteredOn, _formatDate(dateFormat, pregnancy.registeredOn)),
                       InfoRow(l10n.fileMonthAtRegistration, '${pregnancy.pregnancyMonthAtRegistration}', ltr: true),
+                      if (edd != null)
+                        InfoRow(
+                          l10n.fileEdd,
+                          '${dateFormat.format(edd)} · ${switch (pregnancy.eddBasis) {
+                            'lmp' => l10n.fileEddFromLmp(_formatDate(dateFormat, pregnancy.lmpDate!)),
+                            'edd' => l10n.fileEddFromCard,
+                            _ => l10n.fileEddFromMonth,
+                          }}',
+                        ),
                       InfoRow(
                         l10n.fileStatus,
                         pregnancy.status == 'active' ? l10n.fileStatusActive : l10n.fileStatusClosed,
@@ -351,12 +373,12 @@ class _VisitCard extends StatelessWidget {
       if (v.temperatureC != null)
         (Icons.thermostat, l10n.fieldTemperature, '${number(v.temperatureC!)} ${l10n.unitCelsius}'),
       if (v.pulseBpm != null) (Icons.monitor_heart_outlined, l10n.fieldPulse, '${v.pulseBpm} ${l10n.unitPerMinute}'),
-      if (v.bloodSugarMmolL != null)
+      if (v.bloodSugarValue != null)
         (
           Icons.water_drop_outlined,
           l10n.fieldBloodSugar,
           [
-            '${number(v.bloodSugarMmolL!)} ${l10n.unitMmolL}',
+            '${number(v.bloodSugarValue!)} ${v.bloodSugarUnit == 'mg_dl' ? l10n.unitMgDl : l10n.unitMmolL}',
             if (v.bloodSugarSource == 'lab_report') l10n.sugarSourceLab,
             if (v.bloodSugarSource == 'glucometer') l10n.sugarSourceGlucometer,
             ?v.bloodSugarMeasuredOn,

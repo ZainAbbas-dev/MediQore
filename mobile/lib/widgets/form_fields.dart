@@ -141,9 +141,15 @@ class VitalField extends StatefulWidget {
     this.optional = false,
     this.headerTrailing,
     this.footer = const [],
+    this.flag,
   });
 
   final String label;
+
+  /// For a card: the words for a value outside the normal range, or null
+  /// (SRS FR3.3). The card then gets an amber border and the words under the
+  /// number. It only points the value out; the validator decides what is wrong.
+  final String? Function(String text)? flag;
 
   /// Stored unit of the vital, for example mmHg (CLAUDE.md: one unit per vital).
   final String unit;
@@ -185,10 +191,17 @@ class _VitalFieldState extends State<VitalField> {
   void initState() {
     super.initState();
     _focus.addListener(() => setState(() {}));
+    widget.controller?.addListener(_textChanged);
+  }
+
+  // The normal-range note follows the typed value.
+  void _textChanged() {
+    if (widget.flag != null && mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    widget.controller?.removeListener(_textChanged);
     _focus.dispose();
     super.dispose();
   }
@@ -238,6 +251,7 @@ class _VitalFieldState extends State<VitalField> {
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [_FieldLabel(widget.label), field]);
     }
     final focused = _focus.hasFocus;
+    final flagged = _hasError ? null : widget.flag?.call(widget.controller?.text.trim() ?? '');
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
       decoration: BoxDecoration(
@@ -246,12 +260,14 @@ class _VitalFieldState extends State<VitalField> {
         border: Border.all(
           color: _hasError
               ? theme.colorScheme.error
+              : flagged != null
+              ? AppColors.riskYellow
               : focused
               ? AppColors.primary
               : widget.optional
               ? AppColors.primaryLight
               : AppColors.fieldBorder,
-          width: _hasError || focused || widget.optional ? 2 : 1,
+          width: _hasError || flagged != null || focused || widget.optional ? 2 : 1,
         ),
       ),
       child: InkWell(
@@ -278,6 +294,21 @@ class _VitalFieldState extends State<VitalField> {
                 ],
               ),
               field,
+              if (flagged != null) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.trending_up, size: 18, color: AppColors.statusPending),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        flagged,
+                        style: theme.textTheme.bodySmall?.copyWith(color: AppColors.statusPending, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               for (final child in widget.footer) ...[const SizedBox(height: 10), child],
             ],
           ),

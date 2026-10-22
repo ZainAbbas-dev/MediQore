@@ -21,8 +21,8 @@ class SyncReport {
   final int pulled;
   final int lastServerSeq;
 
-  /// Records the server held for a supervisor's review instead of storing them
-  /// (M3 FE-2): a visit on the same day as another visit of the same pregnancy.
+  /// Edits the server held for a supervisor's review instead of applying them
+  /// (M3 FE-2): made on an older version than the server's.
   final int held;
 }
 
@@ -32,8 +32,13 @@ class SyncReport {
 /// - the server answers with the sequence number it gave each record;
 /// - pull asks for everything after the last sequence number seen, so nothing
 ///   depends on the phone's clock (LI-7);
-/// - a record the server holds for supervisor review (status `conflict`) leaves
-///   the outbox and is marked as held; the supervisor's decision arrives by pull;
+/// - every record carries the server version it is based on; an edit is sent
+///   with it (`baseVersion`), and an edit made on an older version than the
+///   server's is held for supervisor review (status `conflict`): it leaves the
+///   outbox and is marked as held; the supervisor's decision arrives by pull;
+/// - the configuration for the area (referral facilities, escalation contacts,
+///   campaign rounds, the Clinical Rules Table) comes after the records, only
+///   when it changed;
 /// - a record the server refused stays in the outbox with the reason and is sent
 ///   once more in every later sync (the outbox's retry), because some reasons
 ///   pass: a parent that arrives later, an area an admin fixes.
@@ -59,6 +64,7 @@ class SyncService {
   Future<SyncReport> syncNow(String token) async {
     final (pushed, rejected, held) = await push(token);
     final pulled = await pull(token);
+    await pullConfig(token);
     await _db.writeState(AppDatabase.lastSyncKey, _clock().toUtc().toIso8601String());
     return SyncReport(
       pushed: pushed,
@@ -93,7 +99,15 @@ class SyncService {
       if (batch.isEmpty) return (pushed, rejected, held);
       sent.addAll(batch.map((entry) => entry.id));
 
-      final results = await _api.push(token, device, [for (final entry in batch) jsonDecode(entry.payload) as Map<String, dynamic>]);
+      final records = <Map<String, dynamic>>[];
+      for (final entry in batch) {
+        final record = jsonDecode(entry.payload) as Map<String, dynamic>;
+        // An edit of a record the server has carries the version it was made on.
+        final version = await _db.versionOf(entry.entityTable, entry.recordId);
+        if (version != null) record['baseVersion'] = version;
+        records.add(record);
+      }
+      final results = await _api.push(token, device, records);
 
       await _db.transaction(() async {
         for (final (index, entry) in batch.indexed) {
@@ -111,34 +125,58 @@ class SyncService {
             continue;
           }
           pushed++;
-          await _markAccepted(entry, result['serverSeq'] as int);
+          await _markAccepted(entry, result['serverSeq'] as int, result['version'] as int?);
         }
       });
     }
   }
 
-  // Removes the outbox entry and stores the server's sequence number, unless the
-  // record was edited again while the push was in flight (the entry was replaced):
-  // then the newer version stays queued for the next push.
-  Future<void> _markAccepted(OutboxEntry entry, int serverSeq) async {
+  // Removes the outbox entry and stores the server's sequence number and
+  // version, unless the record was edited again while the push was in flight
+  // (the entry was replaced): then the newer edit stays queued, based on the
+  // version the server just gave.
+  Future<void> _markAccepted(OutboxEntry entry, int serverSeq, int? version) async {
     final removed = await (_db.delete(_db.outbox)
           ..where((o) => o.id.equals(entry.id) & o.payload.equals(entry.payload)))
         .go();
-    if (removed == 0) return;
-    await _db.setServerSeq(entry.entityTable, entry.recordId, serverSeq);
+    if (removed == 0) {
+      if (version != null) await _db.setVersion(entry.entityTable, entry.recordId, version);
+      return;
+    }
+    await _db.setServerSeq(entry.entityTable, entry.recordId, serverSeq, version: version);
   }
 
-  // The server keeps the record in its conflict queue (M3 FE-2). Resending it
-  // would only return the same conflict, so it leaves the outbox; the visit is
+  // The server keeps the edit on its Conflict Review page (M3 FE-2). Resending it
+  // would only return the same conflict, so it leaves the outbox; the record is
   // marked as held until the supervisor's decision arrives by pull.
   Future<void> _markHeld(OutboxEntry entry, String conflictId) async {
     final removed = await (_db.delete(_db.outbox)
           ..where((o) => o.id.equals(entry.id) & o.payload.equals(entry.payload)))
         .go();
-    if (removed == 0 || entry.entityTable != 'visits') return;
-    await (_db.update(_db.visits)..where((v) => v.id.equals(entry.recordId)))
-        .write(VisitsCompanion(conflictId: Value(conflictId)));
+    if (removed == 0) return;
+    await _db.markHeld(entry.entityTable, entry.recordId, conflictId);
   }
+
+  /// Downloads the configuration for the area when it changed (M3 FE-2) and
+  /// keeps it in the encrypted database: the referral facilities, escalation
+  /// contacts and campaign rounds for later modules, and the Clinical Rules
+  /// Table, which the app uses when it is newer than the bundled copy.
+  Future<void> pullConfig(String token) async {
+    final have = await _db.readState(configVersionKey);
+    final config = await _api.config(token, have: have);
+    if (config['unchanged'] == true) return;
+    await _db.transaction(() async {
+      await _db.writeState(configKey, jsonEncode({for (final e in config.entries) if (e.key != 'clinicalRules') e.key: e.value}));
+      if (config['clinicalRules'] is Map) {
+        await _db.writeState(clinicalRulesKey, jsonEncode(config['clinicalRules']));
+      }
+      await _db.writeState(configVersionKey, config['configVersion'] as String);
+    });
+  }
+
+  static const String configVersionKey = 'config_version';
+  static const String configKey = 'config';
+  static const String clinicalRulesKey = 'clinical_rules';
 
   /// Pulls everything after the last server number seen; returns how many records came.
   Future<int> pull(String token) async {
@@ -167,6 +205,7 @@ class SyncService {
     if (queued != null) return;
 
     final d = record.data;
+    final version = Value(record.version);
     final createdOnDevice = record.createdOnDevice ?? DateTime.now().toUtc();
     final deletedAt = Value(record.deleted ? DateTime.now().toUtc() : null);
     final areaId = Value(record.areaId);
@@ -178,6 +217,8 @@ class SyncService {
               HouseholdsCompanion.insert(
                 id: record.id,
                 serverSeq: Value(record.serverSeq),
+                version: version,
+                conflictId: const Value(null),
                 areaId: areaId,
                 householdNumber: Value(d['householdNumber'] as String?),
                 address: Value(d['address'] as String?),
@@ -193,6 +234,8 @@ class SyncService {
               WomenCompanion.insert(
                 id: record.id,
                 serverSeq: Value(record.serverSeq),
+                version: version,
+                conflictId: const Value(null),
                 areaId: areaId,
                 createdOnDevice: createdOnDevice,
                 deletedAt: deletedAt,
@@ -209,6 +252,8 @@ class SyncService {
               PregnanciesCompanion.insert(
                 id: record.id,
                 serverSeq: Value(record.serverSeq),
+                version: version,
+                conflictId: const Value(null),
                 areaId: areaId,
                 createdOnDevice: createdOnDevice,
                 deletedAt: deletedAt,
@@ -217,6 +262,10 @@ class SyncService {
                 pregnancyMonthAtRegistration: d['pregnancyMonthAtRegistration'] as int,
                 status: Value(d['status'] as String? ?? 'active'),
                 closedOn: Value(d['closedOn'] as String?),
+                lmpDate: Value(d['lmpDate'] as String?),
+                reportedEdd: Value(d['reportedEdd'] as String?),
+                estimatedDeliveryDate: Value(d['estimatedDeliveryDate'] as String?),
+                eddBasis: Value(d['eddBasis'] as String?),
               ),
             );
       case 'obstetric_history':
@@ -224,6 +273,8 @@ class SyncService {
               ObstetricHistoryCompanion.insert(
                 id: record.id,
                 serverSeq: Value(record.serverSeq),
+                version: version,
+                conflictId: const Value(null),
                 areaId: areaId,
                 createdOnDevice: createdOnDevice,
                 deletedAt: deletedAt,
@@ -235,12 +286,13 @@ class SyncService {
               ),
             );
       case 'visits':
-        // A visit the server stores is no longer held: the supervisor decided
-        // (or it never was held). Kept as a duplicate, it arrives deleted.
+        // Every pulled record is no longer held: the supervisor decided (or it
+        // never was held).
         await _db.into(_db.visits).insertOnConflictUpdate(
               VisitsCompanion.insert(
                 id: record.id,
                 serverSeq: Value(record.serverSeq),
+                version: version,
                 areaId: areaId,
                 createdOnDevice: createdOnDevice,
                 deletedAt: deletedAt,
@@ -251,8 +303,8 @@ class SyncService {
                 weightKg: Value((d['weightKg'] as num?)?.toDouble()),
                 temperatureC: Value((d['temperatureC'] as num?)?.toDouble()),
                 pulseBpm: Value(d['pulseBpm'] as int?),
-                bloodSugarMmolL: Value((d['bloodSugarMmolL'] as num?)?.toDouble()),
-                bloodSugarEnteredUnit: Value(d['bloodSugarEnteredUnit'] as String?),
+                bloodSugarValue: Value((d['bloodSugarValue'] as num?)?.toDouble()),
+                bloodSugarUnit: Value(d['bloodSugarUnit'] as String?),
                 bloodSugarMeasuredOn: Value(d['bloodSugarMeasuredOn'] as String?),
                 bloodSugarSource: Value(d['bloodSugarSource'] as String?),
                 fetalMovement: Value(d['fetalMovement'] as String?),

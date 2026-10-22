@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../auth/local_account.dart';
+import '../clinical/gestational_age.dart';
 import '../location/distance.dart';
 import 'app_database.dart';
 import 'household_repository.dart';
@@ -17,6 +18,10 @@ class RegistrationInput {
     this.husbandName,
     this.contactNumber,
     required this.pregnancyMonth,
+    this.estimatedDeliveryDate,
+    this.eddBasis = EddBasis.month,
+    this.lmpDate,
+    this.reportedEdd,
     this.householdId,
     this.village,
     this.address,
@@ -33,6 +38,15 @@ class RegistrationInput {
   final String? husbandName;
   final String? contactNumber;
   final int pregnancyMonth;
+
+  /// M2 FE-1: the estimated delivery date and what it came from: the LMP date
+  /// ([lmpDate]), a known EDD ([reportedEdd]) or the month only. The form
+  /// calculates it with the Clinical Rules Table (GestationalAge). Without it
+  /// the server estimates it from the month, as the app would.
+  final DateTime? estimatedDeliveryDate;
+  final EddBasis eddBasis;
+  final DateTime? lmpDate;
+  final DateTime? reportedEdd;
 
   /// The home of an already registered woman, for a second woman in the same
   /// household. When null, a new household is made from [village], [address]
@@ -55,8 +69,8 @@ enum SyncStatus {
   waiting,
   refused,
 
-  /// The server holds the record for a supervisor's review: a visit on the same
-  /// day as another visit of the same pregnancy (M3 FE-2).
+  /// The server holds the record for a supervisor's review: an edit made on an
+  /// older version than the server's (M3 FE-2).
   held,
 }
 
@@ -97,10 +111,11 @@ class PatientRepository {
   final DateTime Function() _clock;
 
   /// Saves a registration made by [by], an LHW, and returns the woman with
-  /// her new patient ID: the LHW code plus this phone's counter (M2 FE-1).
+  /// her new patient ID, [LHW code]-[activation number]-[sequence], made on
+  /// this phone so it is unique before the first sync (M2 FE-1).
   Future<LocalWoman> register(RegistrationInput input, {required SessionUser by}) async {
-    final lhwCode = by.lhwCode;
-    if (lhwCode == null) throw StateError('Only an LHW can register a woman');
+    final prefix = by.patientCodePrefix;
+    if (prefix == null) throw StateError('Only an LHW can register a woman');
     final now = _clock();
     final createdOnDevice = now.toUtc();
 
@@ -122,14 +137,14 @@ class PatientRepository {
         householdId = household.id;
       }
 
-      final number = await _db.takePatientNumber(lhwCode);
+      final number = await _db.takePatientNumber(prefix, legacy: by.activationNumber == null);
       final woman = LocalWoman(
         id: _uuid.v4(),
         areaId: by.areaId,
         createdBy: by.id,
         createdOnDevice: createdOnDevice,
         householdId: householdId,
-        patientCode: '$lhwCode-${number.toString().padLeft(4, '0')}',
+        patientCode: '$prefix${number.toString().padLeft(4, '0')}',
         name: input.name,
         age: input.age,
         husbandName: input.husbandName,
@@ -147,6 +162,10 @@ class PatientRepository {
         registeredOn: calendarDate(now),
         pregnancyMonthAtRegistration: input.pregnancyMonth,
         status: 'active',
+        estimatedDeliveryDate: input.estimatedDeliveryDate == null ? null : calendarDate(input.estimatedDeliveryDate!),
+        eddBasis: input.estimatedDeliveryDate == null ? null : input.eddBasis.code,
+        lmpDate: input.lmpDate == null ? null : calendarDate(input.lmpDate!),
+        reportedEdd: input.reportedEdd == null ? null : calendarDate(input.reportedEdd!),
       );
       await _db.into(_db.pregnancies).insert(pregnancy);
       await _db.enqueue(pregnancyPayload(pregnancy), queuedAt: now);
@@ -167,6 +186,17 @@ class PatientRepository {
 
       return woman;
     });
+  }
+
+  /// Women already on this phone with the same name and husband's name (case
+  /// and spaces ignored): a woman is registered only once (M2 FE-1), so the
+  /// form warns before a second registration. The server also flags likely
+  /// duplicates for the supervisor (M3 FE-2).
+  Future<List<PatientSummary>> sameWoman({required String name, String? husbandName}) async {
+    String norm(String? text) => (text ?? '').trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    final wanted = (norm(name), norm(husbandName));
+    final all = await list();
+    return [for (final p in all) if ((norm(p.woman.name), norm(p.woman.husbandName)) == wanted) p];
   }
 
   /// The women on this phone, sorted by village and then by name (M2 FE-3).
@@ -257,10 +287,15 @@ class PatientRepository {
     return x.compareTo(y);
   }
 
-  // Records of [table] still in the outbox: waiting, or refused by the server.
+  // Records of [table] still in the outbox (waiting, or refused by the server),
+  // and those the server holds for the supervisor's review.
   Future<Map<String, SyncStatus>> _syncStatuses(String table) async {
     final entries = await (_db.select(_db.outbox)..where((o) => o.entityTable.equals(table))).get();
-    return {for (final e in entries) e.recordId: e.lastError == null ? SyncStatus.waiting : SyncStatus.refused};
+    final held = await (_db.select(_db.women)..where((w) => w.conflictId.isNotNull())).get();
+    return {
+      for (final w in held) w.id: SyncStatus.held,
+      for (final e in entries) e.recordId: e.lastError == null ? SyncStatus.waiting : SyncStatus.refused,
+    };
   }
 
   /// A calendar date as YYYY-MM-DD, as the server stores it.
@@ -295,6 +330,14 @@ class PatientRepository {
           'pregnancyMonthAtRegistration': p.pregnancyMonthAtRegistration,
           'status': p.status,
           'closedOn': p.closedOn,
+          // Left out for a pregnancy saved before they existed: the server then
+          // estimates the date from the month, as the app does.
+          if (p.estimatedDeliveryDate != null) ...{
+            'estimatedDeliveryDate': p.estimatedDeliveryDate,
+            'eddBasis': p.eddBasis,
+            'lmpDate': p.lmpDate,
+            'reportedEdd': p.reportedEdd,
+          },
         },
       );
 

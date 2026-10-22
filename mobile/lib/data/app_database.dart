@@ -7,8 +7,12 @@ part 'app_database.g.dart';
 // Every synced table carries the same base columns as on the server (roadmap,
 // Data model): `id` is a UUID v4 made on this device, `serverSeq` is filled in
 // once the server has accepted the record, `areaId` is the area the record was
-// made in (M1 FE-3) and `createdBy` the user who made it. `createdOnDevice` is
-// the device clock: shown to the user, never used to order records (LI-7).
+// made in (M1 FE-3) and `createdBy` the user who made it. `version` is the
+// server's version the local copy is based on (null until the server has it);
+// an edit is sent with it, and an edit made on an older version than the
+// server's waits for the supervisor (M3 FE-2). `conflictId` marks a record the
+// server holds for review. `createdOnDevice` is the device clock: shown to the
+// user, never used to order records (LI-7).
 
 /// Household with GPS (M2 FE-3), reused later by the polio and child modules.
 /// The registration form's village and address are stored here.
@@ -23,6 +27,8 @@ class Households extends Table {
   RealColumn get longitude => real().nullable()();
   DateTimeColumn get createdOnDevice => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
+  IntColumn get version => integer().nullable()();
+  TextColumn get conflictId => text().nullable()();
   TextColumn get areaId => text().nullable()();
   TextColumn get createdBy => text().nullable()();
 
@@ -40,6 +46,8 @@ class Women extends Table {
   TextColumn get createdBy => text().nullable()();
   DateTimeColumn get createdOnDevice => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
+  IntColumn get version => integer().nullable()();
+  TextColumn get conflictId => text().nullable()();
 
   /// No foreign key: a pulled woman can arrive before her household.
   TextColumn get householdId => text()();
@@ -63,6 +71,8 @@ class Pregnancies extends Table {
   TextColumn get createdBy => text().nullable()();
   DateTimeColumn get createdOnDevice => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
+  IntColumn get version => integer().nullable()();
+  TextColumn get conflictId => text().nullable()();
   TextColumn get womanId => text()();
 
   /// A calendar date, YYYY-MM-DD, as the server stores it.
@@ -70,6 +80,15 @@ class Pregnancies extends Table {
   IntColumn get pregnancyMonthAtRegistration => integer()();
   TextColumn get status => text().withDefault(const Constant('active'))();
   TextColumn get closedOn => text().nullable()();
+
+  /// M2 FE-1: the estimated delivery date (YYYY-MM-DD) and what it came from
+  /// (lmp, edd or month), with the LMP date or the known EDD. Null on a
+  /// pregnancy saved before 22 Oct 2026 until the server's copy arrives;
+  /// GestationalAge estimates it from the month meanwhile.
+  TextColumn get lmpDate => text().nullable()();
+  TextColumn get reportedEdd => text().nullable()();
+  TextColumn get estimatedDeliveryDate => text().nullable()();
+  TextColumn get eddBasis => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -84,6 +103,8 @@ class ObstetricHistory extends Table {
   TextColumn get createdBy => text().nullable()();
   DateTimeColumn get createdOnDevice => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
+  IntColumn get version => integer().nullable()();
+  TextColumn get conflictId => text().nullable()();
   TextColumn get womanId => text()();
   IntColumn get previousPregnancies => integer().withDefault(const Constant(0))();
   IntColumn get previousCSections => integer().withDefault(const Constant(0))();
@@ -105,6 +126,7 @@ class Visits extends Table {
   TextColumn get createdBy => text().nullable()();
   DateTimeColumn get createdOnDevice => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
+  IntColumn get version => integer().nullable()();
   TextColumn get pregnancyId => text()();
 
   /// Device clock: shown and counted, never used to order or resolve records (LI-7).
@@ -115,17 +137,16 @@ class Visits extends Table {
   RealColumn get temperatureC => real().nullable()();
   IntColumn get pulseBpm => integer().nullable()();
 
-  /// Always mmol/L (one unit per value); the form converts a value typed in mg/dL.
-  RealColumn get bloodSugarMmolL => real().nullable()();
-
-  /// The unit the LHW typed (mmol_l or mg_dl), the day it was measured
-  /// (YYYY-MM-DD) and its source (glucometer or lab_report); set only with a
-  /// blood sugar value (M3 FE-1, M4 FE-1).
-  TextColumn get bloodSugarEnteredUnit => text().nullable()();
+  /// Blood sugar in the unit it was recorded in (M3 FE-1): the value, its unit
+  /// (mmol_l or mg_dl), the day it was measured (YYYY-MM-DD) and its source
+  /// (glucometer or lab_report); the details are set only with a value.
+  RealColumn get bloodSugarValue => real().nullable()();
+  TextColumn get bloodSugarUnit => text().nullable()();
   TextColumn get bloodSugarMeasuredOn => text().nullable()();
   TextColumn get bloodSugarSource => text().nullable()();
 
-  /// normal, reduced or absent; null when not assessed.
+  /// normal, reduced or absent; null when not assessed, or not yet applicable
+  /// (before the gestational age in the Clinical Rules Table).
   TextColumn get fetalMovement => text().nullable()();
   BoolColumn get swelling => boolean().withDefault(const Constant(false))();
   BoolColumn get bleeding => boolean().withDefault(const Constant(false))();
@@ -144,9 +165,8 @@ class Visits extends Table {
   BoolColumn get fastBreathing => boolean().nullable()();
   BoolColumn get feverWithWeakness => boolean().nullable()();
 
-  /// Set when the server held this visit for supervisor review, because the
-  /// same pregnancy already had a visit that day (M3 FE-2). Cleared when the
-  /// supervisor's decision arrives by pull.
+  /// Set when the server holds this visit for supervisor review (M3 FE-2).
+  /// Cleared when the supervisor's decision arrives by pull.
   TextColumn get conflictId => text().nullable()();
 
   @override
@@ -219,9 +239,12 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   /// 1: households (P0-6). 2: women, pregnancies, obstetric history (M2) and the
-  /// area and creator of every record (M1 FE-3). 3: visits (M3).
+  /// area and creator of every record (M1 FE-3). 3: visits (M3). 4: blood sugar
+  /// details and the danger-sign checklist. 5: record versions and held
+  /// records on every table, the estimated delivery date, and blood sugar in
+  /// the unit it was recorded in (roadmap of 22 Oct 2026).
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -229,15 +252,43 @@ class AppDatabase extends _$AppDatabase {
       if (from < 2) {
         await m.addColumn(households, households.areaId);
         await m.addColumn(households, households.createdBy);
+        await m.addColumn(households, households.version);
+        await m.addColumn(households, households.conflictId);
         await m.createTable(women);
         await m.createTable(pregnancies);
         await m.createTable(obstetricHistory);
       }
+      if (from < 2) {
+        // created above with every column of the current version
+      } else if (from < 5) {
+        for (final (TableInfo table, List<GeneratedColumn> columns) in [
+          (households, [households.version, households.conflictId]),
+          (women, [women.version, women.conflictId]),
+          (obstetricHistory, [obstetricHistory.version, obstetricHistory.conflictId]),
+          (
+            pregnancies,
+            [
+              pregnancies.version,
+              pregnancies.conflictId,
+              pregnancies.lmpDate,
+              pregnancies.reportedEdd,
+              pregnancies.estimatedDeliveryDate,
+              pregnancies.eddBasis,
+            ],
+          ),
+        ]) {
+          for (final column in columns) {
+            await m.addColumn(table, column);
+          }
+        }
+      }
       if (from < 3) {
         await m.createTable(visits); // with every column of the current version
       } else if (from < 4) {
-        for (final column in [
-          visits.bloodSugarEnteredUnit,
+        // Version 3 to 5: the checklist, the blood sugar details and the version.
+        await m.alterTable(TableMigration(visits, newColumns: [
+          visits.bloodSugarValue,
+          visits.bloodSugarUnit,
           visits.bloodSugarMeasuredOn,
           visits.bloodSugarSource,
           visits.convulsions,
@@ -246,12 +297,51 @@ class AppDatabase extends _$AppDatabase {
           visits.severeAbdominalPain,
           visits.fastBreathing,
           visits.feverWithWeakness,
-        ]) {
-          await m.addColumn(visits, column);
-        }
+          visits.version,
+        ], columnTransformer: {
+          visits.bloodSugarValue: const CustomExpression<double>('blood_sugar_mmol_l'),
+          visits.bloodSugarUnit: const CustomExpression<String>(
+            "CASE WHEN blood_sugar_mmol_l IS NULL THEN NULL ELSE 'mmol_l' END",
+          ),
+        }));
+      } else if (from < 5) {
+        // A mg/dL reading was kept in mmol/L: give it back its own unit.
+        await m.alterTable(TableMigration(visits, newColumns: [
+          visits.bloodSugarValue,
+          visits.bloodSugarUnit,
+          visits.version,
+        ], columnTransformer: {
+          visits.bloodSugarValue: CustomExpression<double>(
+            "CASE WHEN blood_sugar_entered_unit = 'mg_dl' THEN round(blood_sugar_mmol_l * $_mgDlPerMmolL) "
+            'ELSE blood_sugar_mmol_l END',
+          ),
+          visits.bloodSugarUnit: const CustomExpression<String>(
+            "CASE WHEN blood_sugar_mmol_l IS NULL THEN NULL ELSE coalesce(blood_sugar_entered_unit, 'mmol_l') END",
+          ),
+        }));
       }
+      if (from >= 3 && from < 5) await _upgradeQueuedVisits();
     },
   );
+
+  // The factor of the Clinical Rules Table when version 5 came (blood_sugar_conversion).
+  static const double _mgDlPerMmolL = 18.0;
+
+  /// Visits queued before version 5 still carry the old blood sugar fields; the
+  /// server takes the value in its recorded unit now (docs/openapi.yaml, VisitData).
+  Future<void> _upgradeQueuedVisits() async {
+    final rows = await customSelect("SELECT id, payload FROM outbox WHERE entity_table = 'visits'").get();
+    for (final row in rows) {
+      final payload = jsonDecode(row.read<String>('payload')) as Map<String, dynamic>;
+      final data = Map<String, dynamic>.from(payload['data'] as Map);
+      final mmol = (data.remove('bloodSugarMmolL') as num?)?.toDouble();
+      final unit = data.remove('bloodSugarEnteredUnit') as String?;
+      data['bloodSugarValue'] = mmol == null ? null : (unit == 'mg_dl' ? (mmol * _mgDlPerMmolL).roundToDouble() : mmol);
+      data['bloodSugarUnit'] = mmol == null ? null : (unit ?? 'mmol_l');
+      payload['data'] = data;
+      await customStatement('UPDATE outbox SET payload = ? WHERE id = ?', [jsonEncode(payload), row.read<int>('id')]);
+    }
+  }
 
   /// The synced tables by server name, parents before children: the order the
   /// outbox fills when a whole registration is saved at once.
@@ -296,12 +386,44 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  /// Stores the number the server gave a pushed record.
-  Future<void> setServerSeq(String table, String id, int serverSeq) async {
+  /// Stores the number the server gave a pushed record, and its version there.
+  Future<void> setServerSeq(String table, String id, int serverSeq, {int? version}) async {
     final target = _syncedTable(table);
     await customUpdate(
-      'UPDATE ${target.actualTableName} SET server_seq = ? WHERE id = ?',
-      variables: [Variable.withInt(serverSeq), Variable.withString(id)],
+      'UPDATE ${target.actualTableName} SET server_seq = ?, version = coalesce(?, version) WHERE id = ?',
+      variables: [Variable.withInt(serverSeq), Variable<int>(version), Variable.withString(id)],
+      updates: {target},
+    );
+  }
+
+  /// Stores the server's version of a record without marking it synced: the
+  /// server accepted an edit while a newer one was queued, which is now based on it.
+  Future<void> setVersion(String table, String id, int version) async {
+    final target = _syncedTable(table);
+    await customUpdate(
+      'UPDATE ${target.actualTableName} SET version = ? WHERE id = ?',
+      variables: [Variable.withInt(version), Variable.withString(id)],
+      updates: {target},
+    );
+  }
+
+  /// The server version a local record is based on, or null if the server does not have it yet.
+  Future<int?> versionOf(String table, String id) async {
+    final target = _syncedTable(table);
+    final row = await customSelect(
+      'SELECT version FROM ${target.actualTableName} WHERE id = ?',
+      variables: [Variable.withString(id)],
+      readsFrom: {target},
+    ).getSingleOrNull();
+    return row?.read<int?>('version');
+  }
+
+  /// Marks a record the server holds for the supervisor's review (M3 FE-2).
+  Future<void> markHeld(String table, String id, String conflictId) async {
+    final target = _syncedTable(table);
+    await customUpdate(
+      'UPDATE ${target.actualTableName} SET conflict_id = ? WHERE id = ?',
+      variables: [Variable.withString(conflictId), Variable.withString(id)],
       updates: {target},
     );
   }
@@ -361,18 +483,24 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// Makes sure the next patient number is above [lastUsed], the highest
-  /// number the server knows for this LHW (M2 FE-1).
+  /// number the server knows for this LHW in the format without an activation
+  /// number (M2 FE-1).
   Future<void> raisePatientCounter(int lastUsed) => transaction(() async {
         final current = int.tryParse(await readState(_patientCounterKey) ?? '') ?? 0;
         if (lastUsed > current) await writeState(_patientCounterKey, '$lastUsed');
       });
 
-  /// The next patient number for [lhwCode], counted on this phone (M2 FE-1).
-  /// It is above the saved counter and above every patient ID with this code
-  /// already on the phone. Call it inside the transaction that saves the woman.
-  Future<int> takePatientNumber(String lhwCode) async {
-    var last = int.tryParse(await readState(_patientCounterKey) ?? '') ?? 0;
-    final prefix = '$lhwCode-';
+  /// The next sequence number after [prefix], counted on this phone (M2 FE-1).
+  /// The prefix is [LHW code]-[activation number]- (or [LHW code]- before the
+  /// phone knows its activation number), and each prefix has its own counter.
+  /// The number is above the saved counter and above every patient ID with
+  /// this prefix already on the phone. Call it inside the transaction that
+  /// saves the woman.
+  /// [legacy] is the format without an activation number, whose counter
+  /// [raisePatientCounter] keeps.
+  Future<int> takePatientNumber(String prefix, {bool legacy = false}) async {
+    final counterKey = legacy ? _patientCounterKey : '$_patientCounterKey:$prefix';
+    var last = int.tryParse(await readState(counterKey) ?? '') ?? 0;
     final codes = await (selectOnly(women)
           ..addColumns([women.patientCode])
           ..where(women.patientCode.like('${_escapeLike(prefix)}%', escapeChar: r'\')))
@@ -383,7 +511,7 @@ class AppDatabase extends _$AppDatabase {
       if (number != null && number > last) last = number;
     }
     final next = last + 1;
-    await writeState(_patientCounterKey, '$next');
+    await writeState(counterKey, '$next');
     return next;
   }
 

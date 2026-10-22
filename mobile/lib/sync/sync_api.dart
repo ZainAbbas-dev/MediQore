@@ -38,6 +38,7 @@ class PulledRecord {
     required this.data,
     this.areaId,
     this.createdOnDevice,
+    this.version,
   });
 
   factory PulledRecord.fromJson(Map<String, dynamic> json) => PulledRecord(
@@ -45,6 +46,7 @@ class PulledRecord {
         id: json['id'] as String,
         areaId: json['areaId'] as String?,
         serverSeq: json['serverSeq'] as int,
+        version: json['version'] as int?,
         deleted: json['deleted'] as bool,
         data: Map<String, dynamic>.from(json['data'] as Map),
         createdOnDevice: json['createdOnDevice'] == null ? null : DateTime.parse(json['createdOnDevice'] as String),
@@ -56,6 +58,9 @@ class PulledRecord {
   /// The area the record is filed under (M1 FE-3).
   final String? areaId;
   final int serverSeq;
+
+  /// The record's version on the server (M3 FE-2).
+  final int? version;
   final bool deleted;
   final Map<String, dynamic> data;
   final DateTime? createdOnDevice;
@@ -82,7 +87,11 @@ class AuthTokens {
   factory AuthTokens.fromJson(Map<String, dynamic> json) => AuthTokens(
     accessToken: json['accessToken'] as String,
     refreshToken: json['refreshToken'] as String,
-    user: SessionUser.fromJson(Map<String, dynamic>.from(json['user'] as Map)),
+    // The phone's activation number comes beside the profile (M2 FE-1).
+    user: SessionUser.fromJson({
+      ...Map<String, dynamic>.from(json['user'] as Map),
+      'activationNumber': json['activationNumber'],
+    }),
     supervisors: [
       for (final s in (json['supervisors'] as List? ?? const []))
         Supervisor.fromJson(Map<String, dynamic>.from(s as Map)),
@@ -156,6 +165,12 @@ class SyncApi {
       body['hasMore'] as bool,
     );
   }
+
+  /// M3 FE-2: the referral facilities, escalation contacts, campaign rounds and
+  /// Clinical Rules Table for the LHW's area. With [have], an unchanged
+  /// configuration comes back as its hash only (`unchanged: true`).
+  Future<Map<String, dynamic>> config(String token, {String? have}) =>
+      _send('GET', have == null ? '/sync/config' : '/sync/config?have=$have', token: token);
 
   Future<Map<String, dynamic>> _send(String method, String path, {String? token, Object? body}) async {
     final request = http.Request(method, Uri.parse('$baseUrl$path'))

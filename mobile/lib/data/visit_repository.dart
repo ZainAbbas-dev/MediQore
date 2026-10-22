@@ -9,8 +9,8 @@ import 'app_database.dart';
 import 'patient_repository.dart';
 
 /// What the visit form collects (M3 FE-1). Units: BP in mmHg, weight in kg,
-/// temperature in °C, pulse in beats per minute, blood sugar in mmol/L (with
-/// the unit typed, the day measured and the source). The danger-sign checklist
+/// temperature in °C, pulse in beats per minute, blood sugar in the unit it was
+/// recorded in (with that unit, the day measured and the source). The danger-sign checklist
 /// answers are null only for a visit where they were not asked.
 class VisitInput {
   const VisitInput({
@@ -20,8 +20,8 @@ class VisitInput {
     this.weightKg,
     this.temperatureC,
     this.pulseBpm,
-    this.bloodSugarMmolL,
-    this.bloodSugarEnteredUnit,
+    this.bloodSugarValue,
+    this.bloodSugarUnit,
     this.bloodSugarMeasuredOn,
     this.bloodSugarSource,
     this.fetalMovement,
@@ -44,10 +44,11 @@ class VisitInput {
   final double? weightKg;
   final double? temperatureC;
   final int? pulseBpm;
-  final double? bloodSugarMmolL;
+  /// Blood sugar in the unit it was recorded in (M3 FE-1).
+  final double? bloodSugarValue;
 
   /// mmol_l or mg_dl.
-  final String? bloodSugarEnteredUnit;
+  final String? bloodSugarUnit;
 
   /// YYYY-MM-DD.
   final String? bloodSugarMeasuredOn;
@@ -116,10 +117,10 @@ class VisitRepository {
       weightKg: input.weightKg,
       temperatureC: input.temperatureC,
       pulseBpm: input.pulseBpm,
-      bloodSugarMmolL: input.bloodSugarMmolL,
-      bloodSugarEnteredUnit: input.bloodSugarMmolL == null ? null : input.bloodSugarEnteredUnit,
-      bloodSugarMeasuredOn: input.bloodSugarMmolL == null ? null : input.bloodSugarMeasuredOn,
-      bloodSugarSource: input.bloodSugarMmolL == null ? null : input.bloodSugarSource,
+      bloodSugarValue: input.bloodSugarValue,
+      bloodSugarUnit: input.bloodSugarValue == null ? null : input.bloodSugarUnit,
+      bloodSugarMeasuredOn: input.bloodSugarValue == null ? null : input.bloodSugarMeasuredOn,
+      bloodSugarSource: input.bloodSugarValue == null ? null : input.bloodSugarSource,
       fetalMovement: input.fetalMovement,
       swelling: input.swelling,
       bleeding: input.bleeding,
@@ -216,8 +217,8 @@ class VisitRepository {
       'weightKg': v.weightKg,
       'temperatureC': v.temperatureC,
       'pulseBpm': v.pulseBpm,
-      'bloodSugarMmolL': v.bloodSugarMmolL,
-      'bloodSugarEnteredUnit': v.bloodSugarEnteredUnit,
+      'bloodSugarValue': v.bloodSugarValue,
+      'bloodSugarUnit': v.bloodSugarUnit,
       'bloodSugarMeasuredOn': v.bloodSugarMeasuredOn,
       'bloodSugarSource': v.bloodSugarSource,
       'fetalMovement': v.fetalMovement,

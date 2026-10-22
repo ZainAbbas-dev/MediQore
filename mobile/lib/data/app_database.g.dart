@@ -107,6 +107,28 @@ class $HouseholdsTable extends Households
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _conflictIdMeta = const VerificationMeta(
+    'conflictId',
+  );
+  @override
+  late final GeneratedColumn<String> conflictId = GeneratedColumn<String>(
+    'conflict_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _areaIdMeta = const VerificationMeta('areaId');
   @override
   late final GeneratedColumn<String> areaId = GeneratedColumn<String>(
@@ -138,6 +160,8 @@ class $HouseholdsTable extends Households
     longitude,
     createdOnDevice,
     deletedAt,
+    version,
+    conflictId,
     areaId,
     createdBy,
   ];
@@ -214,6 +238,18 @@ class $HouseholdsTable extends Households
         deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
       );
     }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('conflict_id')) {
+      context.handle(
+        _conflictIdMeta,
+        conflictId.isAcceptableOrUnknown(data['conflict_id']!, _conflictIdMeta),
+      );
+    }
     if (data.containsKey('area_id')) {
       context.handle(
         _areaIdMeta,
@@ -271,6 +307,14 @@ class $HouseholdsTable extends Households
         DriftSqlType.dateTime,
         data['${effectivePrefix}deleted_at'],
       ),
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      ),
+      conflictId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}conflict_id'],
+      ),
       areaId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}area_id'],
@@ -298,6 +342,8 @@ class LocalHousehold extends DataClass implements Insertable<LocalHousehold> {
   final double? longitude;
   final DateTime createdOnDevice;
   final DateTime? deletedAt;
+  final int? version;
+  final String? conflictId;
   final String? areaId;
   final String? createdBy;
   const LocalHousehold({
@@ -310,6 +356,8 @@ class LocalHousehold extends DataClass implements Insertable<LocalHousehold> {
     this.longitude,
     required this.createdOnDevice,
     this.deletedAt,
+    this.version,
+    this.conflictId,
     this.areaId,
     this.createdBy,
   });
@@ -338,6 +386,12 @@ class LocalHousehold extends DataClass implements Insertable<LocalHousehold> {
     map['created_on_device'] = Variable<DateTime>(createdOnDevice);
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || version != null) {
+      map['version'] = Variable<int>(version);
+    }
+    if (!nullToAbsent || conflictId != null) {
+      map['conflict_id'] = Variable<String>(conflictId);
     }
     if (!nullToAbsent || areaId != null) {
       map['area_id'] = Variable<String>(areaId);
@@ -373,6 +427,12 @@ class LocalHousehold extends DataClass implements Insertable<LocalHousehold> {
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(deletedAt),
+      version: version == null && nullToAbsent
+          ? const Value.absent()
+          : Value(version),
+      conflictId: conflictId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(conflictId),
       areaId: areaId == null && nullToAbsent
           ? const Value.absent()
           : Value(areaId),
@@ -397,6 +457,8 @@ class LocalHousehold extends DataClass implements Insertable<LocalHousehold> {
       longitude: serializer.fromJson<double?>(json['longitude']),
       createdOnDevice: serializer.fromJson<DateTime>(json['createdOnDevice']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      version: serializer.fromJson<int?>(json['version']),
+      conflictId: serializer.fromJson<String?>(json['conflictId']),
       areaId: serializer.fromJson<String?>(json['areaId']),
       createdBy: serializer.fromJson<String?>(json['createdBy']),
     );
@@ -414,6 +476,8 @@ class LocalHousehold extends DataClass implements Insertable<LocalHousehold> {
       'longitude': serializer.toJson<double?>(longitude),
       'createdOnDevice': serializer.toJson<DateTime>(createdOnDevice),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'version': serializer.toJson<int?>(version),
+      'conflictId': serializer.toJson<String?>(conflictId),
       'areaId': serializer.toJson<String?>(areaId),
       'createdBy': serializer.toJson<String?>(createdBy),
     };
@@ -429,6 +493,8 @@ class LocalHousehold extends DataClass implements Insertable<LocalHousehold> {
     Value<double?> longitude = const Value.absent(),
     DateTime? createdOnDevice,
     Value<DateTime?> deletedAt = const Value.absent(),
+    Value<int?> version = const Value.absent(),
+    Value<String?> conflictId = const Value.absent(),
     Value<String?> areaId = const Value.absent(),
     Value<String?> createdBy = const Value.absent(),
   }) => LocalHousehold(
@@ -443,6 +509,8 @@ class LocalHousehold extends DataClass implements Insertable<LocalHousehold> {
     longitude: longitude.present ? longitude.value : this.longitude,
     createdOnDevice: createdOnDevice ?? this.createdOnDevice,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    version: version.present ? version.value : this.version,
+    conflictId: conflictId.present ? conflictId.value : this.conflictId,
     areaId: areaId.present ? areaId.value : this.areaId,
     createdBy: createdBy.present ? createdBy.value : this.createdBy,
   );
@@ -461,6 +529,10 @@ class LocalHousehold extends DataClass implements Insertable<LocalHousehold> {
           ? data.createdOnDevice.value
           : this.createdOnDevice,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      version: data.version.present ? data.version.value : this.version,
+      conflictId: data.conflictId.present
+          ? data.conflictId.value
+          : this.conflictId,
       areaId: data.areaId.present ? data.areaId.value : this.areaId,
       createdBy: data.createdBy.present ? data.createdBy.value : this.createdBy,
     );
@@ -478,6 +550,8 @@ class LocalHousehold extends DataClass implements Insertable<LocalHousehold> {
           ..write('longitude: $longitude, ')
           ..write('createdOnDevice: $createdOnDevice, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('version: $version, ')
+          ..write('conflictId: $conflictId, ')
           ..write('areaId: $areaId, ')
           ..write('createdBy: $createdBy')
           ..write(')'))
@@ -495,6 +569,8 @@ class LocalHousehold extends DataClass implements Insertable<LocalHousehold> {
     longitude,
     createdOnDevice,
     deletedAt,
+    version,
+    conflictId,
     areaId,
     createdBy,
   );
@@ -511,6 +587,8 @@ class LocalHousehold extends DataClass implements Insertable<LocalHousehold> {
           other.longitude == this.longitude &&
           other.createdOnDevice == this.createdOnDevice &&
           other.deletedAt == this.deletedAt &&
+          other.version == this.version &&
+          other.conflictId == this.conflictId &&
           other.areaId == this.areaId &&
           other.createdBy == this.createdBy);
 }
@@ -525,6 +603,8 @@ class HouseholdsCompanion extends UpdateCompanion<LocalHousehold> {
   final Value<double?> longitude;
   final Value<DateTime> createdOnDevice;
   final Value<DateTime?> deletedAt;
+  final Value<int?> version;
+  final Value<String?> conflictId;
   final Value<String?> areaId;
   final Value<String?> createdBy;
   final Value<int> rowid;
@@ -538,6 +618,8 @@ class HouseholdsCompanion extends UpdateCompanion<LocalHousehold> {
     this.longitude = const Value.absent(),
     this.createdOnDevice = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.version = const Value.absent(),
+    this.conflictId = const Value.absent(),
     this.areaId = const Value.absent(),
     this.createdBy = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -552,6 +634,8 @@ class HouseholdsCompanion extends UpdateCompanion<LocalHousehold> {
     this.longitude = const Value.absent(),
     required DateTime createdOnDevice,
     this.deletedAt = const Value.absent(),
+    this.version = const Value.absent(),
+    this.conflictId = const Value.absent(),
     this.areaId = const Value.absent(),
     this.createdBy = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -567,6 +651,8 @@ class HouseholdsCompanion extends UpdateCompanion<LocalHousehold> {
     Expression<double>? longitude,
     Expression<DateTime>? createdOnDevice,
     Expression<DateTime>? deletedAt,
+    Expression<int>? version,
+    Expression<String>? conflictId,
     Expression<String>? areaId,
     Expression<String>? createdBy,
     Expression<int>? rowid,
@@ -581,6 +667,8 @@ class HouseholdsCompanion extends UpdateCompanion<LocalHousehold> {
       if (longitude != null) 'longitude': longitude,
       if (createdOnDevice != null) 'created_on_device': createdOnDevice,
       if (deletedAt != null) 'deleted_at': deletedAt,
+      if (version != null) 'version': version,
+      if (conflictId != null) 'conflict_id': conflictId,
       if (areaId != null) 'area_id': areaId,
       if (createdBy != null) 'created_by': createdBy,
       if (rowid != null) 'rowid': rowid,
@@ -597,6 +685,8 @@ class HouseholdsCompanion extends UpdateCompanion<LocalHousehold> {
     Value<double?>? longitude,
     Value<DateTime>? createdOnDevice,
     Value<DateTime?>? deletedAt,
+    Value<int?>? version,
+    Value<String?>? conflictId,
     Value<String?>? areaId,
     Value<String?>? createdBy,
     Value<int>? rowid,
@@ -611,6 +701,8 @@ class HouseholdsCompanion extends UpdateCompanion<LocalHousehold> {
       longitude: longitude ?? this.longitude,
       createdOnDevice: createdOnDevice ?? this.createdOnDevice,
       deletedAt: deletedAt ?? this.deletedAt,
+      version: version ?? this.version,
+      conflictId: conflictId ?? this.conflictId,
       areaId: areaId ?? this.areaId,
       createdBy: createdBy ?? this.createdBy,
       rowid: rowid ?? this.rowid,
@@ -647,6 +739,12 @@ class HouseholdsCompanion extends UpdateCompanion<LocalHousehold> {
     if (deletedAt.present) {
       map['deleted_at'] = Variable<DateTime>(deletedAt.value);
     }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (conflictId.present) {
+      map['conflict_id'] = Variable<String>(conflictId.value);
+    }
     if (areaId.present) {
       map['area_id'] = Variable<String>(areaId.value);
     }
@@ -671,6 +769,8 @@ class HouseholdsCompanion extends UpdateCompanion<LocalHousehold> {
           ..write('longitude: $longitude, ')
           ..write('createdOnDevice: $createdOnDevice, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('version: $version, ')
+          ..write('conflictId: $conflictId, ')
           ..write('areaId: $areaId, ')
           ..write('createdBy: $createdBy, ')
           ..write('rowid: $rowid')
@@ -747,6 +847,28 @@ class $WomenTable extends Women with TableInfo<$WomenTable, LocalWoman> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _conflictIdMeta = const VerificationMeta(
+    'conflictId',
+  );
+  @override
+  late final GeneratedColumn<String> conflictId = GeneratedColumn<String>(
+    'conflict_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _householdIdMeta = const VerificationMeta(
     'householdId',
   );
@@ -817,6 +939,8 @@ class $WomenTable extends Women with TableInfo<$WomenTable, LocalWoman> {
     createdBy,
     createdOnDevice,
     deletedAt,
+    version,
+    conflictId,
     householdId,
     patientCode,
     name,
@@ -874,6 +998,18 @@ class $WomenTable extends Women with TableInfo<$WomenTable, LocalWoman> {
       context.handle(
         _deletedAtMeta,
         deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('conflict_id')) {
+      context.handle(
+        _conflictIdMeta,
+        conflictId.isAcceptableOrUnknown(data['conflict_id']!, _conflictIdMeta),
       );
     }
     if (data.containsKey('household_id')) {
@@ -963,6 +1099,14 @@ class $WomenTable extends Women with TableInfo<$WomenTable, LocalWoman> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}deleted_at'],
       ),
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      ),
+      conflictId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}conflict_id'],
+      ),
       householdId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}household_id'],
@@ -1003,6 +1147,8 @@ class LocalWoman extends DataClass implements Insertable<LocalWoman> {
   final String? createdBy;
   final DateTime createdOnDevice;
   final DateTime? deletedAt;
+  final int? version;
+  final String? conflictId;
 
   /// No foreign key: a pulled woman can arrive before her household.
   final String householdId;
@@ -1018,6 +1164,8 @@ class LocalWoman extends DataClass implements Insertable<LocalWoman> {
     this.createdBy,
     required this.createdOnDevice,
     this.deletedAt,
+    this.version,
+    this.conflictId,
     required this.householdId,
     required this.patientCode,
     required this.name,
@@ -1041,6 +1189,12 @@ class LocalWoman extends DataClass implements Insertable<LocalWoman> {
     map['created_on_device'] = Variable<DateTime>(createdOnDevice);
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || version != null) {
+      map['version'] = Variable<int>(version);
+    }
+    if (!nullToAbsent || conflictId != null) {
+      map['conflict_id'] = Variable<String>(conflictId);
     }
     map['household_id'] = Variable<String>(householdId);
     map['patient_code'] = Variable<String>(patientCode);
@@ -1073,6 +1227,12 @@ class LocalWoman extends DataClass implements Insertable<LocalWoman> {
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(deletedAt),
+      version: version == null && nullToAbsent
+          ? const Value.absent()
+          : Value(version),
+      conflictId: conflictId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(conflictId),
       householdId: Value(householdId),
       patientCode: Value(patientCode),
       name: Value(name),
@@ -1098,6 +1258,8 @@ class LocalWoman extends DataClass implements Insertable<LocalWoman> {
       createdBy: serializer.fromJson<String?>(json['createdBy']),
       createdOnDevice: serializer.fromJson<DateTime>(json['createdOnDevice']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      version: serializer.fromJson<int?>(json['version']),
+      conflictId: serializer.fromJson<String?>(json['conflictId']),
       householdId: serializer.fromJson<String>(json['householdId']),
       patientCode: serializer.fromJson<String>(json['patientCode']),
       name: serializer.fromJson<String>(json['name']),
@@ -1116,6 +1278,8 @@ class LocalWoman extends DataClass implements Insertable<LocalWoman> {
       'createdBy': serializer.toJson<String?>(createdBy),
       'createdOnDevice': serializer.toJson<DateTime>(createdOnDevice),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'version': serializer.toJson<int?>(version),
+      'conflictId': serializer.toJson<String?>(conflictId),
       'householdId': serializer.toJson<String>(householdId),
       'patientCode': serializer.toJson<String>(patientCode),
       'name': serializer.toJson<String>(name),
@@ -1132,6 +1296,8 @@ class LocalWoman extends DataClass implements Insertable<LocalWoman> {
     Value<String?> createdBy = const Value.absent(),
     DateTime? createdOnDevice,
     Value<DateTime?> deletedAt = const Value.absent(),
+    Value<int?> version = const Value.absent(),
+    Value<String?> conflictId = const Value.absent(),
     String? householdId,
     String? patientCode,
     String? name,
@@ -1145,6 +1311,8 @@ class LocalWoman extends DataClass implements Insertable<LocalWoman> {
     createdBy: createdBy.present ? createdBy.value : this.createdBy,
     createdOnDevice: createdOnDevice ?? this.createdOnDevice,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    version: version.present ? version.value : this.version,
+    conflictId: conflictId.present ? conflictId.value : this.conflictId,
     householdId: householdId ?? this.householdId,
     patientCode: patientCode ?? this.patientCode,
     name: name ?? this.name,
@@ -1164,6 +1332,10 @@ class LocalWoman extends DataClass implements Insertable<LocalWoman> {
           ? data.createdOnDevice.value
           : this.createdOnDevice,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      version: data.version.present ? data.version.value : this.version,
+      conflictId: data.conflictId.present
+          ? data.conflictId.value
+          : this.conflictId,
       householdId: data.householdId.present
           ? data.householdId.value
           : this.householdId,
@@ -1190,6 +1362,8 @@ class LocalWoman extends DataClass implements Insertable<LocalWoman> {
           ..write('createdBy: $createdBy, ')
           ..write('createdOnDevice: $createdOnDevice, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('version: $version, ')
+          ..write('conflictId: $conflictId, ')
           ..write('householdId: $householdId, ')
           ..write('patientCode: $patientCode, ')
           ..write('name: $name, ')
@@ -1208,6 +1382,8 @@ class LocalWoman extends DataClass implements Insertable<LocalWoman> {
     createdBy,
     createdOnDevice,
     deletedAt,
+    version,
+    conflictId,
     householdId,
     patientCode,
     name,
@@ -1225,6 +1401,8 @@ class LocalWoman extends DataClass implements Insertable<LocalWoman> {
           other.createdBy == this.createdBy &&
           other.createdOnDevice == this.createdOnDevice &&
           other.deletedAt == this.deletedAt &&
+          other.version == this.version &&
+          other.conflictId == this.conflictId &&
           other.householdId == this.householdId &&
           other.patientCode == this.patientCode &&
           other.name == this.name &&
@@ -1240,6 +1418,8 @@ class WomenCompanion extends UpdateCompanion<LocalWoman> {
   final Value<String?> createdBy;
   final Value<DateTime> createdOnDevice;
   final Value<DateTime?> deletedAt;
+  final Value<int?> version;
+  final Value<String?> conflictId;
   final Value<String> householdId;
   final Value<String> patientCode;
   final Value<String> name;
@@ -1254,6 +1434,8 @@ class WomenCompanion extends UpdateCompanion<LocalWoman> {
     this.createdBy = const Value.absent(),
     this.createdOnDevice = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.version = const Value.absent(),
+    this.conflictId = const Value.absent(),
     this.householdId = const Value.absent(),
     this.patientCode = const Value.absent(),
     this.name = const Value.absent(),
@@ -1269,6 +1451,8 @@ class WomenCompanion extends UpdateCompanion<LocalWoman> {
     this.createdBy = const Value.absent(),
     required DateTime createdOnDevice,
     this.deletedAt = const Value.absent(),
+    this.version = const Value.absent(),
+    this.conflictId = const Value.absent(),
     required String householdId,
     required String patientCode,
     required String name,
@@ -1288,6 +1472,8 @@ class WomenCompanion extends UpdateCompanion<LocalWoman> {
     Expression<String>? createdBy,
     Expression<DateTime>? createdOnDevice,
     Expression<DateTime>? deletedAt,
+    Expression<int>? version,
+    Expression<String>? conflictId,
     Expression<String>? householdId,
     Expression<String>? patientCode,
     Expression<String>? name,
@@ -1303,6 +1489,8 @@ class WomenCompanion extends UpdateCompanion<LocalWoman> {
       if (createdBy != null) 'created_by': createdBy,
       if (createdOnDevice != null) 'created_on_device': createdOnDevice,
       if (deletedAt != null) 'deleted_at': deletedAt,
+      if (version != null) 'version': version,
+      if (conflictId != null) 'conflict_id': conflictId,
       if (householdId != null) 'household_id': householdId,
       if (patientCode != null) 'patient_code': patientCode,
       if (name != null) 'name': name,
@@ -1320,6 +1508,8 @@ class WomenCompanion extends UpdateCompanion<LocalWoman> {
     Value<String?>? createdBy,
     Value<DateTime>? createdOnDevice,
     Value<DateTime?>? deletedAt,
+    Value<int?>? version,
+    Value<String?>? conflictId,
     Value<String>? householdId,
     Value<String>? patientCode,
     Value<String>? name,
@@ -1335,6 +1525,8 @@ class WomenCompanion extends UpdateCompanion<LocalWoman> {
       createdBy: createdBy ?? this.createdBy,
       createdOnDevice: createdOnDevice ?? this.createdOnDevice,
       deletedAt: deletedAt ?? this.deletedAt,
+      version: version ?? this.version,
+      conflictId: conflictId ?? this.conflictId,
       householdId: householdId ?? this.householdId,
       patientCode: patientCode ?? this.patientCode,
       name: name ?? this.name,
@@ -1365,6 +1557,12 @@ class WomenCompanion extends UpdateCompanion<LocalWoman> {
     }
     if (deletedAt.present) {
       map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (conflictId.present) {
+      map['conflict_id'] = Variable<String>(conflictId.value);
     }
     if (householdId.present) {
       map['household_id'] = Variable<String>(householdId.value);
@@ -1399,6 +1597,8 @@ class WomenCompanion extends UpdateCompanion<LocalWoman> {
           ..write('createdBy: $createdBy, ')
           ..write('createdOnDevice: $createdOnDevice, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('version: $version, ')
+          ..write('conflictId: $conflictId, ')
           ..write('householdId: $householdId, ')
           ..write('patientCode: $patientCode, ')
           ..write('name: $name, ')
@@ -1480,6 +1680,28 @@ class $PregnanciesTable extends Pregnancies
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _conflictIdMeta = const VerificationMeta(
+    'conflictId',
+  );
+  @override
+  late final GeneratedColumn<String> conflictId = GeneratedColumn<String>(
+    'conflict_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _womanIdMeta = const VerificationMeta(
     'womanId',
   );
@@ -1534,6 +1756,50 @@ class $PregnanciesTable extends Pregnancies
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _lmpDateMeta = const VerificationMeta(
+    'lmpDate',
+  );
+  @override
+  late final GeneratedColumn<String> lmpDate = GeneratedColumn<String>(
+    'lmp_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _reportedEddMeta = const VerificationMeta(
+    'reportedEdd',
+  );
+  @override
+  late final GeneratedColumn<String> reportedEdd = GeneratedColumn<String>(
+    'reported_edd',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _estimatedDeliveryDateMeta =
+      const VerificationMeta('estimatedDeliveryDate');
+  @override
+  late final GeneratedColumn<String> estimatedDeliveryDate =
+      GeneratedColumn<String>(
+        'estimated_delivery_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _eddBasisMeta = const VerificationMeta(
+    'eddBasis',
+  );
+  @override
+  late final GeneratedColumn<String> eddBasis = GeneratedColumn<String>(
+    'edd_basis',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1542,11 +1808,17 @@ class $PregnanciesTable extends Pregnancies
     createdBy,
     createdOnDevice,
     deletedAt,
+    version,
+    conflictId,
     womanId,
     registeredOn,
     pregnancyMonthAtRegistration,
     status,
     closedOn,
+    lmpDate,
+    reportedEdd,
+    estimatedDeliveryDate,
+    eddBasis,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1600,6 +1872,18 @@ class $PregnanciesTable extends Pregnancies
         deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
       );
     }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('conflict_id')) {
+      context.handle(
+        _conflictIdMeta,
+        conflictId.isAcceptableOrUnknown(data['conflict_id']!, _conflictIdMeta),
+      );
+    }
     if (data.containsKey('woman_id')) {
       context.handle(
         _womanIdMeta,
@@ -1642,6 +1926,36 @@ class $PregnanciesTable extends Pregnancies
         closedOn.isAcceptableOrUnknown(data['closed_on']!, _closedOnMeta),
       );
     }
+    if (data.containsKey('lmp_date')) {
+      context.handle(
+        _lmpDateMeta,
+        lmpDate.isAcceptableOrUnknown(data['lmp_date']!, _lmpDateMeta),
+      );
+    }
+    if (data.containsKey('reported_edd')) {
+      context.handle(
+        _reportedEddMeta,
+        reportedEdd.isAcceptableOrUnknown(
+          data['reported_edd']!,
+          _reportedEddMeta,
+        ),
+      );
+    }
+    if (data.containsKey('estimated_delivery_date')) {
+      context.handle(
+        _estimatedDeliveryDateMeta,
+        estimatedDeliveryDate.isAcceptableOrUnknown(
+          data['estimated_delivery_date']!,
+          _estimatedDeliveryDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('edd_basis')) {
+      context.handle(
+        _eddBasisMeta,
+        eddBasis.isAcceptableOrUnknown(data['edd_basis']!, _eddBasisMeta),
+      );
+    }
     return context;
   }
 
@@ -1675,6 +1989,14 @@ class $PregnanciesTable extends Pregnancies
         DriftSqlType.dateTime,
         data['${effectivePrefix}deleted_at'],
       ),
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      ),
+      conflictId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}conflict_id'],
+      ),
       womanId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}woman_id'],
@@ -1695,6 +2017,22 @@ class $PregnanciesTable extends Pregnancies
         DriftSqlType.string,
         data['${effectivePrefix}closed_on'],
       ),
+      lmpDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lmp_date'],
+      ),
+      reportedEdd: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reported_edd'],
+      ),
+      estimatedDeliveryDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}estimated_delivery_date'],
+      ),
+      eddBasis: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}edd_basis'],
+      ),
     );
   }
 
@@ -1711,6 +2049,8 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
   final String? createdBy;
   final DateTime createdOnDevice;
   final DateTime? deletedAt;
+  final int? version;
+  final String? conflictId;
   final String womanId;
 
   /// A calendar date, YYYY-MM-DD, as the server stores it.
@@ -1718,6 +2058,15 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
   final int pregnancyMonthAtRegistration;
   final String status;
   final String? closedOn;
+
+  /// M2 FE-1: the estimated delivery date (YYYY-MM-DD) and what it came from
+  /// (lmp, edd or month), with the LMP date or the known EDD. Null on a
+  /// pregnancy saved before 22 Oct 2026 until the server's copy arrives;
+  /// GestationalAge estimates it from the month meanwhile.
+  final String? lmpDate;
+  final String? reportedEdd;
+  final String? estimatedDeliveryDate;
+  final String? eddBasis;
   const LocalPregnancy({
     required this.id,
     this.serverSeq,
@@ -1725,11 +2074,17 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
     this.createdBy,
     required this.createdOnDevice,
     this.deletedAt,
+    this.version,
+    this.conflictId,
     required this.womanId,
     required this.registeredOn,
     required this.pregnancyMonthAtRegistration,
     required this.status,
     this.closedOn,
+    this.lmpDate,
+    this.reportedEdd,
+    this.estimatedDeliveryDate,
+    this.eddBasis,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1748,6 +2103,12 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
+    if (!nullToAbsent || version != null) {
+      map['version'] = Variable<int>(version);
+    }
+    if (!nullToAbsent || conflictId != null) {
+      map['conflict_id'] = Variable<String>(conflictId);
+    }
     map['woman_id'] = Variable<String>(womanId);
     map['registered_on'] = Variable<String>(registeredOn);
     map['pregnancy_month_at_registration'] = Variable<int>(
@@ -1756,6 +2117,18 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
     map['status'] = Variable<String>(status);
     if (!nullToAbsent || closedOn != null) {
       map['closed_on'] = Variable<String>(closedOn);
+    }
+    if (!nullToAbsent || lmpDate != null) {
+      map['lmp_date'] = Variable<String>(lmpDate);
+    }
+    if (!nullToAbsent || reportedEdd != null) {
+      map['reported_edd'] = Variable<String>(reportedEdd);
+    }
+    if (!nullToAbsent || estimatedDeliveryDate != null) {
+      map['estimated_delivery_date'] = Variable<String>(estimatedDeliveryDate);
+    }
+    if (!nullToAbsent || eddBasis != null) {
+      map['edd_basis'] = Variable<String>(eddBasis);
     }
     return map;
   }
@@ -1776,6 +2149,12 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(deletedAt),
+      version: version == null && nullToAbsent
+          ? const Value.absent()
+          : Value(version),
+      conflictId: conflictId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(conflictId),
       womanId: Value(womanId),
       registeredOn: Value(registeredOn),
       pregnancyMonthAtRegistration: Value(pregnancyMonthAtRegistration),
@@ -1783,6 +2162,18 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
       closedOn: closedOn == null && nullToAbsent
           ? const Value.absent()
           : Value(closedOn),
+      lmpDate: lmpDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lmpDate),
+      reportedEdd: reportedEdd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reportedEdd),
+      estimatedDeliveryDate: estimatedDeliveryDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(estimatedDeliveryDate),
+      eddBasis: eddBasis == null && nullToAbsent
+          ? const Value.absent()
+          : Value(eddBasis),
     );
   }
 
@@ -1798,6 +2189,8 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
       createdBy: serializer.fromJson<String?>(json['createdBy']),
       createdOnDevice: serializer.fromJson<DateTime>(json['createdOnDevice']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      version: serializer.fromJson<int?>(json['version']),
+      conflictId: serializer.fromJson<String?>(json['conflictId']),
       womanId: serializer.fromJson<String>(json['womanId']),
       registeredOn: serializer.fromJson<String>(json['registeredOn']),
       pregnancyMonthAtRegistration: serializer.fromJson<int>(
@@ -1805,6 +2198,12 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
       ),
       status: serializer.fromJson<String>(json['status']),
       closedOn: serializer.fromJson<String?>(json['closedOn']),
+      lmpDate: serializer.fromJson<String?>(json['lmpDate']),
+      reportedEdd: serializer.fromJson<String?>(json['reportedEdd']),
+      estimatedDeliveryDate: serializer.fromJson<String?>(
+        json['estimatedDeliveryDate'],
+      ),
+      eddBasis: serializer.fromJson<String?>(json['eddBasis']),
     );
   }
   @override
@@ -1817,6 +2216,8 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
       'createdBy': serializer.toJson<String?>(createdBy),
       'createdOnDevice': serializer.toJson<DateTime>(createdOnDevice),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'version': serializer.toJson<int?>(version),
+      'conflictId': serializer.toJson<String?>(conflictId),
       'womanId': serializer.toJson<String>(womanId),
       'registeredOn': serializer.toJson<String>(registeredOn),
       'pregnancyMonthAtRegistration': serializer.toJson<int>(
@@ -1824,6 +2225,12 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
       ),
       'status': serializer.toJson<String>(status),
       'closedOn': serializer.toJson<String?>(closedOn),
+      'lmpDate': serializer.toJson<String?>(lmpDate),
+      'reportedEdd': serializer.toJson<String?>(reportedEdd),
+      'estimatedDeliveryDate': serializer.toJson<String?>(
+        estimatedDeliveryDate,
+      ),
+      'eddBasis': serializer.toJson<String?>(eddBasis),
     };
   }
 
@@ -1834,11 +2241,17 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
     Value<String?> createdBy = const Value.absent(),
     DateTime? createdOnDevice,
     Value<DateTime?> deletedAt = const Value.absent(),
+    Value<int?> version = const Value.absent(),
+    Value<String?> conflictId = const Value.absent(),
     String? womanId,
     String? registeredOn,
     int? pregnancyMonthAtRegistration,
     String? status,
     Value<String?> closedOn = const Value.absent(),
+    Value<String?> lmpDate = const Value.absent(),
+    Value<String?> reportedEdd = const Value.absent(),
+    Value<String?> estimatedDeliveryDate = const Value.absent(),
+    Value<String?> eddBasis = const Value.absent(),
   }) => LocalPregnancy(
     id: id ?? this.id,
     serverSeq: serverSeq.present ? serverSeq.value : this.serverSeq,
@@ -1846,12 +2259,20 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
     createdBy: createdBy.present ? createdBy.value : this.createdBy,
     createdOnDevice: createdOnDevice ?? this.createdOnDevice,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    version: version.present ? version.value : this.version,
+    conflictId: conflictId.present ? conflictId.value : this.conflictId,
     womanId: womanId ?? this.womanId,
     registeredOn: registeredOn ?? this.registeredOn,
     pregnancyMonthAtRegistration:
         pregnancyMonthAtRegistration ?? this.pregnancyMonthAtRegistration,
     status: status ?? this.status,
     closedOn: closedOn.present ? closedOn.value : this.closedOn,
+    lmpDate: lmpDate.present ? lmpDate.value : this.lmpDate,
+    reportedEdd: reportedEdd.present ? reportedEdd.value : this.reportedEdd,
+    estimatedDeliveryDate: estimatedDeliveryDate.present
+        ? estimatedDeliveryDate.value
+        : this.estimatedDeliveryDate,
+    eddBasis: eddBasis.present ? eddBasis.value : this.eddBasis,
   );
   LocalPregnancy copyWithCompanion(PregnanciesCompanion data) {
     return LocalPregnancy(
@@ -1863,6 +2284,10 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
           ? data.createdOnDevice.value
           : this.createdOnDevice,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      version: data.version.present ? data.version.value : this.version,
+      conflictId: data.conflictId.present
+          ? data.conflictId.value
+          : this.conflictId,
       womanId: data.womanId.present ? data.womanId.value : this.womanId,
       registeredOn: data.registeredOn.present
           ? data.registeredOn.value
@@ -1872,6 +2297,14 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
           : this.pregnancyMonthAtRegistration,
       status: data.status.present ? data.status.value : this.status,
       closedOn: data.closedOn.present ? data.closedOn.value : this.closedOn,
+      lmpDate: data.lmpDate.present ? data.lmpDate.value : this.lmpDate,
+      reportedEdd: data.reportedEdd.present
+          ? data.reportedEdd.value
+          : this.reportedEdd,
+      estimatedDeliveryDate: data.estimatedDeliveryDate.present
+          ? data.estimatedDeliveryDate.value
+          : this.estimatedDeliveryDate,
+      eddBasis: data.eddBasis.present ? data.eddBasis.value : this.eddBasis,
     );
   }
 
@@ -1884,13 +2317,19 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
           ..write('createdBy: $createdBy, ')
           ..write('createdOnDevice: $createdOnDevice, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('version: $version, ')
+          ..write('conflictId: $conflictId, ')
           ..write('womanId: $womanId, ')
           ..write('registeredOn: $registeredOn, ')
           ..write(
             'pregnancyMonthAtRegistration: $pregnancyMonthAtRegistration, ',
           )
           ..write('status: $status, ')
-          ..write('closedOn: $closedOn')
+          ..write('closedOn: $closedOn, ')
+          ..write('lmpDate: $lmpDate, ')
+          ..write('reportedEdd: $reportedEdd, ')
+          ..write('estimatedDeliveryDate: $estimatedDeliveryDate, ')
+          ..write('eddBasis: $eddBasis')
           ..write(')'))
         .toString();
   }
@@ -1903,11 +2342,17 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
     createdBy,
     createdOnDevice,
     deletedAt,
+    version,
+    conflictId,
     womanId,
     registeredOn,
     pregnancyMonthAtRegistration,
     status,
     closedOn,
+    lmpDate,
+    reportedEdd,
+    estimatedDeliveryDate,
+    eddBasis,
   );
   @override
   bool operator ==(Object other) =>
@@ -1919,12 +2364,18 @@ class LocalPregnancy extends DataClass implements Insertable<LocalPregnancy> {
           other.createdBy == this.createdBy &&
           other.createdOnDevice == this.createdOnDevice &&
           other.deletedAt == this.deletedAt &&
+          other.version == this.version &&
+          other.conflictId == this.conflictId &&
           other.womanId == this.womanId &&
           other.registeredOn == this.registeredOn &&
           other.pregnancyMonthAtRegistration ==
               this.pregnancyMonthAtRegistration &&
           other.status == this.status &&
-          other.closedOn == this.closedOn);
+          other.closedOn == this.closedOn &&
+          other.lmpDate == this.lmpDate &&
+          other.reportedEdd == this.reportedEdd &&
+          other.estimatedDeliveryDate == this.estimatedDeliveryDate &&
+          other.eddBasis == this.eddBasis);
 }
 
 class PregnanciesCompanion extends UpdateCompanion<LocalPregnancy> {
@@ -1934,11 +2385,17 @@ class PregnanciesCompanion extends UpdateCompanion<LocalPregnancy> {
   final Value<String?> createdBy;
   final Value<DateTime> createdOnDevice;
   final Value<DateTime?> deletedAt;
+  final Value<int?> version;
+  final Value<String?> conflictId;
   final Value<String> womanId;
   final Value<String> registeredOn;
   final Value<int> pregnancyMonthAtRegistration;
   final Value<String> status;
   final Value<String?> closedOn;
+  final Value<String?> lmpDate;
+  final Value<String?> reportedEdd;
+  final Value<String?> estimatedDeliveryDate;
+  final Value<String?> eddBasis;
   final Value<int> rowid;
   const PregnanciesCompanion({
     this.id = const Value.absent(),
@@ -1947,11 +2404,17 @@ class PregnanciesCompanion extends UpdateCompanion<LocalPregnancy> {
     this.createdBy = const Value.absent(),
     this.createdOnDevice = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.version = const Value.absent(),
+    this.conflictId = const Value.absent(),
     this.womanId = const Value.absent(),
     this.registeredOn = const Value.absent(),
     this.pregnancyMonthAtRegistration = const Value.absent(),
     this.status = const Value.absent(),
     this.closedOn = const Value.absent(),
+    this.lmpDate = const Value.absent(),
+    this.reportedEdd = const Value.absent(),
+    this.estimatedDeliveryDate = const Value.absent(),
+    this.eddBasis = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PregnanciesCompanion.insert({
@@ -1961,11 +2424,17 @@ class PregnanciesCompanion extends UpdateCompanion<LocalPregnancy> {
     this.createdBy = const Value.absent(),
     required DateTime createdOnDevice,
     this.deletedAt = const Value.absent(),
+    this.version = const Value.absent(),
+    this.conflictId = const Value.absent(),
     required String womanId,
     required String registeredOn,
     required int pregnancyMonthAtRegistration,
     this.status = const Value.absent(),
     this.closedOn = const Value.absent(),
+    this.lmpDate = const Value.absent(),
+    this.reportedEdd = const Value.absent(),
+    this.estimatedDeliveryDate = const Value.absent(),
+    this.eddBasis = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        createdOnDevice = Value(createdOnDevice),
@@ -1979,11 +2448,17 @@ class PregnanciesCompanion extends UpdateCompanion<LocalPregnancy> {
     Expression<String>? createdBy,
     Expression<DateTime>? createdOnDevice,
     Expression<DateTime>? deletedAt,
+    Expression<int>? version,
+    Expression<String>? conflictId,
     Expression<String>? womanId,
     Expression<String>? registeredOn,
     Expression<int>? pregnancyMonthAtRegistration,
     Expression<String>? status,
     Expression<String>? closedOn,
+    Expression<String>? lmpDate,
+    Expression<String>? reportedEdd,
+    Expression<String>? estimatedDeliveryDate,
+    Expression<String>? eddBasis,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1993,12 +2468,19 @@ class PregnanciesCompanion extends UpdateCompanion<LocalPregnancy> {
       if (createdBy != null) 'created_by': createdBy,
       if (createdOnDevice != null) 'created_on_device': createdOnDevice,
       if (deletedAt != null) 'deleted_at': deletedAt,
+      if (version != null) 'version': version,
+      if (conflictId != null) 'conflict_id': conflictId,
       if (womanId != null) 'woman_id': womanId,
       if (registeredOn != null) 'registered_on': registeredOn,
       if (pregnancyMonthAtRegistration != null)
         'pregnancy_month_at_registration': pregnancyMonthAtRegistration,
       if (status != null) 'status': status,
       if (closedOn != null) 'closed_on': closedOn,
+      if (lmpDate != null) 'lmp_date': lmpDate,
+      if (reportedEdd != null) 'reported_edd': reportedEdd,
+      if (estimatedDeliveryDate != null)
+        'estimated_delivery_date': estimatedDeliveryDate,
+      if (eddBasis != null) 'edd_basis': eddBasis,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2010,11 +2492,17 @@ class PregnanciesCompanion extends UpdateCompanion<LocalPregnancy> {
     Value<String?>? createdBy,
     Value<DateTime>? createdOnDevice,
     Value<DateTime?>? deletedAt,
+    Value<int?>? version,
+    Value<String?>? conflictId,
     Value<String>? womanId,
     Value<String>? registeredOn,
     Value<int>? pregnancyMonthAtRegistration,
     Value<String>? status,
     Value<String?>? closedOn,
+    Value<String?>? lmpDate,
+    Value<String?>? reportedEdd,
+    Value<String?>? estimatedDeliveryDate,
+    Value<String?>? eddBasis,
     Value<int>? rowid,
   }) {
     return PregnanciesCompanion(
@@ -2024,12 +2512,19 @@ class PregnanciesCompanion extends UpdateCompanion<LocalPregnancy> {
       createdBy: createdBy ?? this.createdBy,
       createdOnDevice: createdOnDevice ?? this.createdOnDevice,
       deletedAt: deletedAt ?? this.deletedAt,
+      version: version ?? this.version,
+      conflictId: conflictId ?? this.conflictId,
       womanId: womanId ?? this.womanId,
       registeredOn: registeredOn ?? this.registeredOn,
       pregnancyMonthAtRegistration:
           pregnancyMonthAtRegistration ?? this.pregnancyMonthAtRegistration,
       status: status ?? this.status,
       closedOn: closedOn ?? this.closedOn,
+      lmpDate: lmpDate ?? this.lmpDate,
+      reportedEdd: reportedEdd ?? this.reportedEdd,
+      estimatedDeliveryDate:
+          estimatedDeliveryDate ?? this.estimatedDeliveryDate,
+      eddBasis: eddBasis ?? this.eddBasis,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2055,6 +2550,12 @@ class PregnanciesCompanion extends UpdateCompanion<LocalPregnancy> {
     if (deletedAt.present) {
       map['deleted_at'] = Variable<DateTime>(deletedAt.value);
     }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (conflictId.present) {
+      map['conflict_id'] = Variable<String>(conflictId.value);
+    }
     if (womanId.present) {
       map['woman_id'] = Variable<String>(womanId.value);
     }
@@ -2072,6 +2573,20 @@ class PregnanciesCompanion extends UpdateCompanion<LocalPregnancy> {
     if (closedOn.present) {
       map['closed_on'] = Variable<String>(closedOn.value);
     }
+    if (lmpDate.present) {
+      map['lmp_date'] = Variable<String>(lmpDate.value);
+    }
+    if (reportedEdd.present) {
+      map['reported_edd'] = Variable<String>(reportedEdd.value);
+    }
+    if (estimatedDeliveryDate.present) {
+      map['estimated_delivery_date'] = Variable<String>(
+        estimatedDeliveryDate.value,
+      );
+    }
+    if (eddBasis.present) {
+      map['edd_basis'] = Variable<String>(eddBasis.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2087,6 +2602,8 @@ class PregnanciesCompanion extends UpdateCompanion<LocalPregnancy> {
           ..write('createdBy: $createdBy, ')
           ..write('createdOnDevice: $createdOnDevice, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('version: $version, ')
+          ..write('conflictId: $conflictId, ')
           ..write('womanId: $womanId, ')
           ..write('registeredOn: $registeredOn, ')
           ..write(
@@ -2094,6 +2611,10 @@ class PregnanciesCompanion extends UpdateCompanion<LocalPregnancy> {
           )
           ..write('status: $status, ')
           ..write('closedOn: $closedOn, ')
+          ..write('lmpDate: $lmpDate, ')
+          ..write('reportedEdd: $reportedEdd, ')
+          ..write('estimatedDeliveryDate: $estimatedDeliveryDate, ')
+          ..write('eddBasis: $eddBasis, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2169,6 +2690,28 @@ class $ObstetricHistoryTable extends ObstetricHistory
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _conflictIdMeta = const VerificationMeta(
+    'conflictId',
+  );
+  @override
+  late final GeneratedColumn<String> conflictId = GeneratedColumn<String>(
+    'conflict_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _womanIdMeta = const VerificationMeta(
     'womanId',
   );
@@ -2234,6 +2777,8 @@ class $ObstetricHistoryTable extends ObstetricHistory
     createdBy,
     createdOnDevice,
     deletedAt,
+    version,
+    conflictId,
     womanId,
     previousPregnancies,
     previousCSections,
@@ -2290,6 +2835,18 @@ class $ObstetricHistoryTable extends ObstetricHistory
       context.handle(
         _deletedAtMeta,
         deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('conflict_id')) {
+      context.handle(
+        _conflictIdMeta,
+        conflictId.isAcceptableOrUnknown(data['conflict_id']!, _conflictIdMeta),
       );
     }
     if (data.containsKey('woman_id')) {
@@ -2369,6 +2926,14 @@ class $ObstetricHistoryTable extends ObstetricHistory
         DriftSqlType.dateTime,
         data['${effectivePrefix}deleted_at'],
       ),
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      ),
+      conflictId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}conflict_id'],
+      ),
       womanId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}woman_id'],
@@ -2406,6 +2971,8 @@ class LocalObstetricHistory extends DataClass
   final String? createdBy;
   final DateTime createdOnDevice;
   final DateTime? deletedAt;
+  final int? version;
+  final String? conflictId;
   final String womanId;
   final int previousPregnancies;
   final int previousCSections;
@@ -2418,6 +2985,8 @@ class LocalObstetricHistory extends DataClass
     this.createdBy,
     required this.createdOnDevice,
     this.deletedAt,
+    this.version,
+    this.conflictId,
     required this.womanId,
     required this.previousPregnancies,
     required this.previousCSections,
@@ -2440,6 +3009,12 @@ class LocalObstetricHistory extends DataClass
     map['created_on_device'] = Variable<DateTime>(createdOnDevice);
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || version != null) {
+      map['version'] = Variable<int>(version);
+    }
+    if (!nullToAbsent || conflictId != null) {
+      map['conflict_id'] = Variable<String>(conflictId);
     }
     map['woman_id'] = Variable<String>(womanId);
     map['previous_pregnancies'] = Variable<int>(previousPregnancies);
@@ -2467,6 +3042,12 @@ class LocalObstetricHistory extends DataClass
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(deletedAt),
+      version: version == null && nullToAbsent
+          ? const Value.absent()
+          : Value(version),
+      conflictId: conflictId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(conflictId),
       womanId: Value(womanId),
       previousPregnancies: Value(previousPregnancies),
       previousCSections: Value(previousCSections),
@@ -2489,6 +3070,8 @@ class LocalObstetricHistory extends DataClass
       createdBy: serializer.fromJson<String?>(json['createdBy']),
       createdOnDevice: serializer.fromJson<DateTime>(json['createdOnDevice']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      version: serializer.fromJson<int?>(json['version']),
+      conflictId: serializer.fromJson<String?>(json['conflictId']),
       womanId: serializer.fromJson<String>(json['womanId']),
       previousPregnancies: serializer.fromJson<int>(
         json['previousPregnancies'],
@@ -2508,6 +3091,8 @@ class LocalObstetricHistory extends DataClass
       'createdBy': serializer.toJson<String?>(createdBy),
       'createdOnDevice': serializer.toJson<DateTime>(createdOnDevice),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'version': serializer.toJson<int?>(version),
+      'conflictId': serializer.toJson<String?>(conflictId),
       'womanId': serializer.toJson<String>(womanId),
       'previousPregnancies': serializer.toJson<int>(previousPregnancies),
       'previousCSections': serializer.toJson<int>(previousCSections),
@@ -2523,6 +3108,8 @@ class LocalObstetricHistory extends DataClass
     Value<String?> createdBy = const Value.absent(),
     DateTime? createdOnDevice,
     Value<DateTime?> deletedAt = const Value.absent(),
+    Value<int?> version = const Value.absent(),
+    Value<String?> conflictId = const Value.absent(),
     String? womanId,
     int? previousPregnancies,
     int? previousCSections,
@@ -2535,6 +3122,8 @@ class LocalObstetricHistory extends DataClass
     createdBy: createdBy.present ? createdBy.value : this.createdBy,
     createdOnDevice: createdOnDevice ?? this.createdOnDevice,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    version: version.present ? version.value : this.version,
+    conflictId: conflictId.present ? conflictId.value : this.conflictId,
     womanId: womanId ?? this.womanId,
     previousPregnancies: previousPregnancies ?? this.previousPregnancies,
     previousCSections: previousCSections ?? this.previousCSections,
@@ -2553,6 +3142,10 @@ class LocalObstetricHistory extends DataClass
           ? data.createdOnDevice.value
           : this.createdOnDevice,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      version: data.version.present ? data.version.value : this.version,
+      conflictId: data.conflictId.present
+          ? data.conflictId.value
+          : this.conflictId,
       womanId: data.womanId.present ? data.womanId.value : this.womanId,
       previousPregnancies: data.previousPregnancies.present
           ? data.previousPregnancies.value
@@ -2578,6 +3171,8 @@ class LocalObstetricHistory extends DataClass
           ..write('createdBy: $createdBy, ')
           ..write('createdOnDevice: $createdOnDevice, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('version: $version, ')
+          ..write('conflictId: $conflictId, ')
           ..write('womanId: $womanId, ')
           ..write('previousPregnancies: $previousPregnancies, ')
           ..write('previousCSections: $previousCSections, ')
@@ -2595,6 +3190,8 @@ class LocalObstetricHistory extends DataClass
     createdBy,
     createdOnDevice,
     deletedAt,
+    version,
+    conflictId,
     womanId,
     previousPregnancies,
     previousCSections,
@@ -2611,6 +3208,8 @@ class LocalObstetricHistory extends DataClass
           other.createdBy == this.createdBy &&
           other.createdOnDevice == this.createdOnDevice &&
           other.deletedAt == this.deletedAt &&
+          other.version == this.version &&
+          other.conflictId == this.conflictId &&
           other.womanId == this.womanId &&
           other.previousPregnancies == this.previousPregnancies &&
           other.previousCSections == this.previousCSections &&
@@ -2625,6 +3224,8 @@ class ObstetricHistoryCompanion extends UpdateCompanion<LocalObstetricHistory> {
   final Value<String?> createdBy;
   final Value<DateTime> createdOnDevice;
   final Value<DateTime?> deletedAt;
+  final Value<int?> version;
+  final Value<String?> conflictId;
   final Value<String> womanId;
   final Value<int> previousPregnancies;
   final Value<int> previousCSections;
@@ -2638,6 +3239,8 @@ class ObstetricHistoryCompanion extends UpdateCompanion<LocalObstetricHistory> {
     this.createdBy = const Value.absent(),
     this.createdOnDevice = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.version = const Value.absent(),
+    this.conflictId = const Value.absent(),
     this.womanId = const Value.absent(),
     this.previousPregnancies = const Value.absent(),
     this.previousCSections = const Value.absent(),
@@ -2652,6 +3255,8 @@ class ObstetricHistoryCompanion extends UpdateCompanion<LocalObstetricHistory> {
     this.createdBy = const Value.absent(),
     required DateTime createdOnDevice,
     this.deletedAt = const Value.absent(),
+    this.version = const Value.absent(),
+    this.conflictId = const Value.absent(),
     required String womanId,
     this.previousPregnancies = const Value.absent(),
     this.previousCSections = const Value.absent(),
@@ -2668,6 +3273,8 @@ class ObstetricHistoryCompanion extends UpdateCompanion<LocalObstetricHistory> {
     Expression<String>? createdBy,
     Expression<DateTime>? createdOnDevice,
     Expression<DateTime>? deletedAt,
+    Expression<int>? version,
+    Expression<String>? conflictId,
     Expression<String>? womanId,
     Expression<int>? previousPregnancies,
     Expression<int>? previousCSections,
@@ -2682,6 +3289,8 @@ class ObstetricHistoryCompanion extends UpdateCompanion<LocalObstetricHistory> {
       if (createdBy != null) 'created_by': createdBy,
       if (createdOnDevice != null) 'created_on_device': createdOnDevice,
       if (deletedAt != null) 'deleted_at': deletedAt,
+      if (version != null) 'version': version,
+      if (conflictId != null) 'conflict_id': conflictId,
       if (womanId != null) 'woman_id': womanId,
       if (previousPregnancies != null)
         'previous_pregnancies': previousPregnancies,
@@ -2699,6 +3308,8 @@ class ObstetricHistoryCompanion extends UpdateCompanion<LocalObstetricHistory> {
     Value<String?>? createdBy,
     Value<DateTime>? createdOnDevice,
     Value<DateTime?>? deletedAt,
+    Value<int?>? version,
+    Value<String?>? conflictId,
     Value<String>? womanId,
     Value<int>? previousPregnancies,
     Value<int>? previousCSections,
@@ -2713,6 +3324,8 @@ class ObstetricHistoryCompanion extends UpdateCompanion<LocalObstetricHistory> {
       createdBy: createdBy ?? this.createdBy,
       createdOnDevice: createdOnDevice ?? this.createdOnDevice,
       deletedAt: deletedAt ?? this.deletedAt,
+      version: version ?? this.version,
+      conflictId: conflictId ?? this.conflictId,
       womanId: womanId ?? this.womanId,
       previousPregnancies: previousPregnancies ?? this.previousPregnancies,
       previousCSections: previousCSections ?? this.previousCSections,
@@ -2742,6 +3355,12 @@ class ObstetricHistoryCompanion extends UpdateCompanion<LocalObstetricHistory> {
     }
     if (deletedAt.present) {
       map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (conflictId.present) {
+      map['conflict_id'] = Variable<String>(conflictId.value);
     }
     if (womanId.present) {
       map['woman_id'] = Variable<String>(womanId.value);
@@ -2773,6 +3392,8 @@ class ObstetricHistoryCompanion extends UpdateCompanion<LocalObstetricHistory> {
           ..write('createdBy: $createdBy, ')
           ..write('createdOnDevice: $createdOnDevice, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('version: $version, ')
+          ..write('conflictId: $conflictId, ')
           ..write('womanId: $womanId, ')
           ..write('previousPregnancies: $previousPregnancies, ')
           ..write('previousCSections: $previousCSections, ')
@@ -2852,6 +3473,17 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, LocalVisit> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _pregnancyIdMeta = const VerificationMeta(
     'pregnancyId',
   );
@@ -2929,28 +3561,28 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, LocalVisit> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _bloodSugarMmolLMeta = const VerificationMeta(
-    'bloodSugarMmolL',
+  static const VerificationMeta _bloodSugarValueMeta = const VerificationMeta(
+    'bloodSugarValue',
   );
   @override
-  late final GeneratedColumn<double> bloodSugarMmolL = GeneratedColumn<double>(
-    'blood_sugar_mmol_l',
+  late final GeneratedColumn<double> bloodSugarValue = GeneratedColumn<double>(
+    'blood_sugar_value',
     aliasedName,
     true,
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _bloodSugarEnteredUnitMeta =
-      const VerificationMeta('bloodSugarEnteredUnit');
+  static const VerificationMeta _bloodSugarUnitMeta = const VerificationMeta(
+    'bloodSugarUnit',
+  );
   @override
-  late final GeneratedColumn<String> bloodSugarEnteredUnit =
-      GeneratedColumn<String>(
-        'blood_sugar_entered_unit',
-        aliasedName,
-        true,
-        type: DriftSqlType.string,
-        requiredDuringInsert: false,
-      );
+  late final GeneratedColumn<String> bloodSugarUnit = GeneratedColumn<String>(
+    'blood_sugar_unit',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _bloodSugarMeasuredOnMeta =
       const VerificationMeta('bloodSugarMeasuredOn');
   @override
@@ -3156,6 +3788,7 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, LocalVisit> {
     createdBy,
     createdOnDevice,
     deletedAt,
+    version,
     pregnancyId,
     visitedAt,
     systolicBpMmhg,
@@ -3163,8 +3796,8 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, LocalVisit> {
     weightKg,
     temperatureC,
     pulseBpm,
-    bloodSugarMmolL,
-    bloodSugarEnteredUnit,
+    bloodSugarValue,
+    bloodSugarUnit,
     bloodSugarMeasuredOn,
     bloodSugarSource,
     fetalMovement,
@@ -3233,6 +3866,12 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, LocalVisit> {
         deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
       );
     }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
     if (data.containsKey('pregnancy_id')) {
       context.handle(
         _pregnancyIdMeta,
@@ -3291,21 +3930,21 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, LocalVisit> {
         pulseBpm.isAcceptableOrUnknown(data['pulse_bpm']!, _pulseBpmMeta),
       );
     }
-    if (data.containsKey('blood_sugar_mmol_l')) {
+    if (data.containsKey('blood_sugar_value')) {
       context.handle(
-        _bloodSugarMmolLMeta,
-        bloodSugarMmolL.isAcceptableOrUnknown(
-          data['blood_sugar_mmol_l']!,
-          _bloodSugarMmolLMeta,
+        _bloodSugarValueMeta,
+        bloodSugarValue.isAcceptableOrUnknown(
+          data['blood_sugar_value']!,
+          _bloodSugarValueMeta,
         ),
       );
     }
-    if (data.containsKey('blood_sugar_entered_unit')) {
+    if (data.containsKey('blood_sugar_unit')) {
       context.handle(
-        _bloodSugarEnteredUnitMeta,
-        bloodSugarEnteredUnit.isAcceptableOrUnknown(
-          data['blood_sugar_entered_unit']!,
-          _bloodSugarEnteredUnitMeta,
+        _bloodSugarUnitMeta,
+        bloodSugarUnit.isAcceptableOrUnknown(
+          data['blood_sugar_unit']!,
+          _bloodSugarUnitMeta,
         ),
       );
     }
@@ -3465,6 +4104,10 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, LocalVisit> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}deleted_at'],
       ),
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      ),
       pregnancyId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}pregnancy_id'],
@@ -3493,13 +4136,13 @@ class $VisitsTable extends Visits with TableInfo<$VisitsTable, LocalVisit> {
         DriftSqlType.int,
         data['${effectivePrefix}pulse_bpm'],
       ),
-      bloodSugarMmolL: attachedDatabase.typeMapping.read(
+      bloodSugarValue: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
-        data['${effectivePrefix}blood_sugar_mmol_l'],
+        data['${effectivePrefix}blood_sugar_value'],
       ),
-      bloodSugarEnteredUnit: attachedDatabase.typeMapping.read(
+      bloodSugarUnit: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}blood_sugar_entered_unit'],
+        data['${effectivePrefix}blood_sugar_unit'],
       ),
       bloodSugarMeasuredOn: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -3577,6 +4220,7 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
   final String? createdBy;
   final DateTime createdOnDevice;
   final DateTime? deletedAt;
+  final int? version;
   final String pregnancyId;
 
   /// Device clock: shown and counted, never used to order or resolve records (LI-7).
@@ -3587,17 +4231,16 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
   final double? temperatureC;
   final int? pulseBpm;
 
-  /// Always mmol/L (one unit per value); the form converts a value typed in mg/dL.
-  final double? bloodSugarMmolL;
-
-  /// The unit the LHW typed (mmol_l or mg_dl), the day it was measured
-  /// (YYYY-MM-DD) and its source (glucometer or lab_report); set only with a
-  /// blood sugar value (M3 FE-1, M4 FE-1).
-  final String? bloodSugarEnteredUnit;
+  /// Blood sugar in the unit it was recorded in (M3 FE-1): the value, its unit
+  /// (mmol_l or mg_dl), the day it was measured (YYYY-MM-DD) and its source
+  /// (glucometer or lab_report); the details are set only with a value.
+  final double? bloodSugarValue;
+  final String? bloodSugarUnit;
   final String? bloodSugarMeasuredOn;
   final String? bloodSugarSource;
 
-  /// normal, reduced or absent; null when not assessed.
+  /// normal, reduced or absent; null when not assessed, or not yet applicable
+  /// (before the gestational age in the Clinical Rules Table).
   final String? fetalMovement;
   final bool swelling;
   final bool bleeding;
@@ -3616,9 +4259,8 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
   final bool? fastBreathing;
   final bool? feverWithWeakness;
 
-  /// Set when the server held this visit for supervisor review, because the
-  /// same pregnancy already had a visit that day (M3 FE-2). Cleared when the
-  /// supervisor's decision arrives by pull.
+  /// Set when the server holds this visit for supervisor review (M3 FE-2).
+  /// Cleared when the supervisor's decision arrives by pull.
   final String? conflictId;
   const LocalVisit({
     required this.id,
@@ -3627,6 +4269,7 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     this.createdBy,
     required this.createdOnDevice,
     this.deletedAt,
+    this.version,
     required this.pregnancyId,
     required this.visitedAt,
     this.systolicBpMmhg,
@@ -3634,8 +4277,8 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     this.weightKg,
     this.temperatureC,
     this.pulseBpm,
-    this.bloodSugarMmolL,
-    this.bloodSugarEnteredUnit,
+    this.bloodSugarValue,
+    this.bloodSugarUnit,
     this.bloodSugarMeasuredOn,
     this.bloodSugarSource,
     this.fetalMovement,
@@ -3669,6 +4312,9 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
+    if (!nullToAbsent || version != null) {
+      map['version'] = Variable<int>(version);
+    }
     map['pregnancy_id'] = Variable<String>(pregnancyId);
     map['visited_at'] = Variable<DateTime>(visitedAt);
     if (!nullToAbsent || systolicBpMmhg != null) {
@@ -3686,11 +4332,11 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     if (!nullToAbsent || pulseBpm != null) {
       map['pulse_bpm'] = Variable<int>(pulseBpm);
     }
-    if (!nullToAbsent || bloodSugarMmolL != null) {
-      map['blood_sugar_mmol_l'] = Variable<double>(bloodSugarMmolL);
+    if (!nullToAbsent || bloodSugarValue != null) {
+      map['blood_sugar_value'] = Variable<double>(bloodSugarValue);
     }
-    if (!nullToAbsent || bloodSugarEnteredUnit != null) {
-      map['blood_sugar_entered_unit'] = Variable<String>(bloodSugarEnteredUnit);
+    if (!nullToAbsent || bloodSugarUnit != null) {
+      map['blood_sugar_unit'] = Variable<String>(bloodSugarUnit);
     }
     if (!nullToAbsent || bloodSugarMeasuredOn != null) {
       map['blood_sugar_measured_on'] = Variable<String>(bloodSugarMeasuredOn);
@@ -3746,6 +4392,9 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(deletedAt),
+      version: version == null && nullToAbsent
+          ? const Value.absent()
+          : Value(version),
       pregnancyId: Value(pregnancyId),
       visitedAt: Value(visitedAt),
       systolicBpMmhg: systolicBpMmhg == null && nullToAbsent
@@ -3763,12 +4412,12 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
       pulseBpm: pulseBpm == null && nullToAbsent
           ? const Value.absent()
           : Value(pulseBpm),
-      bloodSugarMmolL: bloodSugarMmolL == null && nullToAbsent
+      bloodSugarValue: bloodSugarValue == null && nullToAbsent
           ? const Value.absent()
-          : Value(bloodSugarMmolL),
-      bloodSugarEnteredUnit: bloodSugarEnteredUnit == null && nullToAbsent
+          : Value(bloodSugarValue),
+      bloodSugarUnit: bloodSugarUnit == null && nullToAbsent
           ? const Value.absent()
-          : Value(bloodSugarEnteredUnit),
+          : Value(bloodSugarUnit),
       bloodSugarMeasuredOn: bloodSugarMeasuredOn == null && nullToAbsent
           ? const Value.absent()
           : Value(bloodSugarMeasuredOn),
@@ -3819,6 +4468,7 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
       createdBy: serializer.fromJson<String?>(json['createdBy']),
       createdOnDevice: serializer.fromJson<DateTime>(json['createdOnDevice']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      version: serializer.fromJson<int?>(json['version']),
       pregnancyId: serializer.fromJson<String>(json['pregnancyId']),
       visitedAt: serializer.fromJson<DateTime>(json['visitedAt']),
       systolicBpMmhg: serializer.fromJson<int?>(json['systolicBpMmhg']),
@@ -3826,10 +4476,8 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
       weightKg: serializer.fromJson<double?>(json['weightKg']),
       temperatureC: serializer.fromJson<double?>(json['temperatureC']),
       pulseBpm: serializer.fromJson<int?>(json['pulseBpm']),
-      bloodSugarMmolL: serializer.fromJson<double?>(json['bloodSugarMmolL']),
-      bloodSugarEnteredUnit: serializer.fromJson<String?>(
-        json['bloodSugarEnteredUnit'],
-      ),
+      bloodSugarValue: serializer.fromJson<double?>(json['bloodSugarValue']),
+      bloodSugarUnit: serializer.fromJson<String?>(json['bloodSugarUnit']),
       bloodSugarMeasuredOn: serializer.fromJson<String?>(
         json['bloodSugarMeasuredOn'],
       ),
@@ -3861,6 +4509,7 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
       'createdBy': serializer.toJson<String?>(createdBy),
       'createdOnDevice': serializer.toJson<DateTime>(createdOnDevice),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'version': serializer.toJson<int?>(version),
       'pregnancyId': serializer.toJson<String>(pregnancyId),
       'visitedAt': serializer.toJson<DateTime>(visitedAt),
       'systolicBpMmhg': serializer.toJson<int?>(systolicBpMmhg),
@@ -3868,10 +4517,8 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
       'weightKg': serializer.toJson<double?>(weightKg),
       'temperatureC': serializer.toJson<double?>(temperatureC),
       'pulseBpm': serializer.toJson<int?>(pulseBpm),
-      'bloodSugarMmolL': serializer.toJson<double?>(bloodSugarMmolL),
-      'bloodSugarEnteredUnit': serializer.toJson<String?>(
-        bloodSugarEnteredUnit,
-      ),
+      'bloodSugarValue': serializer.toJson<double?>(bloodSugarValue),
+      'bloodSugarUnit': serializer.toJson<String?>(bloodSugarUnit),
       'bloodSugarMeasuredOn': serializer.toJson<String?>(bloodSugarMeasuredOn),
       'bloodSugarSource': serializer.toJson<String?>(bloodSugarSource),
       'fetalMovement': serializer.toJson<String?>(fetalMovement),
@@ -3897,6 +4544,7 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     Value<String?> createdBy = const Value.absent(),
     DateTime? createdOnDevice,
     Value<DateTime?> deletedAt = const Value.absent(),
+    Value<int?> version = const Value.absent(),
     String? pregnancyId,
     DateTime? visitedAt,
     Value<int?> systolicBpMmhg = const Value.absent(),
@@ -3904,8 +4552,8 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     Value<double?> weightKg = const Value.absent(),
     Value<double?> temperatureC = const Value.absent(),
     Value<int?> pulseBpm = const Value.absent(),
-    Value<double?> bloodSugarMmolL = const Value.absent(),
-    Value<String?> bloodSugarEnteredUnit = const Value.absent(),
+    Value<double?> bloodSugarValue = const Value.absent(),
+    Value<String?> bloodSugarUnit = const Value.absent(),
     Value<String?> bloodSugarMeasuredOn = const Value.absent(),
     Value<String?> bloodSugarSource = const Value.absent(),
     Value<String?> fetalMovement = const Value.absent(),
@@ -3928,6 +4576,7 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     createdBy: createdBy.present ? createdBy.value : this.createdBy,
     createdOnDevice: createdOnDevice ?? this.createdOnDevice,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    version: version.present ? version.value : this.version,
     pregnancyId: pregnancyId ?? this.pregnancyId,
     visitedAt: visitedAt ?? this.visitedAt,
     systolicBpMmhg: systolicBpMmhg.present
@@ -3939,12 +4588,12 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     weightKg: weightKg.present ? weightKg.value : this.weightKg,
     temperatureC: temperatureC.present ? temperatureC.value : this.temperatureC,
     pulseBpm: pulseBpm.present ? pulseBpm.value : this.pulseBpm,
-    bloodSugarMmolL: bloodSugarMmolL.present
-        ? bloodSugarMmolL.value
-        : this.bloodSugarMmolL,
-    bloodSugarEnteredUnit: bloodSugarEnteredUnit.present
-        ? bloodSugarEnteredUnit.value
-        : this.bloodSugarEnteredUnit,
+    bloodSugarValue: bloodSugarValue.present
+        ? bloodSugarValue.value
+        : this.bloodSugarValue,
+    bloodSugarUnit: bloodSugarUnit.present
+        ? bloodSugarUnit.value
+        : this.bloodSugarUnit,
     bloodSugarMeasuredOn: bloodSugarMeasuredOn.present
         ? bloodSugarMeasuredOn.value
         : this.bloodSugarMeasuredOn,
@@ -3987,6 +4636,7 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
           ? data.createdOnDevice.value
           : this.createdOnDevice,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      version: data.version.present ? data.version.value : this.version,
       pregnancyId: data.pregnancyId.present
           ? data.pregnancyId.value
           : this.pregnancyId,
@@ -4002,12 +4652,12 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
           ? data.temperatureC.value
           : this.temperatureC,
       pulseBpm: data.pulseBpm.present ? data.pulseBpm.value : this.pulseBpm,
-      bloodSugarMmolL: data.bloodSugarMmolL.present
-          ? data.bloodSugarMmolL.value
-          : this.bloodSugarMmolL,
-      bloodSugarEnteredUnit: data.bloodSugarEnteredUnit.present
-          ? data.bloodSugarEnteredUnit.value
-          : this.bloodSugarEnteredUnit,
+      bloodSugarValue: data.bloodSugarValue.present
+          ? data.bloodSugarValue.value
+          : this.bloodSugarValue,
+      bloodSugarUnit: data.bloodSugarUnit.present
+          ? data.bloodSugarUnit.value
+          : this.bloodSugarUnit,
       bloodSugarMeasuredOn: data.bloodSugarMeasuredOn.present
           ? data.bloodSugarMeasuredOn.value
           : this.bloodSugarMeasuredOn,
@@ -4059,6 +4709,7 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
           ..write('createdBy: $createdBy, ')
           ..write('createdOnDevice: $createdOnDevice, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('version: $version, ')
           ..write('pregnancyId: $pregnancyId, ')
           ..write('visitedAt: $visitedAt, ')
           ..write('systolicBpMmhg: $systolicBpMmhg, ')
@@ -4066,8 +4717,8 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
           ..write('weightKg: $weightKg, ')
           ..write('temperatureC: $temperatureC, ')
           ..write('pulseBpm: $pulseBpm, ')
-          ..write('bloodSugarMmolL: $bloodSugarMmolL, ')
-          ..write('bloodSugarEnteredUnit: $bloodSugarEnteredUnit, ')
+          ..write('bloodSugarValue: $bloodSugarValue, ')
+          ..write('bloodSugarUnit: $bloodSugarUnit, ')
           ..write('bloodSugarMeasuredOn: $bloodSugarMeasuredOn, ')
           ..write('bloodSugarSource: $bloodSugarSource, ')
           ..write('fetalMovement: $fetalMovement, ')
@@ -4095,6 +4746,7 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     createdBy,
     createdOnDevice,
     deletedAt,
+    version,
     pregnancyId,
     visitedAt,
     systolicBpMmhg,
@@ -4102,8 +4754,8 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
     weightKg,
     temperatureC,
     pulseBpm,
-    bloodSugarMmolL,
-    bloodSugarEnteredUnit,
+    bloodSugarValue,
+    bloodSugarUnit,
     bloodSugarMeasuredOn,
     bloodSugarSource,
     fetalMovement,
@@ -4130,6 +4782,7 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
           other.createdBy == this.createdBy &&
           other.createdOnDevice == this.createdOnDevice &&
           other.deletedAt == this.deletedAt &&
+          other.version == this.version &&
           other.pregnancyId == this.pregnancyId &&
           other.visitedAt == this.visitedAt &&
           other.systolicBpMmhg == this.systolicBpMmhg &&
@@ -4137,8 +4790,8 @@ class LocalVisit extends DataClass implements Insertable<LocalVisit> {
           other.weightKg == this.weightKg &&
           other.temperatureC == this.temperatureC &&
           other.pulseBpm == this.pulseBpm &&
-          other.bloodSugarMmolL == this.bloodSugarMmolL &&
-          other.bloodSugarEnteredUnit == this.bloodSugarEnteredUnit &&
+          other.bloodSugarValue == this.bloodSugarValue &&
+          other.bloodSugarUnit == this.bloodSugarUnit &&
           other.bloodSugarMeasuredOn == this.bloodSugarMeasuredOn &&
           other.bloodSugarSource == this.bloodSugarSource &&
           other.fetalMovement == this.fetalMovement &&
@@ -4163,6 +4816,7 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
   final Value<String?> createdBy;
   final Value<DateTime> createdOnDevice;
   final Value<DateTime?> deletedAt;
+  final Value<int?> version;
   final Value<String> pregnancyId;
   final Value<DateTime> visitedAt;
   final Value<int?> systolicBpMmhg;
@@ -4170,8 +4824,8 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
   final Value<double?> weightKg;
   final Value<double?> temperatureC;
   final Value<int?> pulseBpm;
-  final Value<double?> bloodSugarMmolL;
-  final Value<String?> bloodSugarEnteredUnit;
+  final Value<double?> bloodSugarValue;
+  final Value<String?> bloodSugarUnit;
   final Value<String?> bloodSugarMeasuredOn;
   final Value<String?> bloodSugarSource;
   final Value<String?> fetalMovement;
@@ -4195,6 +4849,7 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
     this.createdBy = const Value.absent(),
     this.createdOnDevice = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.version = const Value.absent(),
     this.pregnancyId = const Value.absent(),
     this.visitedAt = const Value.absent(),
     this.systolicBpMmhg = const Value.absent(),
@@ -4202,8 +4857,8 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
     this.weightKg = const Value.absent(),
     this.temperatureC = const Value.absent(),
     this.pulseBpm = const Value.absent(),
-    this.bloodSugarMmolL = const Value.absent(),
-    this.bloodSugarEnteredUnit = const Value.absent(),
+    this.bloodSugarValue = const Value.absent(),
+    this.bloodSugarUnit = const Value.absent(),
     this.bloodSugarMeasuredOn = const Value.absent(),
     this.bloodSugarSource = const Value.absent(),
     this.fetalMovement = const Value.absent(),
@@ -4228,6 +4883,7 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
     this.createdBy = const Value.absent(),
     required DateTime createdOnDevice,
     this.deletedAt = const Value.absent(),
+    this.version = const Value.absent(),
     required String pregnancyId,
     required DateTime visitedAt,
     this.systolicBpMmhg = const Value.absent(),
@@ -4235,8 +4891,8 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
     this.weightKg = const Value.absent(),
     this.temperatureC = const Value.absent(),
     this.pulseBpm = const Value.absent(),
-    this.bloodSugarMmolL = const Value.absent(),
-    this.bloodSugarEnteredUnit = const Value.absent(),
+    this.bloodSugarValue = const Value.absent(),
+    this.bloodSugarUnit = const Value.absent(),
     this.bloodSugarMeasuredOn = const Value.absent(),
     this.bloodSugarSource = const Value.absent(),
     this.fetalMovement = const Value.absent(),
@@ -4264,6 +4920,7 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
     Expression<String>? createdBy,
     Expression<DateTime>? createdOnDevice,
     Expression<DateTime>? deletedAt,
+    Expression<int>? version,
     Expression<String>? pregnancyId,
     Expression<DateTime>? visitedAt,
     Expression<int>? systolicBpMmhg,
@@ -4271,8 +4928,8 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
     Expression<double>? weightKg,
     Expression<double>? temperatureC,
     Expression<int>? pulseBpm,
-    Expression<double>? bloodSugarMmolL,
-    Expression<String>? bloodSugarEnteredUnit,
+    Expression<double>? bloodSugarValue,
+    Expression<String>? bloodSugarUnit,
     Expression<String>? bloodSugarMeasuredOn,
     Expression<String>? bloodSugarSource,
     Expression<String>? fetalMovement,
@@ -4297,6 +4954,7 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
       if (createdBy != null) 'created_by': createdBy,
       if (createdOnDevice != null) 'created_on_device': createdOnDevice,
       if (deletedAt != null) 'deleted_at': deletedAt,
+      if (version != null) 'version': version,
       if (pregnancyId != null) 'pregnancy_id': pregnancyId,
       if (visitedAt != null) 'visited_at': visitedAt,
       if (systolicBpMmhg != null) 'systolic_bp_mmhg': systolicBpMmhg,
@@ -4304,9 +4962,8 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
       if (weightKg != null) 'weight_kg': weightKg,
       if (temperatureC != null) 'temperature_c': temperatureC,
       if (pulseBpm != null) 'pulse_bpm': pulseBpm,
-      if (bloodSugarMmolL != null) 'blood_sugar_mmol_l': bloodSugarMmolL,
-      if (bloodSugarEnteredUnit != null)
-        'blood_sugar_entered_unit': bloodSugarEnteredUnit,
+      if (bloodSugarValue != null) 'blood_sugar_value': bloodSugarValue,
+      if (bloodSugarUnit != null) 'blood_sugar_unit': bloodSugarUnit,
       if (bloodSugarMeasuredOn != null)
         'blood_sugar_measured_on': bloodSugarMeasuredOn,
       if (bloodSugarSource != null) 'blood_sugar_source': bloodSugarSource,
@@ -4335,6 +4992,7 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
     Value<String?>? createdBy,
     Value<DateTime>? createdOnDevice,
     Value<DateTime?>? deletedAt,
+    Value<int?>? version,
     Value<String>? pregnancyId,
     Value<DateTime>? visitedAt,
     Value<int?>? systolicBpMmhg,
@@ -4342,8 +5000,8 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
     Value<double?>? weightKg,
     Value<double?>? temperatureC,
     Value<int?>? pulseBpm,
-    Value<double?>? bloodSugarMmolL,
-    Value<String?>? bloodSugarEnteredUnit,
+    Value<double?>? bloodSugarValue,
+    Value<String?>? bloodSugarUnit,
     Value<String?>? bloodSugarMeasuredOn,
     Value<String?>? bloodSugarSource,
     Value<String?>? fetalMovement,
@@ -4368,6 +5026,7 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
       createdBy: createdBy ?? this.createdBy,
       createdOnDevice: createdOnDevice ?? this.createdOnDevice,
       deletedAt: deletedAt ?? this.deletedAt,
+      version: version ?? this.version,
       pregnancyId: pregnancyId ?? this.pregnancyId,
       visitedAt: visitedAt ?? this.visitedAt,
       systolicBpMmhg: systolicBpMmhg ?? this.systolicBpMmhg,
@@ -4375,9 +5034,8 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
       weightKg: weightKg ?? this.weightKg,
       temperatureC: temperatureC ?? this.temperatureC,
       pulseBpm: pulseBpm ?? this.pulseBpm,
-      bloodSugarMmolL: bloodSugarMmolL ?? this.bloodSugarMmolL,
-      bloodSugarEnteredUnit:
-          bloodSugarEnteredUnit ?? this.bloodSugarEnteredUnit,
+      bloodSugarValue: bloodSugarValue ?? this.bloodSugarValue,
+      bloodSugarUnit: bloodSugarUnit ?? this.bloodSugarUnit,
       bloodSugarMeasuredOn: bloodSugarMeasuredOn ?? this.bloodSugarMeasuredOn,
       bloodSugarSource: bloodSugarSource ?? this.bloodSugarSource,
       fetalMovement: fetalMovement ?? this.fetalMovement,
@@ -4418,6 +5076,9 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
     if (deletedAt.present) {
       map['deleted_at'] = Variable<DateTime>(deletedAt.value);
     }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
     if (pregnancyId.present) {
       map['pregnancy_id'] = Variable<String>(pregnancyId.value);
     }
@@ -4439,13 +5100,11 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
     if (pulseBpm.present) {
       map['pulse_bpm'] = Variable<int>(pulseBpm.value);
     }
-    if (bloodSugarMmolL.present) {
-      map['blood_sugar_mmol_l'] = Variable<double>(bloodSugarMmolL.value);
+    if (bloodSugarValue.present) {
+      map['blood_sugar_value'] = Variable<double>(bloodSugarValue.value);
     }
-    if (bloodSugarEnteredUnit.present) {
-      map['blood_sugar_entered_unit'] = Variable<String>(
-        bloodSugarEnteredUnit.value,
-      );
+    if (bloodSugarUnit.present) {
+      map['blood_sugar_unit'] = Variable<String>(bloodSugarUnit.value);
     }
     if (bloodSugarMeasuredOn.present) {
       map['blood_sugar_measured_on'] = Variable<String>(
@@ -4509,6 +5168,7 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
           ..write('createdBy: $createdBy, ')
           ..write('createdOnDevice: $createdOnDevice, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('version: $version, ')
           ..write('pregnancyId: $pregnancyId, ')
           ..write('visitedAt: $visitedAt, ')
           ..write('systolicBpMmhg: $systolicBpMmhg, ')
@@ -4516,8 +5176,8 @@ class VisitsCompanion extends UpdateCompanion<LocalVisit> {
           ..write('weightKg: $weightKg, ')
           ..write('temperatureC: $temperatureC, ')
           ..write('pulseBpm: $pulseBpm, ')
-          ..write('bloodSugarMmolL: $bloodSugarMmolL, ')
-          ..write('bloodSugarEnteredUnit: $bloodSugarEnteredUnit, ')
+          ..write('bloodSugarValue: $bloodSugarValue, ')
+          ..write('bloodSugarUnit: $bloodSugarUnit, ')
           ..write('bloodSugarMeasuredOn: $bloodSugarMeasuredOn, ')
           ..write('bloodSugarSource: $bloodSugarSource, ')
           ..write('fetalMovement: $fetalMovement, ')
@@ -5299,6 +5959,8 @@ typedef $$HouseholdsTableCreateCompanionBuilder = HouseholdsCompanion Function({
   Value<double?> longitude,
   required DateTime createdOnDevice,
   Value<DateTime?> deletedAt,
+  Value<int?> version,
+  Value<String?> conflictId,
   Value<String?> areaId,
   Value<String?> createdBy,
   Value<int> rowid,
@@ -5313,6 +5975,8 @@ typedef $$HouseholdsTableUpdateCompanionBuilder = HouseholdsCompanion Function({
   Value<double?> longitude,
   Value<DateTime> createdOnDevice,
   Value<DateTime?> deletedAt,
+  Value<int?> version,
+  Value<String?> conflictId,
   Value<String?> areaId,
   Value<String?> createdBy,
   Value<int> rowid,
@@ -5369,6 +6033,16 @@ class $$HouseholdsTableFilterComposer
 
   ColumnFilters<DateTime> get deletedAt => $composableBuilder(
     column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get conflictId => $composableBuilder(
+    column: $table.conflictId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5437,6 +6111,16 @@ class $$HouseholdsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get conflictId => $composableBuilder(
+    column: $table.conflictId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get areaId => $composableBuilder(
     column: $table.areaId,
     builder: (column) => ColumnOrderings(column),
@@ -5488,6 +6172,14 @@ class $$HouseholdsTableAnnotationComposer
   GeneratedColumn<DateTime> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<String> get conflictId => $composableBuilder(
+    column: $table.conflictId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get areaId =>
       $composableBuilder(column: $table.areaId, builder: (column) => column);
 
@@ -5535,6 +6227,8 @@ class $$HouseholdsTableTableManager
                 Value<double?> longitude = const Value.absent(),
                 Value<DateTime> createdOnDevice = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int?> version = const Value.absent(),
+                Value<String?> conflictId = const Value.absent(),
                 Value<String?> areaId = const Value.absent(),
                 Value<String?> createdBy = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -5548,6 +6242,8 @@ class $$HouseholdsTableTableManager
                 longitude: longitude,
                 createdOnDevice: createdOnDevice,
                 deletedAt: deletedAt,
+                version: version,
+                conflictId: conflictId,
                 areaId: areaId,
                 createdBy: createdBy,
                 rowid: rowid,
@@ -5563,6 +6259,8 @@ class $$HouseholdsTableTableManager
                 Value<double?> longitude = const Value.absent(),
                 required DateTime createdOnDevice,
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int?> version = const Value.absent(),
+                Value<String?> conflictId = const Value.absent(),
                 Value<String?> areaId = const Value.absent(),
                 Value<String?> createdBy = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -5576,6 +6274,8 @@ class $$HouseholdsTableTableManager
                 longitude: longitude,
                 createdOnDevice: createdOnDevice,
                 deletedAt: deletedAt,
+                version: version,
+                conflictId: conflictId,
                 areaId: areaId,
                 createdBy: createdBy,
                 rowid: rowid,
@@ -5621,6 +6321,8 @@ typedef $$WomenTableCreateCompanionBuilder = WomenCompanion Function({
   Value<String?> createdBy,
   required DateTime createdOnDevice,
   Value<DateTime?> deletedAt,
+  Value<int?> version,
+  Value<String?> conflictId,
   required String householdId,
   required String patientCode,
   required String name,
@@ -5636,6 +6338,8 @@ typedef $$WomenTableUpdateCompanionBuilder = WomenCompanion Function({
   Value<String?> createdBy,
   Value<DateTime> createdOnDevice,
   Value<DateTime?> deletedAt,
+  Value<int?> version,
+  Value<String?> conflictId,
   Value<String> householdId,
   Value<String> patientCode,
   Value<String> name,
@@ -5680,6 +6384,16 @@ class $$WomenTableFilterComposer extends Composer<_$AppDatabase, $WomenTable> {
 
   ColumnFilters<DateTime> get deletedAt => $composableBuilder(
     column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get conflictId => $composableBuilder(
+    column: $table.conflictId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5753,6 +6467,16 @@ class $$WomenTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get conflictId => $composableBuilder(
+    column: $table.conflictId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get householdId => $composableBuilder(
     column: $table.householdId,
     builder: (column) => ColumnOrderings(column),
@@ -5812,6 +6536,14 @@ class $$WomenTableAnnotationComposer
 
   GeneratedColumn<DateTime> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<String> get conflictId => $composableBuilder(
+    column: $table.conflictId,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get householdId => $composableBuilder(
     column: $table.householdId,
@@ -5874,6 +6606,8 @@ class $$WomenTableTableManager
                 Value<String?> createdBy = const Value.absent(),
                 Value<DateTime> createdOnDevice = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int?> version = const Value.absent(),
+                Value<String?> conflictId = const Value.absent(),
                 Value<String> householdId = const Value.absent(),
                 Value<String> patientCode = const Value.absent(),
                 Value<String> name = const Value.absent(),
@@ -5888,6 +6622,8 @@ class $$WomenTableTableManager
                 createdBy: createdBy,
                 createdOnDevice: createdOnDevice,
                 deletedAt: deletedAt,
+                version: version,
+                conflictId: conflictId,
                 householdId: householdId,
                 patientCode: patientCode,
                 name: name,
@@ -5904,6 +6640,8 @@ class $$WomenTableTableManager
                 Value<String?> createdBy = const Value.absent(),
                 required DateTime createdOnDevice,
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int?> version = const Value.absent(),
+                Value<String?> conflictId = const Value.absent(),
                 required String householdId,
                 required String patientCode,
                 required String name,
@@ -5918,6 +6656,8 @@ class $$WomenTableTableManager
                 createdBy: createdBy,
                 createdOnDevice: createdOnDevice,
                 deletedAt: deletedAt,
+                version: version,
+                conflictId: conflictId,
                 householdId: householdId,
                 patientCode: patientCode,
                 name: name,
@@ -5965,11 +6705,17 @@ typedef $$PregnanciesTableCreateCompanionBuilder =
       Value<String?> createdBy,
       required DateTime createdOnDevice,
       Value<DateTime?> deletedAt,
+      Value<int?> version,
+      Value<String?> conflictId,
       required String womanId,
       required String registeredOn,
       required int pregnancyMonthAtRegistration,
       Value<String> status,
       Value<String?> closedOn,
+      Value<String?> lmpDate,
+      Value<String?> reportedEdd,
+      Value<String?> estimatedDeliveryDate,
+      Value<String?> eddBasis,
       Value<int> rowid,
     });
 typedef $$PregnanciesTableUpdateCompanionBuilder =
@@ -5980,11 +6726,17 @@ typedef $$PregnanciesTableUpdateCompanionBuilder =
       Value<String?> createdBy,
       Value<DateTime> createdOnDevice,
       Value<DateTime?> deletedAt,
+      Value<int?> version,
+      Value<String?> conflictId,
       Value<String> womanId,
       Value<String> registeredOn,
       Value<int> pregnancyMonthAtRegistration,
       Value<String> status,
       Value<String?> closedOn,
+      Value<String?> lmpDate,
+      Value<String?> reportedEdd,
+      Value<String?> estimatedDeliveryDate,
+      Value<String?> eddBasis,
       Value<int> rowid,
     });
 
@@ -6027,6 +6779,16 @@ class $$PregnanciesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get conflictId => $composableBuilder(
+    column: $table.conflictId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get womanId => $composableBuilder(
     column: $table.womanId,
     builder: (column) => ColumnFilters(column),
@@ -6049,6 +6811,26 @@ class $$PregnanciesTableFilterComposer
 
   ColumnFilters<String> get closedOn => $composableBuilder(
     column: $table.closedOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lmpDate => $composableBuilder(
+    column: $table.lmpDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reportedEdd => $composableBuilder(
+    column: $table.reportedEdd,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get estimatedDeliveryDate => $composableBuilder(
+    column: $table.estimatedDeliveryDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eddBasis => $composableBuilder(
+    column: $table.eddBasis,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -6092,6 +6874,16 @@ class $$PregnanciesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get conflictId => $composableBuilder(
+    column: $table.conflictId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get womanId => $composableBuilder(
     column: $table.womanId,
     builder: (column) => ColumnOrderings(column),
@@ -6114,6 +6906,26 @@ class $$PregnanciesTableOrderingComposer
 
   ColumnOrderings<String> get closedOn => $composableBuilder(
     column: $table.closedOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lmpDate => $composableBuilder(
+    column: $table.lmpDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reportedEdd => $composableBuilder(
+    column: $table.reportedEdd,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get estimatedDeliveryDate => $composableBuilder(
+    column: $table.estimatedDeliveryDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get eddBasis => $composableBuilder(
+    column: $table.eddBasis,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -6147,6 +6959,14 @@ class $$PregnanciesTableAnnotationComposer
   GeneratedColumn<DateTime> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<String> get conflictId => $composableBuilder(
+    column: $table.conflictId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get womanId =>
       $composableBuilder(column: $table.womanId, builder: (column) => column);
 
@@ -6165,6 +6985,22 @@ class $$PregnanciesTableAnnotationComposer
 
   GeneratedColumn<String> get closedOn =>
       $composableBuilder(column: $table.closedOn, builder: (column) => column);
+
+  GeneratedColumn<String> get lmpDate =>
+      $composableBuilder(column: $table.lmpDate, builder: (column) => column);
+
+  GeneratedColumn<String> get reportedEdd => $composableBuilder(
+    column: $table.reportedEdd,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get estimatedDeliveryDate => $composableBuilder(
+    column: $table.estimatedDeliveryDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get eddBasis =>
+      $composableBuilder(column: $table.eddBasis, builder: (column) => column);
 }
 
 class $$PregnanciesTableTableManager
@@ -6204,11 +7040,17 @@ class $$PregnanciesTableTableManager
                 Value<String?> createdBy = const Value.absent(),
                 Value<DateTime> createdOnDevice = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int?> version = const Value.absent(),
+                Value<String?> conflictId = const Value.absent(),
                 Value<String> womanId = const Value.absent(),
                 Value<String> registeredOn = const Value.absent(),
                 Value<int> pregnancyMonthAtRegistration = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> closedOn = const Value.absent(),
+                Value<String?> lmpDate = const Value.absent(),
+                Value<String?> reportedEdd = const Value.absent(),
+                Value<String?> estimatedDeliveryDate = const Value.absent(),
+                Value<String?> eddBasis = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PregnanciesCompanion(
                 id: id,
@@ -6217,11 +7059,17 @@ class $$PregnanciesTableTableManager
                 createdBy: createdBy,
                 createdOnDevice: createdOnDevice,
                 deletedAt: deletedAt,
+                version: version,
+                conflictId: conflictId,
                 womanId: womanId,
                 registeredOn: registeredOn,
                 pregnancyMonthAtRegistration: pregnancyMonthAtRegistration,
                 status: status,
                 closedOn: closedOn,
+                lmpDate: lmpDate,
+                reportedEdd: reportedEdd,
+                estimatedDeliveryDate: estimatedDeliveryDate,
+                eddBasis: eddBasis,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -6232,11 +7080,17 @@ class $$PregnanciesTableTableManager
                 Value<String?> createdBy = const Value.absent(),
                 required DateTime createdOnDevice,
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int?> version = const Value.absent(),
+                Value<String?> conflictId = const Value.absent(),
                 required String womanId,
                 required String registeredOn,
                 required int pregnancyMonthAtRegistration,
                 Value<String> status = const Value.absent(),
                 Value<String?> closedOn = const Value.absent(),
+                Value<String?> lmpDate = const Value.absent(),
+                Value<String?> reportedEdd = const Value.absent(),
+                Value<String?> estimatedDeliveryDate = const Value.absent(),
+                Value<String?> eddBasis = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PregnanciesCompanion.insert(
                 id: id,
@@ -6245,11 +7099,17 @@ class $$PregnanciesTableTableManager
                 createdBy: createdBy,
                 createdOnDevice: createdOnDevice,
                 deletedAt: deletedAt,
+                version: version,
+                conflictId: conflictId,
                 womanId: womanId,
                 registeredOn: registeredOn,
                 pregnancyMonthAtRegistration: pregnancyMonthAtRegistration,
                 status: status,
                 closedOn: closedOn,
+                lmpDate: lmpDate,
+                reportedEdd: reportedEdd,
+                estimatedDeliveryDate: estimatedDeliveryDate,
+                eddBasis: eddBasis,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -6294,6 +7154,8 @@ typedef $$ObstetricHistoryTableCreateCompanionBuilder =
       Value<String?> createdBy,
       required DateTime createdOnDevice,
       Value<DateTime?> deletedAt,
+      Value<int?> version,
+      Value<String?> conflictId,
       required String womanId,
       Value<int> previousPregnancies,
       Value<int> previousCSections,
@@ -6309,6 +7171,8 @@ typedef $$ObstetricHistoryTableUpdateCompanionBuilder =
       Value<String?> createdBy,
       Value<DateTime> createdOnDevice,
       Value<DateTime?> deletedAt,
+      Value<int?> version,
+      Value<String?> conflictId,
       Value<String> womanId,
       Value<int> previousPregnancies,
       Value<int> previousCSections,
@@ -6353,6 +7217,16 @@ class $$ObstetricHistoryTableFilterComposer
 
   ColumnFilters<DateTime> get deletedAt => $composableBuilder(
     column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get conflictId => $composableBuilder(
+    column: $table.conflictId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6421,6 +7295,16 @@ class $$ObstetricHistoryTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get conflictId => $composableBuilder(
+    column: $table.conflictId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get womanId => $composableBuilder(
     column: $table.womanId,
     builder: (column) => ColumnOrderings(column),
@@ -6475,6 +7359,14 @@ class $$ObstetricHistoryTableAnnotationComposer
 
   GeneratedColumn<DateTime> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<String> get conflictId => $composableBuilder(
+    column: $table.conflictId,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get womanId =>
       $composableBuilder(column: $table.womanId, builder: (column) => column);
@@ -6543,6 +7435,8 @@ class $$ObstetricHistoryTableTableManager
                 Value<String?> createdBy = const Value.absent(),
                 Value<DateTime> createdOnDevice = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int?> version = const Value.absent(),
+                Value<String?> conflictId = const Value.absent(),
                 Value<String> womanId = const Value.absent(),
                 Value<int> previousPregnancies = const Value.absent(),
                 Value<int> previousCSections = const Value.absent(),
@@ -6556,6 +7450,8 @@ class $$ObstetricHistoryTableTableManager
                 createdBy: createdBy,
                 createdOnDevice: createdOnDevice,
                 deletedAt: deletedAt,
+                version: version,
+                conflictId: conflictId,
                 womanId: womanId,
                 previousPregnancies: previousPregnancies,
                 previousCSections: previousCSections,
@@ -6571,6 +7467,8 @@ class $$ObstetricHistoryTableTableManager
                 Value<String?> createdBy = const Value.absent(),
                 required DateTime createdOnDevice,
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int?> version = const Value.absent(),
+                Value<String?> conflictId = const Value.absent(),
                 required String womanId,
                 Value<int> previousPregnancies = const Value.absent(),
                 Value<int> previousCSections = const Value.absent(),
@@ -6584,6 +7482,8 @@ class $$ObstetricHistoryTableTableManager
                 createdBy: createdBy,
                 createdOnDevice: createdOnDevice,
                 deletedAt: deletedAt,
+                version: version,
+                conflictId: conflictId,
                 womanId: womanId,
                 previousPregnancies: previousPregnancies,
                 previousCSections: previousCSections,
@@ -6638,6 +7538,7 @@ typedef $$VisitsTableCreateCompanionBuilder = VisitsCompanion Function({
   Value<String?> createdBy,
   required DateTime createdOnDevice,
   Value<DateTime?> deletedAt,
+  Value<int?> version,
   required String pregnancyId,
   required DateTime visitedAt,
   Value<int?> systolicBpMmhg,
@@ -6645,8 +7546,8 @@ typedef $$VisitsTableCreateCompanionBuilder = VisitsCompanion Function({
   Value<double?> weightKg,
   Value<double?> temperatureC,
   Value<int?> pulseBpm,
-  Value<double?> bloodSugarMmolL,
-  Value<String?> bloodSugarEnteredUnit,
+  Value<double?> bloodSugarValue,
+  Value<String?> bloodSugarUnit,
   Value<String?> bloodSugarMeasuredOn,
   Value<String?> bloodSugarSource,
   Value<String?> fetalMovement,
@@ -6671,6 +7572,7 @@ typedef $$VisitsTableUpdateCompanionBuilder = VisitsCompanion Function({
   Value<String?> createdBy,
   Value<DateTime> createdOnDevice,
   Value<DateTime?> deletedAt,
+  Value<int?> version,
   Value<String> pregnancyId,
   Value<DateTime> visitedAt,
   Value<int?> systolicBpMmhg,
@@ -6678,8 +7580,8 @@ typedef $$VisitsTableUpdateCompanionBuilder = VisitsCompanion Function({
   Value<double?> weightKg,
   Value<double?> temperatureC,
   Value<int?> pulseBpm,
-  Value<double?> bloodSugarMmolL,
-  Value<String?> bloodSugarEnteredUnit,
+  Value<double?> bloodSugarValue,
+  Value<String?> bloodSugarUnit,
   Value<String?> bloodSugarMeasuredOn,
   Value<String?> bloodSugarSource,
   Value<String?> fetalMovement,
@@ -6737,6 +7639,11 @@ class $$VisitsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get pregnancyId => $composableBuilder(
     column: $table.pregnancyId,
     builder: (column) => ColumnFilters(column),
@@ -6772,13 +7679,13 @@ class $$VisitsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<double> get bloodSugarMmolL => $composableBuilder(
-    column: $table.bloodSugarMmolL,
+  ColumnFilters<double> get bloodSugarValue => $composableBuilder(
+    column: $table.bloodSugarValue,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get bloodSugarEnteredUnit => $composableBuilder(
-    column: $table.bloodSugarEnteredUnit,
+  ColumnFilters<String> get bloodSugarUnit => $composableBuilder(
+    column: $table.bloodSugarUnit,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6897,6 +7804,11 @@ class $$VisitsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get pregnancyId => $composableBuilder(
     column: $table.pregnancyId,
     builder: (column) => ColumnOrderings(column),
@@ -6932,13 +7844,13 @@ class $$VisitsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<double> get bloodSugarMmolL => $composableBuilder(
-    column: $table.bloodSugarMmolL,
+  ColumnOrderings<double> get bloodSugarValue => $composableBuilder(
+    column: $table.bloodSugarValue,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get bloodSugarEnteredUnit => $composableBuilder(
-    column: $table.bloodSugarEnteredUnit,
+  ColumnOrderings<String> get bloodSugarUnit => $composableBuilder(
+    column: $table.bloodSugarUnit,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -7047,6 +7959,9 @@ class $$VisitsTableAnnotationComposer
   GeneratedColumn<DateTime> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
   GeneratedColumn<String> get pregnancyId => $composableBuilder(
     column: $table.pregnancyId,
     builder: (column) => column,
@@ -7076,13 +7991,13 @@ class $$VisitsTableAnnotationComposer
   GeneratedColumn<int> get pulseBpm =>
       $composableBuilder(column: $table.pulseBpm, builder: (column) => column);
 
-  GeneratedColumn<double> get bloodSugarMmolL => $composableBuilder(
-    column: $table.bloodSugarMmolL,
+  GeneratedColumn<double> get bloodSugarValue => $composableBuilder(
+    column: $table.bloodSugarValue,
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get bloodSugarEnteredUnit => $composableBuilder(
-    column: $table.bloodSugarEnteredUnit,
+  GeneratedColumn<String> get bloodSugarUnit => $composableBuilder(
+    column: $table.bloodSugarUnit,
     builder: (column) => column,
   );
 
@@ -7190,6 +8105,7 @@ class $$VisitsTableTableManager
                 Value<String?> createdBy = const Value.absent(),
                 Value<DateTime> createdOnDevice = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int?> version = const Value.absent(),
                 Value<String> pregnancyId = const Value.absent(),
                 Value<DateTime> visitedAt = const Value.absent(),
                 Value<int?> systolicBpMmhg = const Value.absent(),
@@ -7197,8 +8113,8 @@ class $$VisitsTableTableManager
                 Value<double?> weightKg = const Value.absent(),
                 Value<double?> temperatureC = const Value.absent(),
                 Value<int?> pulseBpm = const Value.absent(),
-                Value<double?> bloodSugarMmolL = const Value.absent(),
-                Value<String?> bloodSugarEnteredUnit = const Value.absent(),
+                Value<double?> bloodSugarValue = const Value.absent(),
+                Value<String?> bloodSugarUnit = const Value.absent(),
                 Value<String?> bloodSugarMeasuredOn = const Value.absent(),
                 Value<String?> bloodSugarSource = const Value.absent(),
                 Value<String?> fetalMovement = const Value.absent(),
@@ -7222,6 +8138,7 @@ class $$VisitsTableTableManager
                 createdBy: createdBy,
                 createdOnDevice: createdOnDevice,
                 deletedAt: deletedAt,
+                version: version,
                 pregnancyId: pregnancyId,
                 visitedAt: visitedAt,
                 systolicBpMmhg: systolicBpMmhg,
@@ -7229,8 +8146,8 @@ class $$VisitsTableTableManager
                 weightKg: weightKg,
                 temperatureC: temperatureC,
                 pulseBpm: pulseBpm,
-                bloodSugarMmolL: bloodSugarMmolL,
-                bloodSugarEnteredUnit: bloodSugarEnteredUnit,
+                bloodSugarValue: bloodSugarValue,
+                bloodSugarUnit: bloodSugarUnit,
                 bloodSugarMeasuredOn: bloodSugarMeasuredOn,
                 bloodSugarSource: bloodSugarSource,
                 fetalMovement: fetalMovement,
@@ -7256,6 +8173,7 @@ class $$VisitsTableTableManager
                 Value<String?> createdBy = const Value.absent(),
                 required DateTime createdOnDevice,
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int?> version = const Value.absent(),
                 required String pregnancyId,
                 required DateTime visitedAt,
                 Value<int?> systolicBpMmhg = const Value.absent(),
@@ -7263,8 +8181,8 @@ class $$VisitsTableTableManager
                 Value<double?> weightKg = const Value.absent(),
                 Value<double?> temperatureC = const Value.absent(),
                 Value<int?> pulseBpm = const Value.absent(),
-                Value<double?> bloodSugarMmolL = const Value.absent(),
-                Value<String?> bloodSugarEnteredUnit = const Value.absent(),
+                Value<double?> bloodSugarValue = const Value.absent(),
+                Value<String?> bloodSugarUnit = const Value.absent(),
                 Value<String?> bloodSugarMeasuredOn = const Value.absent(),
                 Value<String?> bloodSugarSource = const Value.absent(),
                 Value<String?> fetalMovement = const Value.absent(),
@@ -7288,6 +8206,7 @@ class $$VisitsTableTableManager
                 createdBy: createdBy,
                 createdOnDevice: createdOnDevice,
                 deletedAt: deletedAt,
+                version: version,
                 pregnancyId: pregnancyId,
                 visitedAt: visitedAt,
                 systolicBpMmhg: systolicBpMmhg,
@@ -7295,8 +8214,8 @@ class $$VisitsTableTableManager
                 weightKg: weightKg,
                 temperatureC: temperatureC,
                 pulseBpm: pulseBpm,
-                bloodSugarMmolL: bloodSugarMmolL,
-                bloodSugarEnteredUnit: bloodSugarEnteredUnit,
+                bloodSugarValue: bloodSugarValue,
+                bloodSugarUnit: bloodSugarUnit,
                 bloodSugarMeasuredOn: bloodSugarMeasuredOn,
                 bloodSugarSource: bloodSugarSource,
                 fetalMovement: fetalMovement,

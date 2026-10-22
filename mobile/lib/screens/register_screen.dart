@@ -1,11 +1,16 @@
 // M2 FE-1, FE-2, FE-3: registration of a pregnant woman, a four-step wizard
-// (final design screens 8–11): the woman, the pregnancy month, the home with
-// its GPS position, and the earlier pregnancies. Each step is checked before
-// the next; the last step saves everything on the phone in one transaction.
-// No internet is needed.
+// (final design screens 8–11): the woman, the pregnancy (the LMP date, a known
+// EDD or the month, giving the estimated delivery date), the home with its GPS
+// position, and the earlier pregnancies. Each step is checked before the next;
+// the last step saves everything on the phone in one transaction. No internet
+// is needed. A woman is registered only once: a likely second registration is
+// pointed out before it is made.
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
 import '../app_services.dart';
+import '../clinical/clinical_rules.dart';
+import '../clinical/gestational_age.dart';
 import '../data/app_database.dart';
 import '../data/patient_repository.dart';
 import '../l10n/app_localizations.dart';
@@ -16,6 +21,7 @@ import '../widgets/form_fields.dart';
 import '../widgets/gps_capture.dart';
 import '../widgets/offline_status_bar.dart';
 import '../widgets/step_scaffold.dart';
+import 'patient_file_screen.dart';
 import 'registration_saved_screen.dart';
 
 /// A mobile number as LHWs write it: 03001234567, or +923001234567. Spaces and
@@ -49,6 +55,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   int _stillbirths = 0;
 
   int? _month;
+  EddBasis _basis = EddBasis.month;
+
+  /// The LMP date or the known EDD, by [_basis].
+  DateTime? _knownDate;
+  bool _dateMissing = false;
+  ClinicalRules? _rules;
   bool _sameHome = false;
   String? _homeOf;
   List<PatientSummary> _registered = const [];
@@ -62,6 +74,85 @@ class _RegisterScreenState extends State<RegisterScreen> {
     widget.services.patients.list().then((women) {
       if (mounted) setState(() => _registered = women);
     });
+    final rules = widget.services.clinicalRules;
+    if (rules != null) {
+      _rules = rules;
+    } else {
+      ClinicalRules.load().then((rules) {
+        if (mounted) setState(() => _rules = rules);
+      });
+    }
+  }
+
+  static DateTime _today() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  /// The estimated delivery date from what the form has, or null (M2 FE-1).
+  DateTime? get _edd {
+    final gestation = _rules?.gestationalAge;
+    if (gestation == null) return null;
+    return switch (_basis) {
+      EddBasis.month => _month == null ? null : gestation.eddFromMonth(_month!, _today()),
+      EddBasis.lmp => _knownDate == null ? null : gestation.eddFromLmp(_knownDate!),
+      EddBasis.edd => _knownDate,
+    };
+  }
+
+  /// The pregnancy month on the registration day: chosen, or from the date.
+  int? get _pregnancyMonth {
+    if (_basis == EddBasis.month) return _month;
+    final edd = _edd;
+    return edd == null ? null : _rules!.gestationalAge.monthOn(edd, _today());
+  }
+
+  // The dates a pregnancy can have at registration (Clinical Rules Table, gestational_age).
+  Future<void> _pickDate() async {
+    final gestation = _rules!.gestationalAge;
+    final today = _today();
+    final (minWeeks, maxWeeks) = gestation.registrationWeeks;
+    // LMP: between the longest and the shortest pregnancy ago; EDD: the same window ahead.
+    final first = _basis == EddBasis.lmp
+        ? today.subtract(Duration(days: (maxWeeks * 7).floor()))
+        : today.add(Duration(days: ((gestation.fullTermWeeks - maxWeeks) * 7).ceil()));
+    final last = _basis == EddBasis.lmp
+        ? today.subtract(Duration(days: (minWeeks * 7).ceil()))
+        : today.add(Duration(days: ((gestation.fullTermWeeks - minWeeks) * 7).floor()));
+    final initial = _knownDate ?? (_basis == EddBasis.lmp ? last : first.add(last.difference(first) ~/ 2));
+    final picked = await showDatePicker(context: context, initialDate: initial, firstDate: first, lastDate: last);
+    if (picked != null && mounted) {
+      setState(() {
+        _knownDate = picked;
+        _dateMissing = false;
+      });
+    }
+  }
+
+  // A woman is registered only once (M2 FE-1): before a second registration of
+  // the same name and husband's name, offer her file. Returns whether to go on.
+  Future<bool> _notAlreadyRegistered() async {
+    final same = await widget.services.patients.sameWoman(name: _name.text, husbandName: _husbandName.text);
+    if (same.isEmpty || !mounted) return true;
+    final l10n = AppLocalizations.of(context);
+    final woman = same.first.woman;
+    final choice = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.regDuplicateTitle),
+        content: Text(l10n.regDuplicateText(woman.name, '\u2066${woman.patientCode}\u2069')),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(true), child: Text(l10n.regDuplicateContinue)),
+          FilledButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.regDuplicateOpen)),
+        ],
+      ),
+    );
+    if (choice == false && mounted) {
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(builder: (_) => PatientFileScreen(services: widget.services, womanId: woman.id)),
+      );
+    }
+    return choice ?? false;
   }
 
   @override
@@ -85,9 +176,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // Checks the current step; moves on, or saves after the last one.
   Future<void> _next() async {
     final valid = _forms[_step].currentState!.validate();
-    final monthMissing = _step == 1 && _month == null;
-    setState(() => _monthMissing = monthMissing);
-    if (!valid || monthMissing) return;
+    final monthMissing = _step == 1 && _basis == EddBasis.month && _month == null;
+    final dateMissing = _step == 1 && _basis != EddBasis.month && _knownDate == null;
+    setState(() {
+      _monthMissing = monthMissing;
+      _dateMissing = dateMissing;
+    });
+    if (!valid || monthMissing || dateMissing) return;
+    if (_step == 0 && !await _notAlreadyRegistered()) return;
+    if (!mounted) return;
     if (_step < _steps - 1) {
       setState(() => _step++);
     } else {
@@ -110,7 +207,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
           age: int.parse(_age.text),
           husbandName: _optional(_husbandName.text),
           contactNumber: contact == null ? null : _withoutSpaces(contact),
-          pregnancyMonth: _month!,
+          pregnancyMonth: _pregnancyMonth!,
+          estimatedDeliveryDate: _edd,
+          eddBasis: _basis,
+          lmpDate: _basis == EddBasis.lmp ? _knownDate : null,
+          reportedEdd: _basis == EddBasis.edd ? _knownDate : null,
           householdId: householdId,
           village: householdId == null ? _optional(_village.text) : null,
           address: householdId == null ? _optional(_address.text) : null,
@@ -174,17 +275,53 @@ class _RegisterScreenState extends State<RegisterScreen> {
       1 => (
         l10n.regPregnancySection,
         <Widget>[
-          Text(l10n.regMonthQuestion, style: question),
-          Text(l10n.regMonthHint, style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText)),
-          _MonthGrid(
-            selected: _month,
-            onSelected: (month) => setState(() {
-              _month = month;
+          Text(l10n.regDateQuestion, style: question),
+          ChoiceButtons<EddBasis>(
+            options: [
+              (EddBasis.month, l10n.regBasisMonth),
+              (EddBasis.lmp, l10n.regBasisLmp),
+              (EddBasis.edd, l10n.regBasisEdd),
+            ],
+            selected: _basis,
+            onSelected: (basis) => setState(() {
+              _basis = basis;
+              _knownDate = null;
+              _dateMissing = false;
               _monthMissing = false;
             }),
           ),
-          if (_month != null) NoticeCard(text: l10n.regMonthChosen(_month!), tone: NoticeTone.success),
+          if (_basis == EddBasis.month) ...[
+            Text(l10n.regMonthQuestion, style: theme.textTheme.titleMedium),
+            _MonthGrid(
+              selected: _month,
+              onSelected: (month) => setState(() {
+                _month = month;
+                _monthMissing = false;
+              }),
+            ),
+          ] else ...[
+            Text(
+              _basis == EddBasis.lmp ? l10n.regLmpHint : l10n.regEddHint,
+              style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.mutedText),
+            ),
+            OutlinedButton.icon(
+              onPressed: _rules == null ? null : _pickDate,
+              icon: const Icon(Icons.event),
+              label: Text(
+                _knownDate == null ? l10n.regPickDate : '\u2066${_formatDate(context, _knownDate!)}\u2069',
+              ),
+            ),
+          ],
+          if (_edd case final edd?)
+            NoticeCard(
+              text: l10n.regEddResult(
+                '\u2066${_formatDate(context, edd)}\u2069',
+                _rules!.gestationalAge.completedWeeksOn(edd, _today()),
+              ),
+              tone: NoticeTone.success,
+            ),
           if (_monthMissing) NoticeCard(text: l10n.regErrorChooseMonth, tone: NoticeTone.problem),
+          if (_dateMissing) NoticeCard(text: l10n.regErrorChooseDate, tone: NoticeTone.problem),
         ],
       ),
       2 => (
@@ -300,6 +437,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
+
+String _formatDate(BuildContext context, DateTime date) =>
+    DateFormat.yMMMd(Localizations.localeOf(context).toLanguageTag()).format(date);
 
 /// The months 1–9 as large buttons in a 3 × 3 grid, numbers left to right.
 class _MonthGrid extends StatelessWidget {

@@ -9,12 +9,13 @@ import 'package:flutter/services.dart';
 
 /// The limits for one vital, in its stored unit.
 class VitalRange {
-  const VitalRange({required this.decimals, required this.allowed, required this.plausible});
+  const VitalRange({required this.decimals, required this.allowed, required this.plausible, this.normal});
 
   factory VitalRange.fromJson(Map<String, dynamic> json) => VitalRange(
         decimals: json['decimals'] as int,
         allowed: _pair(json['allowed']),
         plausible: _pair(json['plausible']),
+        normal: json['normal'] == null ? null : _pair(json['normal']),
       );
 
   /// Digits allowed after the decimal point.
@@ -25,6 +26,14 @@ class VitalRange {
 
   /// Outside this (but allowed), the LHW confirms the value before saving.
   final (num, num) plausible;
+
+  /// Outside this, the value is highlighted on the form (SRS FR3.3); null when
+  /// the table sets no normal range. It never changes the risk level.
+  final (num, num)? normal;
+
+  /// Whether [value] lies outside the normal range, and on which side.
+  bool isAboveNormal(num value) => normal != null && value > normal!.$2;
+  bool isBelowNormal(num value) => normal != null && value < normal!.$1;
 
   bool isAllowed(num value) => value >= allowed.$1 && value <= allowed.$2;
   bool isPlausible(num value) => value >= plausible.$1 && value <= plausible.$2;
@@ -77,10 +86,11 @@ class VisitRanges {
   final int pulseCountSeconds;
   final int pulseMultiplier;
 
-  /// A blood sugar typed in mg/dL is stored as mg/dL ÷ this, in mmol/L.
+  /// A blood sugar in mg/dL is mg/dL ÷ this in mmol/L. Blood sugar is stored
+  /// in the unit it was recorded in (M3 FE-1); the ranges are in mmol/L.
   final double mgDlPerMmolL;
 
-  /// [mgDl] in mmol/L, with one decimal, as it is stored.
+  /// [mgDl] in mmol/L, with one decimal, for the ranges.
   double mmolLFromMgDl(num mgDl) => (mgDl / mgDlPerMmolL * 10).round() / 10;
 
   VitalRange operator [](String field) =>

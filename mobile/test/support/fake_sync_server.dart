@@ -32,6 +32,10 @@ class FakeSyncServer {
 
   /// Sent at sign-in: the highest patient number used with this LHW code (M2 FE-1).
   int lastPatientNumber = 0;
+
+  /// The phone's activation number, sent with every session (M2 FE-1); null
+  /// plays a server from before it existed.
+  int? activationNumber = 3;
   bool deactivated = false;
   bool offline = false;
 
@@ -61,9 +65,21 @@ class FakeSyncServer {
   final List<List<Map<String, dynamic>>> pushedBatches = [];
   final Set<String> rejectIds = {};
 
-  /// Records the server holds in its conflict queue instead of storing them,
-  /// like a second visit on the same day (M3 FE-2).
+  /// Records the server holds on its Conflict Review page instead of applying
+  /// them (M3 FE-2). An edit made on an older version than the server's is held
+  /// too, as the real server does.
   final Set<String> holdIds = {};
+
+  /// GET /sync/config answers (M3 FE-2); its hash changes when it changes.
+  Map<String, dynamic> config = {
+    'facilities': [
+      {'id': 'facility-1', 'kind': 'hospital', 'name': 'Synthetic DHQ', 'type': 'DHQ', 'phone': '0000-1111111'},
+    ],
+    'escalationContact': null,
+    'campaigns': <Object>[],
+    'clinicalRules': null,
+  };
+  int configRequests = 0;
   int _seq = 0;
   int _tokens = 0;
 
@@ -93,6 +109,7 @@ class FakeSyncServer {
       'refreshToken': refresh,
       'refreshExpiresAt': '2026-11-01T00:00:00.000Z',
       'supervisors': supervisors,
+      'activationNumber': activationNumber,
       'user': {
         'id': userId,
         'username': username,
@@ -159,7 +176,7 @@ class FakeSyncServer {
         for (final r in batch)
           if (rejectIds.contains(r['id']))
             {'table': r['table'], 'id': r['id'], 'status': 'rejected', 'reason': 'OUT_OF_AREA'}
-          else if (holdIds.contains(r['id']))
+          else if (holdIds.contains(r['id']) || _outdated(r))
             {'table': r['table'], 'id': r['id'], 'status': 'conflict', 'conflictId': 'conflict-${r['id']}'}
           else
             _store(r),
@@ -178,22 +195,49 @@ class FakeSyncServer {
         'hasMore': newer.length > limit,
       }, 200);
     }
+    if (path.endsWith('/sync/config')) {
+      configRequests++;
+      final hash = 'c${jsonEncode(config).hashCode.toRadixString(16).padLeft(63, '0')}';
+      if (request.url.queryParameters['have'] == hash) return _json({'configVersion': hash, 'unchanged': true}, 200);
+      return _json({'configVersion': hash, 'unchanged': false, ...config}, 200);
+    }
     return http.Response('', 404);
   });
 
+  // An edit made on an older version than the server's (M3 FE-2).
+  bool _outdated(Map<String, dynamic> r) {
+    final stored = records[r['id']];
+    final base = r['baseVersion'] as int?;
+    return stored != null && base != null && base < (stored['version'] as int);
+  }
+
   Map<String, dynamic> _store(Map<String, dynamic> r) {
-    final status = records.containsKey(r['id']) ? 'updated' : 'created';
+    final stored = records[r['id']];
+    final status = stored != null ? 'updated' : 'created';
+    final version = stored == null ? 1 : (stored['version'] as int) + 1;
     records[r['id'] as String] = {
       'table': r['table'],
       'id': r['id'],
       // The area the phone made the record in, as the real server keeps it (M1 FE-3).
       'areaId': r['areaId'] ?? areaId,
       'serverSeq': ++_seq,
+      'version': version,
       'createdOnDevice': r['createdOnDevice'],
       'deleted': r['deleted'] ?? false,
       'data': r['data'],
     };
-    return {'table': r['table'], 'id': r['id'], 'status': status, 'serverSeq': _seq};
+    return {'table': r['table'], 'id': r['id'], 'status': status, 'serverSeq': _seq, 'version': version};
+  }
+
+  /// Another phone's accepted edit of a stored record: its version rises.
+  void editOnServer(String id, Map<String, dynamic> changes) {
+    final stored = records[id]!;
+    records[id] = {
+      ...stored,
+      'serverSeq': ++_seq,
+      'version': (stored['version'] as int) + 1,
+      'data': {...stored['data'] as Map<String, dynamic>, ...changes},
+    };
   }
 
   /// A household created by another phone, in the current area unless [inArea] is given.
@@ -212,6 +256,7 @@ class FakeSyncServer {
       'id': id,
       'areaId': inArea ?? areaId,
       'serverSeq': ++_seq,
+      'version': ((records[id]?['version'] as int?) ?? 0) + 1,
       'createdOnDevice': '2026-10-01T08:00:00.000Z',
       'deleted': deleted,
       'data': data,

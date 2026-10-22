@@ -46,14 +46,15 @@ void main() {
   }
 
   // Signed in, a woman registered, offline, on the home screen.
-  Future<void> pumpHome(WidgetTester tester) async {
+  // Month 8 by default: past the gestational age at which fetal movement is asked.
+  Future<void> pumpHome(WidgetTester tester, {int month = 8}) async {
     tester.view.physicalSize = const Size(1080, 4000);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
     await tester.runAsync(() async {
       await activateApp(services, server);
       await services.patients.register(
-        const RegistrationInput(name: 'Synthetic Woman', age: 26, pregnancyMonth: 5, village: 'Dhok Syedan'),
+        RegistrationInput(name: 'Synthetic Woman', age: 26, pregnancyMonth: month, village: 'Dhok Syedan'),
         by: services.session.user!,
       );
     });
@@ -63,9 +64,9 @@ void main() {
   }
 
   // Then her file and the visit form.
-  Future<void> openVisitForm(WidgetTester tester, {AppLocalizations? l10n}) async {
+  Future<void> openVisitForm(WidgetTester tester, {AppLocalizations? l10n, int month = 8}) async {
     l10n ??= ur;
-    await pumpHome(tester);
+    await pumpHome(tester, month: month);
     await tapAndWait(tester, find.text(l10n.homePatientsButton));
     await tapAndWait(tester, find.text('Synthetic Woman'));
     expect(find.byType(PatientFileScreen), findsOneWidget);
@@ -154,13 +155,43 @@ void main() {
       (118, 76, 61.5, 36.9, 84),
     );
     expect(
-      (visit.bloodSugarMmolL, visit.bloodSugarEnteredUnit, visit.bloodSugarSource, visit.bloodSugarMeasuredOn),
-      (7.8, 'mg_dl', 'lab_report', PatientRepository.calendarDate(DateTime.now())),
-      reason: '140 mg/dL is stored as 7.8 mmol/L with the unit typed',
+      (visit.bloodSugarValue, visit.bloodSugarUnit, visit.bloodSugarSource, visit.bloodSugarMeasuredOn),
+      (140.0, 'mg_dl', 'lab_report', PatientRepository.calendarDate(DateTime.now())),
+      reason: '140 mg/dL is stored as 140 in the unit it was recorded in (M3 FE-1)',
     );
     expect((visit.fetalMovement, visit.swelling, visit.bleeding), ('reduced', true, false));
     expect((visit.convulsions, visit.severeHeadache, visit.feverWithWeakness), (false, true, false));
     expect(await tester.runAsync(services.db.pendingCount), 5, reason: 'the registration and the visit wait for sync');
+  });
+
+  testWidgets('a vital outside its normal range is highlighted, without stopping the form (SRS FR3.3)', (tester) async {
+    await openVisitForm(tester);
+    await fillVitals(tester, ur, systolic: '150');
+    await tester.pumpAndSettle();
+
+    expect(find.text(ur.vitalAboveNormal), findsOneWidget, reason: 'BP from 140 is outside the normal range of the table');
+    await enter(tester, ur.fieldSystolicBp, '118');
+    await tester.pumpAndSettle();
+    expect(find.text(ur.vitalAboveNormal), findsNothing);
+    await enter(tester, ur.fieldPulse, '52');
+    await tester.pumpAndSettle();
+    expect(find.text(ur.vitalBelowNormal), findsOneWidget);
+  });
+
+  testWidgets('early in pregnancy, fetal movement is "not applicable yet" and nothing is recorded (M3 FE-1)', (tester) async {
+    await openVisitForm(tester, month: 4);
+    await fillVitals(tester, ur);
+    await next(tester, ur.visitNextSigns);
+
+    final weeks = services.clinicalRules!.fetalMovementFromWeeks;
+    expect(find.text(ur.fetalMovementNotYet(weeks)), findsOneWidget);
+    expect(find.text(ur.fetalMovementReduced), findsNothing);
+    await next(tester, ur.visitNextDanger);
+    await answerDangerSigns(tester);
+    await tapAndWait(tester, find.text(ur.visitSaveButton));
+
+    final [visit] = await savedVisits(tester);
+    expect(visit.fetalMovement, isNull);
   });
 
   testWidgets('step 1 refuses missing and impossible values with the reason, and does not move on', (tester) async {

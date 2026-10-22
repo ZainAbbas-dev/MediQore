@@ -26,6 +26,7 @@ import 'package:mediqore/screens/visit_screen.dart';
 import 'package:mediqore/screens/widget_kit_screen.dart';
 import 'package:mediqore/settings/app_settings.dart';
 import 'package:mediqore/theme/app_theme.dart';
+import 'package:mediqore/widgets/app_cards.dart';
 
 import 'helpers.dart';
 import 'support/fake_sync_server.dart';
@@ -319,10 +320,28 @@ void main() {
 
         await next();
         expect(find.text(l10n.regErrorChooseMonth), findsOneWidget);
+        await tester.ensureVisible(find.widgetWithText(OutlinedButton, '7'));
+        await tester.pumpAndSettle();
         await tester.tap(find.widgetWithText(OutlinedButton, '7'));
         await tester.pumpAndSettle();
-        expect(find.text(l10n.regMonthChosen(7)), findsOneWidget);
+        expect(find.byType(NoticeCard), findsOneWidget, reason: 'the estimated delivery date');
         expect(tester.takeException(), isNull);
+        // The other ways to date the pregnancy fit too.
+        await tester.ensureVisible(find.text(l10n.regBasisEdd));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(l10n.regBasisEdd));
+        await tester.pumpAndSettle();
+        expect(find.text(l10n.regEddHint), findsOneWidget);
+        await scrollToEnd(tester);
+        expect(tester.takeException(), isNull);
+        await tester.ensureVisible(find.text(l10n.regBasisMonth));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(l10n.regBasisMonth));
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.widgetWithText(OutlinedButton, '7'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(OutlinedButton, '7'));
+        await tester.pumpAndSettle();
         await next();
 
         expect(find.text(l10n.regSameHome), findsOneWidget, reason: 'women are registered, so the option shows');
@@ -355,9 +374,9 @@ void main() {
         await pumpScreen(tester, PatientListScreen(services: services), english: english);
         await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
         await tester.pumpAndSettle();
-        expect(find.textContaining('LHW-DEMO-001-000'), findsWidgets);
+        expect(find.textContaining('LHW-DEMO-001-03-000'), findsWidgets);
         await scrollToEnd(tester);
-        expect(find.textContaining('LHW-DEMO-001-000'), findsWidgets);
+        expect(find.textContaining('LHW-DEMO-001-03-000'), findsWidgets);
         expect(tester.takeException(), isNull);
       });
 
@@ -466,7 +485,8 @@ void main() {
                 weightKg: 72.5,
                 temperatureC: 38.4,
                 pulseBpm: 124,
-                bloodSugarMmolL: 11.2,
+                bloodSugarValue: 11.2,
+                bloodSugarUnit: 'mmol_l',
                 fetalMovement: 'absent',
                 swelling: true,
                 bleeding: true,

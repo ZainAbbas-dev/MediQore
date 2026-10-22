@@ -90,8 +90,25 @@ void main() {
       expect(plain, isNot(contains(secure.values[SecureKeys.refreshToken]!)));
     });
 
-    test('continues the patient numbers after the highest one the server knows (M2 FE-1)', () async {
-      server.lastPatientNumber = 41;
+    test('makes Patient IDs [LHW code]-[activation number]-[sequence], unique before the first sync (M2 FE-1)', () async {
+      server.activationNumber = 3;
+      await activateApp(services, server);
+
+      Future<String> register(String name) async => (await services.patients.register(
+            RegistrationInput(name: name, age: 26, pregnancyMonth: 3),
+            by: session().user!,
+          ))
+          .patientCode;
+
+      expect(await register('Synthetic Woman'), 'LHW-DEMO-001-03-0001');
+      expect(await register('Another Woman'), 'LHW-DEMO-001-03-0002');
+      expect(session().user!.activationNumber, 3, reason: 'kept with the account');
+    });
+
+    test('without an activation number from the server, continues after the highest number it knows (M2 FE-1)', () async {
+      server
+        ..activationNumber = null
+        ..lastPatientNumber = 41;
       await activateApp(services, server);
 
       final woman = await services.patients.register(

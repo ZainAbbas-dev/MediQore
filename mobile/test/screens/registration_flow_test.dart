@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:mediqore/app.dart';
 import 'package:mediqore/app_services.dart';
 import 'package:mediqore/data/patient_repository.dart';
@@ -72,6 +73,17 @@ void main() {
 
   Future<void> next(WidgetTester tester) => tapAndWait(tester, find.text(l10n.stepNext));
 
+  DateTime today() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  // The notice under the pregnancy step: estimated delivery date and weeks (M2 FE-1).
+  String eddNotice(DateTime edd) {
+    final gestation = services.clinicalRules!.gestationalAge;
+    return l10n.regEddResult('\u2066${DateFormat.yMMMd('ur').format(edd)}\u2069', gestation.completedWeeksOn(edd, today()));
+  }
+
   Future<void> chooseMonth(WidgetTester tester, int month) async {
     await tester.tap(find.widgetWithText(OutlinedButton, '$month'));
     await tester.pumpAndSettle();
@@ -102,7 +114,8 @@ void main() {
 
     expect(find.text(l10n.stepOf(2, 4, l10n.regPregnancySection)), findsOneWidget);
     await chooseMonth(tester, 6);
-    expect(find.text(l10n.regMonthChosen(6)), findsOneWidget);
+    final edd = services.clinicalRules!.gestationalAge.eddFromMonth(6, today());
+    expect(find.text(eddNotice(edd)), findsOneWidget);
     await next(tester);
 
     expect(find.text(l10n.stepOf(3, 4, l10n.regHomeSection)), findsOneWidget);
@@ -113,7 +126,7 @@ void main() {
     expect(find.text('33.684412, 73.047912'), findsOneWidget);
     // Back and forward keeps every answer, the GPS position too.
     await tapAndWait(tester, find.text(l10n.stepBack));
-    expect(find.text(l10n.regMonthChosen(6)), findsOneWidget);
+    expect(find.text(eddNotice(edd)), findsOneWidget);
     await next(tester);
     expect(find.text('33.684412, 73.047912'), findsOneWidget);
     await next(tester);
@@ -125,7 +138,7 @@ void main() {
     await tapAndWait(tester, find.text(l10n.regSaveButton));
 
     expect(find.byType(RegistrationSavedScreen), findsOneWidget);
-    expect(find.text('LHW-DEMO-001-0001'), findsOneWidget);
+    expect(find.text('LHW-DEMO-001-03-0001'), findsOneWidget, reason: '[LHW code]-[activation number]-[sequence] (M2 FE-1)');
     expect(find.text(l10n.savedOnPhone), findsOneWidget);
     expect(await tester.runAsync(services.db.pendingCount), 4);
 
@@ -148,7 +161,7 @@ void main() {
     await tapAndWait(tester, find.text(l10n.homePatientsButton));
     expect(find.byType(PatientListScreen), findsOneWidget);
     expect(find.text('Dhok Syedan'), findsOneWidget, reason: 'the village heading');
-    expect(find.text('LHW-DEMO-001-0001'), findsOneWidget);
+    expect(find.text('LHW-DEMO-001-03-0001'), findsOneWidget);
   });
 
   testWidgets('each step explains what to fix and does not move on; nothing is saved', (tester) async {
@@ -235,14 +248,76 @@ void main() {
     final whose = find.byWidgetPredicate((w) => w is DropdownField<String>);
     await tester.tap(whose);
     await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.regWomanOption('First Woman', 'LHW-DEMO-001-0001')).last);
+    await tester.tap(find.text(l10n.regWomanOption('First Woman', 'LHW-DEMO-001-03-0001')).last);
     await tester.pumpAndSettle();
     await next(tester);
     await tapAndWait(tester, find.text(l10n.regSaveButton));
 
-    expect(find.text('LHW-DEMO-001-0002'), findsOneWidget);
+    expect(find.text('LHW-DEMO-001-03-0002'), findsOneWidget);
     final women = (await tester.runAsync(services.patients.list))!;
     expect(women.map((p) => p.woman.householdId).toSet(), {first.householdId});
+  });
+
+  testWidgets('the pregnancy date from the last period gives the delivery date and weeks, and is kept (M2 FE-1)', (tester) async {
+    await pumpHome(tester);
+    await tapAndWait(tester, find.text(l10n.patientsNewButton));
+    await enter(tester, l10n.regName, 'Dated Woman');
+    await enter(tester, l10n.regAge, '27');
+    await next(tester);
+
+    await tapAndWait(tester, find.text(l10n.regBasisLmp));
+    expect(find.text(l10n.regLmpHint), findsOneWidget);
+    await next(tester);
+    expect(find.text(l10n.regErrorChooseDate), findsWidgets, reason: 'the date is needed');
+    expect(find.text(l10n.stepOf(2, 4, l10n.regPregnancySection)), findsOneWidget);
+
+    // The picker opens on the latest possible LMP; choose the 1st of the month shown.
+    await tapAndWait(tester, find.text(l10n.regPickDate));
+    final initial = tester.widget<CalendarDatePicker>(find.byType(CalendarDatePicker)).initialDate!;
+    await tester.tap(find.text('1').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(MaterialLocalizations.of(tester.element(find.byType(CalendarDatePicker))).okButtonLabel));
+    await settle(tester); // the picker was opened outside the test clock
+    final lmp = DateTime(initial.year, initial.month, 1);
+    final edd = services.clinicalRules!.gestationalAge.eddFromLmp(lmp);
+    expect(find.text(eddNotice(edd)), findsOneWidget);
+    await next(tester);
+    await enter(tester, l10n.regVillage, 'Dhok Syedan');
+    await next(tester);
+    await tapAndWait(tester, find.text(l10n.regSaveButton));
+
+    final [woman] = (await tester.runAsync(services.patients.list))!;
+    expect(woman.pregnancy!.eddBasis, 'lmp');
+    expect(woman.pregnancy!.lmpDate, PatientRepository.calendarDate(lmp));
+    expect(woman.pregnancy!.estimatedDeliveryDate, PatientRepository.calendarDate(edd));
+    expect(
+      woman.pregnancy!.pregnancyMonthAtRegistration,
+      services.clinicalRules!.gestationalAge.monthOn(edd, today()),
+      reason: 'the month follows from the date',
+    );
+  });
+
+  testWidgets('a woman already on the phone is pointed out before a second registration (M2 FE-1)', (tester) async {
+    await pumpHome(tester);
+    await tester.runAsync(() => services.patients.register(
+          const RegistrationInput(name: 'Amina Bibi', age: 30, husbandName: 'Imran', pregnancyMonth: 5, village: 'Chak Beli'),
+          by: services.session.user!,
+        ));
+    await tapAndWait(tester, find.text(l10n.patientsNewButton));
+    await enter(tester, l10n.regName, '  amina   BIBI ');
+    await enter(tester, l10n.regAge, '30');
+    await enter(tester, l10n.regHusbandName, 'imran');
+    await next(tester);
+
+    expect(find.text(l10n.regDuplicateTitle), findsOneWidget);
+    await tapAndWait(tester, find.text(l10n.regDuplicateContinue));
+    expect(find.text(l10n.stepOf(2, 4, l10n.regPregnancySection)), findsOneWidget, reason: 'she may be someone else');
+
+    await tapAndWait(tester, find.text(l10n.stepBack));
+    await next(tester);
+    await tapAndWait(tester, find.text(l10n.regDuplicateOpen));
+    expect(find.byType(PatientFileScreen), findsOneWidget);
+    expect(find.text('Amina Bibi'), findsOneWidget);
   });
 
   Future<void> registerThree(WidgetTester tester) => tester.runAsync(() async {

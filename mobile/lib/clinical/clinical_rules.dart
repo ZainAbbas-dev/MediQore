@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 
 import 'conditions.dart';
+import 'gestational_age.dart';
 import 'visit_ranges.dart';
 
 /// One obstetric history flag (M2 FE-2), for example a previous C-section.
@@ -23,6 +24,8 @@ class ClinicalRules {
     : version = table['version'] as String,
       status = table['status'] as String,
       visitRanges = VisitRanges.fromJson(table),
+      gestationalAge = GestationalAge.fromJson(table),
+      fetalMovementFromWeeks = (table['maternal_risk'] as Map<String, dynamic>)['fetal_movement_from_weeks'] as int,
       obstetricFlagRules = [
         for (final flag in (table['obstetric_history_flags'] as Map<String, dynamic>)['flags'] as List)
           ObstetricFlagRule(id: flag['id'] as String, when: Map<String, dynamic>.from(flag['when'] as Map)),
@@ -48,6 +51,26 @@ class ClinicalRules {
   final VisitRanges visitRanges;
 
   final List<ObstetricFlagRule> obstetricFlagRules;
+
+  /// Estimated delivery date and gestational age (M2 FE-1).
+  final GestationalAge gestationalAge;
+
+  /// Before this gestational age, fetal movement is "Not applicable yet" on
+  /// the visit form and no answer is recorded (M3 FE-1, M4 FE-4).
+  final int fetalMovementFromWeeks;
+
+  /// Whether this table is newer than [other] (versions like 0.2.0).
+  bool isNewerThan(ClinicalRules other) {
+    List<int> parts(String v) => [for (final p in v.split('.')) int.tryParse(p) ?? 0];
+    final a = parts(version);
+    final b = parts(other.version);
+    for (var i = 0; i < 3; i++) {
+      final x = i < a.length ? a[i] : 0;
+      final y = i < b.length ? b[i] : 0;
+      if (x != y) return x > y;
+    }
+    return false;
+  }
 
   /// The risk-factor flags of an obstetric history at registration (M2 FE-2):
   /// shown on the woman's file; they never change the risk colour unless the

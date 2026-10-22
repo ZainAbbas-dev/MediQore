@@ -657,10 +657,6 @@
   "@regMonthQuestion": {
     "description": "Heading of registration step 2 (screen 9)."
   },
-  "regMonthHint": "Choose a month",
-  "@regMonthHint": {
-    "description": "Under the heading of step 2."
-  },
   "regHomeQuestion": "Where does the woman live?",
   "@regHomeQuestion": {
     "description": "Heading of registration step 3 (screen 10)."
@@ -689,15 +685,6 @@
       },
       "name": {
         "type": "String"
-      }
-    }
-  },
-  "regMonthChosen": "Chosen: month {month} of pregnancy",
-  "@regMonthChosen": {
-    "description": "Shown when a month is chosen.",
-    "placeholders": {
-      "month": {
-        "type": "int"
       }
     }
   },
@@ -1473,5 +1460,115 @@
   "statusChipSynced": "Synced",
   "@statusChipSynced": {
     "description": "Short sync state in the header of a data entry screen: everything has been sent."
+  },
+  "regDateQuestion": "How is the pregnancy date known?",
+  "@regDateQuestion": {
+    "description": "Registration step 2: how the estimated delivery date is found (M2 FE-1)."
+  },
+  "regBasisMonth": "Month only",
+  "@regBasisMonth": {
+    "description": "Choice: only the pregnancy month is known."
+  },
+  "regBasisLmp": "Last period",
+  "@regBasisLmp": {
+    "description": "Choice: the date of the last menstrual period (LMP) is known."
+  },
+  "regBasisEdd": "Due date",
+  "@regBasisEdd": {
+    "description": "Choice: the expected delivery date (EDD) is known, for example from a card or scan."
+  },
+  "regLmpHint": "The first day of her last menstrual period (LMP).",
+  "@regLmpHint": {
+    "description": "Under the LMP date button."
+  },
+  "regEddHint": "The expected delivery date (EDD) on her card or scan report.",
+  "@regEddHint": {
+    "description": "Under the EDD date button."
+  },
+  "regPickDate": "Choose the date",
+  "@regPickDate": {
+    "description": "Date button before a date is chosen."
+  },
+  "regErrorChooseDate": "Choose the date first",
+  "@regErrorChooseDate": {
+    "description": "Error: the LMP or EDD date is missing."
+  },
+  "regEddResult": "Expected delivery: {date} · {weeks} weeks pregnant",
+  "@regEddResult": {
+    "description": "The calculated estimated delivery date and gestational age (M2 FE-1).",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "regDuplicateTitle": "Already registered?",
+  "@regDuplicateTitle": {
+    "description": "Dialog title when a woman with the same name and husband's name is on the phone."
+  },
+  "regDuplicateText": "{name} ({code}) is already registered on this phone with the same husband's name. A woman is registered only once; her pregnancies go in her file.",
+  "@regDuplicateText": {
+    "description": "Dialog text for a possible duplicate registration (M2 FE-1, M3 FE-2).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "regDuplicateOpen": "Open her file",
+  "@regDuplicateOpen": {
+    "description": "Duplicate dialog: open the registered woman's file."
+  },
+  "regDuplicateContinue": "She is someone else",
+  "@regDuplicateContinue": {
+    "description": "Duplicate dialog: continue registering a different woman."
+  },
+  "fileStatWeeks": "Weeks",
+  "@fileStatWeeks": {
+    "description": "Stat: gestational age in completed weeks today."
+  },
+  "fileEdd": "Expected delivery",
+  "@fileEdd": {
+    "description": "Pregnancy file: estimated delivery date."
+  },
+  "fileEddFromLmp": "from the last period ({date})",
+  "@fileEddFromLmp": {
+    "description": "How the delivery date was found: from the LMP date.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "fileEddFromCard": "from her card or scan",
+  "@fileEddFromCard": {
+    "description": "How the delivery date was found: a known EDD."
+  },
+  "fileEddFromMonth": "estimated from the month",
+  "@fileEddFromMonth": {
+    "description": "How the delivery date was found: from the month only."
+  },
+  "fetalMovementNotYet": "Not applicable yet: asked from {weeks} weeks",
+  "@fetalMovementNotYet": {
+    "description": "Fetal movement before the gestational age in the Clinical Rules Table (M3 FE-1).",
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "vitalAboveNormal": "Above normal",
+  "@vitalAboveNormal": {
+    "description": "Highlight on a vital above its normal range (SRS FR3.3)."
+  },
+  "vitalBelowNormal": "Below normal",
+  "@vitalBelowNormal": {
+    "description": "Highlight on a vital below its normal range (SRS FR3.3)."
   }
 }

@@ -19,6 +19,7 @@ class SessionUser {
     this.areaId,
     this.areaName,
     this.lastPatientNumber,
+    this.activationNumber,
   });
 
   factory SessionUser.fromJson(Map<String, dynamic> json) => SessionUser(
@@ -30,6 +31,7 @@ class SessionUser {
     areaId: json['areaId'] as String?,
     areaName: json['areaName'] as String?,
     lastPatientNumber: json['lastPatientNumber'] as int?,
+    activationNumber: json['activationNumber'] as int?,
   );
 
   final String id;
@@ -43,6 +45,21 @@ class SessionUser {
   /// The highest patient number the server knew for this LHW (M2 FE-1).
   final int? lastPatientNumber;
 
+  /// This phone's activation number, issued by the server at each activation
+  /// (M2 FE-1); part of every Patient ID the phone makes. Null until the
+  /// server has sent it (a phone activated before 22 Oct 2026, until its next sync).
+  final int? activationNumber;
+
+  /// The start of the Patient IDs this LHW makes on this phone:
+  /// [LHW code]-[activation number]- (M2 FE-1), or [LHW code]- while the
+  /// activation number is not known yet. Null for anyone but an LHW.
+  String? get patientCodePrefix {
+    final code = lhwCode;
+    if (code == null) return null;
+    final number = activationNumber;
+    return number == null ? '$code-' : '$code-${number.toString().padLeft(2, '0')}-';
+  }
+
   Map<String, Object?> toJson() => {
     'id': id,
     'username': username,
@@ -52,6 +69,7 @@ class SessionUser {
     'areaId': areaId,
     'areaName': areaName,
     'lastPatientNumber': lastPatientNumber,
+    'activationNumber': activationNumber,
   };
 }
 

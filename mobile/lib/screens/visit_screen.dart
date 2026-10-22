@@ -62,7 +62,14 @@ class VisitScreen extends StatefulWidget {
   /// Records a visit for [pregnancyId]. The range checks are [ranges], or the
   /// ones the app read at start, or else read now from the config file. Closes
   /// with the saved visit.
-  const VisitScreen({super.key, required this.services, required this.pregnancyId, required this.title, this.ranges});
+  const VisitScreen({
+    super.key,
+    required this.services,
+    required this.pregnancyId,
+    required this.title,
+    this.ranges,
+    this.fetalMovementFromWeeks,
+  });
 
   final AppServices services;
   final String pregnancyId;
@@ -70,6 +77,11 @@ class VisitScreen extends StatefulWidget {
   /// The woman's name and patient ID, shown at the top.
   final String title;
   final VisitRanges? ranges;
+
+  /// Set while the pregnancy is younger than the gestational age at which the
+  /// Clinical Rules Table asks about fetal movement (that age in weeks): the
+  /// question shows "Not applicable yet" and no answer is recorded (M3 FE-1).
+  final int? fetalMovementFromWeeks;
 
   @override
   State<VisitScreen> createState() => _VisitScreenState();
@@ -136,6 +148,17 @@ class _VisitScreenState extends State<VisitScreen> {
   (num, num) _sugarRange((num, num) mmolL) =>
       _sugarInMgDl ? ((mmolL.$1 * _ranges!.mgDlPerMmolL).ceil(), (mmolL.$2 * _ranges!.mgDlPerMmolL).floor()) : mmolL;
 
+  // The words for a value outside the normal range of the Clinical Rules Table
+  // (SRS FR3.3), shown on the vital's card. Impossible values are left to the validator.
+  String? Function(String) _normal(String field, AppLocalizations l10n) => (text) {
+    final value = num.tryParse(text);
+    final range = _ranges?.vitals[field];
+    if (value == null || range == null || !range.isAllowed(value)) return null;
+    if (range.isAboveNormal(value)) return l10n.vitalAboveNormal;
+    if (range.isBelowNormal(value)) return l10n.vitalBelowNormal;
+    return null;
+  };
+
   // Required, then possible (inside what the server accepts).
   FormFieldValidator<String> _vital(String field, AppLocalizations l10n, {bool required = true}) => (text) {
     final value = num.tryParse((text ?? '').trim());
@@ -151,7 +174,7 @@ class _VisitScreenState extends State<VisitScreen> {
   int? _int(TextEditingController c) => int.tryParse(c.text.trim());
   double? _double(TextEditingController c) => double.tryParse(c.text.trim());
 
-  /// The blood sugar in mmol/L, as it is stored, or null.
+  /// The blood sugar in mmol/L, for the ranges (it is stored as typed), or null.
   double? get _sugarMmolL {
     final typed = _double(_sugar);
     if (typed == null) return null;
@@ -274,7 +297,8 @@ class _VisitScreenState extends State<VisitScreen> {
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    final sugar = _sugarMmolL;
+    // Blood sugar is stored in the unit it was recorded in (M3 FE-1).
+    final sugar = _double(_sugar);
     final LocalVisit visit;
     try {
       visit = await _services.visits.record(
@@ -285,11 +309,11 @@ class _VisitScreenState extends State<VisitScreen> {
           weightKg: _double(_weight),
           temperatureC: _double(_temperature),
           pulseBpm: _int(_pulse),
-          bloodSugarMmolL: sugar,
-          bloodSugarEnteredUnit: sugar == null ? null : (_sugarInMgDl ? 'mg_dl' : 'mmol_l'),
+          bloodSugarValue: sugar,
+          bloodSugarUnit: sugar == null ? null : (_sugarInMgDl ? 'mg_dl' : 'mmol_l'),
           bloodSugarMeasuredOn: sugar == null ? null : PatientRepository.calendarDate(_sugarDate),
           bloodSugarSource: sugar == null ? null : _sugarSource,
-          fetalMovement: _fetalMovement,
+          fetalMovement: widget.fetalMovementFromWeeks == null ? _fetalMovement : null,
           swelling: _swelling,
           bleeding: _bleeding,
           fever: _fever,
@@ -371,6 +395,7 @@ class _VisitScreenState extends State<VisitScreen> {
               unit: l10n.unitMmHg,
               controller: _systolic,
               validator: _vital('systolicBpMmhg', l10n),
+              flag: _normal('systolicBpMmhg', l10n),
               card: true,
             ),
             VitalField(
@@ -378,6 +403,7 @@ class _VisitScreenState extends State<VisitScreen> {
               unit: l10n.unitMmHg,
               controller: _diastolic,
               card: true,
+              flag: _normal('diastolicBpMmhg', l10n),
               validator: (text) {
                 final problem = _vital('diastolicBpMmhg', l10n)(text);
                 if (problem != null) return problem;
@@ -394,6 +420,7 @@ class _VisitScreenState extends State<VisitScreen> {
               controller: _weight,
               decimals: ranges['weightKg'].decimals,
               validator: _vital('weightKg', l10n),
+              flag: _normal('weightKg', l10n),
               card: true,
             ),
             VitalField(
@@ -402,6 +429,7 @@ class _VisitScreenState extends State<VisitScreen> {
               controller: _temperature,
               decimals: ranges['temperatureC'].decimals,
               validator: _vital('temperatureC', l10n),
+              flag: _normal('temperatureC', l10n),
               card: true,
             ),
           ),
@@ -411,6 +439,7 @@ class _VisitScreenState extends State<VisitScreen> {
             unit: l10n.unitPerMinute,
             controller: _pulse,
             validator: _vital('pulseBpm', l10n),
+            flag: _normal('pulseBpm', l10n),
             card: true,
             footer: [
               FilledButton.tonalIcon(
@@ -505,16 +534,19 @@ class _VisitScreenState extends State<VisitScreen> {
       children: [
         question(
           l10n.fieldFetalMovement,
-          ChoiceButtons<String>(
-            options: [
-              ('normal', l10n.fetalMovementNormal),
-              ('reduced', l10n.fetalMovementReduced),
-              ('absent', l10n.fetalMovementAbsent),
-            ],
-            selected: _fetalMovement,
-            // Pressing the chosen answer again clears it: not assessed (early pregnancy).
-            onSelected: (value) => setState(() => _fetalMovement = value == _fetalMovement ? null : value),
-          ),
+          // Too early in the pregnancy: nothing is asked or recorded (M3 FE-1, M4 FE-4).
+          widget.fetalMovementFromWeeks != null
+              ? InfoPanel(text: l10n.fetalMovementNotYet(widget.fetalMovementFromWeeks!), icon: Icons.schedule)
+              : ChoiceButtons<String>(
+                  options: [
+                    ('normal', l10n.fetalMovementNormal),
+                    ('reduced', l10n.fetalMovementReduced),
+                    ('absent', l10n.fetalMovementAbsent),
+                  ],
+                  selected: _fetalMovement,
+                  // Pressing the chosen answer again clears it: not assessed.
+                  onSelected: (value) => setState(() => _fetalMovement = value == _fetalMovement ? null : value),
+                ),
         ),
         const SizedBox(height: 8),
         question(

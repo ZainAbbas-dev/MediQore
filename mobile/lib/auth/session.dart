@@ -25,6 +25,7 @@ import 'dart:math';
 import 'package:drift/drift.dart' show TableUpdateQuery;
 import 'package:flutter/foundation.dart';
 
+import '../clinical/clinical_rules.dart';
 import '../data/app_database.dart';
 import '../data/database_opener.dart';
 import '../data/local_data.dart';
@@ -386,14 +387,27 @@ class Session extends ChangeNotifier {
     final data = _data;
     final account = _account;
     if (data == null || account == null) throw NeedsOnlineSignIn();
-    // An admin moved the LHW to another area (M1 FE-3): send what is waiting,
-    // then replace the old area's records with the new area's.
+    // An admin moved the LHW to another area (M1 FE-3): send what is waiting.
+    // The old area's records leave the phone only after every upload has
+    // succeeded; then the new area's records download.
     if (account.user.areaId != account.dataAreaId) {
-      await data.sync.push(token);
+      final (pushed, rejected, held) = await data.sync.push(token);
+      if (await data.db.pendingCount() + await data.db.refusedCount() > 0) {
+        return SyncReport(
+          pushed: pushed,
+          rejected: rejected,
+          held: held,
+          pulled: 0,
+          lastServerSeq: await data.sync.lastServerSeq(),
+        );
+      }
       await data.db.clearAreaData();
       await _saveAccount(account.copyWith(dataAreaId: account.user.areaId));
     }
-    return data.sync.syncNow(token);
+    final report = await data.sync.syncNow(token);
+    await _readDownloadedRules(data.db);
+    notifyListeners();
+    return report;
   }
 
   Future<void> _refresh() async {
@@ -498,9 +512,24 @@ class Session extends ChangeNotifier {
     return true;
   }
 
+  /// The Clinical Rules Table the server sent at the last configuration pull
+  /// (M3 FE-2), kept in the encrypted database; null if none came yet.
+  /// AppServices.clinicalRules uses it when it is newer than the bundled copy.
+  ClinicalRules? downloadedRules;
+
+  Future<void> _readDownloadedRules(AppDatabase db) async {
+    try {
+      final text = await db.readState(SyncService.clinicalRulesKey);
+      downloadedRules = text == null ? null : ClinicalRules.fromJson(jsonDecode(text) as Map<String, dynamic>);
+    } on Object catch (_) {
+      downloadedRules = null; // an unreadable table is ignored: the bundled one stays
+    }
+  }
+
   Future<LocalData> _openData(Uint8List key) async {
     final AppDatabase db = await _opener.open(key);
     final data = LocalData(db, api: _api, deviceId: _settings.deviceId, clock: _now);
+    await _readDownloadedRules(db);
     await _savePending(data);
     _outboxWatch = db.tableUpdates(TableUpdateQuery.onTable(db.outbox)).listen((_) => _savePending(data));
     return data;

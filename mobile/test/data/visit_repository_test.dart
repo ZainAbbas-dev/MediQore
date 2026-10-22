@@ -32,8 +32,8 @@ void main() {
         weightKg: 62.5,
         temperatureC: 37.2,
         pulseBpm: 88,
-        bloodSugarMmolL: 5.4,
-        bloodSugarEnteredUnit: 'mg_dl',
+        bloodSugarValue: 97,
+        bloodSugarUnit: 'mg_dl',
         bloodSugarMeasuredOn: '2026-10-03',
         bloodSugarSource: 'lab_report',
         fetalMovement: 'reduced',
@@ -61,8 +61,8 @@ void main() {
       'weightKg': 62.5,
       'temperatureC': 37.2,
       'pulseBpm': 88,
-      'bloodSugarMmolL': 5.4,
-      'bloodSugarEnteredUnit': 'mg_dl',
+      'bloodSugarValue': 97,
+      'bloodSugarUnit': 'mg_dl',
       'bloodSugarMeasuredOn': '2026-10-03',
       'bloodSugarSource': 'lab_report',
       'fetalMovement': 'reduced',
@@ -96,7 +96,7 @@ void main() {
     await visits.record(
       const VisitInput(
         pregnancyId: 'pregnancy-1',
-        bloodSugarEnteredUnit: 'mmol_l',
+        bloodSugarUnit: 'mmol_l',
         bloodSugarMeasuredOn: '2026-10-03',
         bloodSugarSource: 'glucometer',
       ),
@@ -104,7 +104,7 @@ void main() {
     );
 
     final data = (jsonDecode((await db.select(db.outbox).getSingle()).payload) as Map<String, dynamic>)['data'] as Map;
-    expect([data['bloodSugarEnteredUnit'], data['bloodSugarMeasuredOn'], data['bloodSugarSource']], [null, null, null]);
+    expect([data['bloodSugarUnit'], data['bloodSugarMeasuredOn'], data['bloodSugarSource']], [null, null, null]);
   });
 
   test('lists the latest visit first by server number, never by the phone clock (LI-7), with each sync state', () async {
