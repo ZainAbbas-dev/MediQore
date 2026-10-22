@@ -68,10 +68,10 @@ describe('synthetic data (in memory)', () => {
     }
   });
 
-  test('patient IDs are the LHW code plus a counter, and unique', () => {
+  test('patient IDs are [LHW code]-[activation number]-[sequence], and unique (M2 FE-1)', () => {
     const codes = new Map(data.lhw_profiles.map((p) => [p.user_id, p.lhw_code]));
     for (const woman of data.women) {
-      assert.match(woman.patient_code, new RegExp(`^${codes.get(woman.created_by)}-\\d{4}$`));
+      assert.match(woman.patient_code, new RegExp(`^${codes.get(woman.created_by)}-\\d{2}-\\d{4}$`));
       assert.match(woman.contact_number, /^0000-\d{7}$/); // never a real phone number
     }
     assert.equal(new Set(data.women.map((w) => w.patient_code)).size, data.women.length);
@@ -97,6 +97,12 @@ describe('synthetic data (in memory)', () => {
       const monthsSince = Math.floor((now - women.get(p.woman_id).created_on_device) / (30 * DAY));
       assert.ok(p.pregnancy_month_at_registration + monthsSince <= 9, 'still pregnant today');
     }
+    for (const p of data.pregnancies) {
+      const weeksNow = 40 - (new Date(`${p.estimated_delivery_date}T00:00:00Z`) - now) / (7 * DAY);
+      assert.ok(weeksNow > 0 && weeksNow < 42, `estimated delivery date ${p.estimated_delivery_date} fits a pregnancy`);
+      assert.equal(p.lmp_date !== null, p.edd_basis === 'lmp');
+      assert.equal(p.reported_edd !== null, p.edd_basis === 'edd');
+    }
     for (const v of data.visits) {
       assert.ok(v.visited_at >= pregnancies.get(v.pregnancy_id).created_on_device);
       assert.ok(v.visited_at <= now);
@@ -110,20 +116,22 @@ describe('synthetic data (in memory)', () => {
       assert.ok(v.temperature_c >= 36 && v.temperature_c <= 40); // °C, not °F
       assert.ok(v.pulse_bpm >= 60 && v.pulse_bpm <= 130);
       assert.ok(v.weight_kg >= 40 && v.weight_kg <= 120);
-      assert.ok(v.blood_sugar_mmol_l === null || (v.blood_sugar_mmol_l >= 3.5 && v.blood_sugar_mmol_l <= 15)); // mmol/L
+      const mmol = v.blood_sugar_unit === 'mg_dl' ? v.blood_sugar_value / 18 : v.blood_sugar_value;
+      assert.ok(v.blood_sugar_value === null || (mmol >= 3.4 && mmol <= 15.1)); // stored in its own unit
     }
-    assert.ok(data.visits.some((v) => v.blood_sugar_mmol_l === null), 'blood sugar is optional');
+    assert.ok(data.visits.some((v) => v.blood_sugar_value === null), 'blood sugar is optional');
+    assert.ok(data.visits.some((v) => v.blood_sugar_unit === 'mg_dl' && Number.isInteger(v.blood_sugar_value)), 'mg/dL kept as recorded');
   });
 
   test('a blood sugar reading carries its unit, date and source; the danger-sign checklist is answered (M3 FE-1)', () => {
     const checklist = ['convulsions', 'severe_headache', 'blurred_vision', 'severe_abdominal_pain', 'fast_breathing', 'fever_with_weakness'];
     for (const v of data.visits) {
-      if (v.blood_sugar_mmol_l === null) {
-        assert.equal(v.blood_sugar_entered_unit, null);
+      if (v.blood_sugar_value === null) {
+        assert.equal(v.blood_sugar_unit, null);
         assert.equal(v.blood_sugar_measured_on, null);
         assert.equal(v.blood_sugar_source, null);
       } else {
-        assert.equal(v.blood_sugar_entered_unit, 'mmol_l');
+        assert.ok(['mmol_l', 'mg_dl'].includes(v.blood_sugar_unit));
         assert.equal(v.blood_sugar_measured_on, v.visited_at.toISOString().slice(0, 10));
         assert.ok(['glucometer', 'lab_report'].includes(v.blood_sugar_source));
       }
@@ -132,19 +140,21 @@ describe('synthetic data (in memory)', () => {
     }
   });
 
-  test('a few visits wait in the conflict queue, each on the same Pakistan day as a stored visit (M3 FE-2)', () => {
+  test('a few possible duplicates wait for Conflict Review, both records stored (M3 FE-2)', () => {
     const big = tablesOf(buildSynthetic({ ...SMALL, seed: 3, householdsPerLhw: 60 }, 'hash'));
     assert.ok(big.sync_conflicts.length > 0);
-    const visits = new Map(big.visits.map((v) => [v.id, v]));
-    const pakistanDay = (date) => new Date(new Date(date).getTime() + 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const women = new Map(big.women.map((w) => [w.id, w]));
     for (const c of big.sync_conflicts) {
-      const existing = visits.get(c.existing_record_id);
-      const incoming = JSON.parse(c.incoming_payload);
+      const existing = women.get(c.existing_record_id);
+      const incoming = women.get(c.incoming_record_id);
       assert.equal(c.status, 'pending');
-      assert.equal(incoming.data.pregnancyId, existing.pregnancy_id);
+      assert.equal(c.reason, 'possible_duplicate');
+      assert.ok(existing && incoming, 'both women are stored');
+      assert.equal(incoming.name, existing.name);
+      assert.equal(incoming.husband_name, existing.husband_name);
+      assert.equal(incoming.household_id, existing.household_id);
+      assert.notEqual(incoming.patient_code, existing.patient_code);
       assert.equal(c.area_id, existing.area_id);
-      assert.equal(pakistanDay(incoming.data.visitedAt), pakistanDay(existing.visited_at));
-      assert.ok(!visits.has(incoming.id), 'the held visit is not stored');
     }
   });
 });

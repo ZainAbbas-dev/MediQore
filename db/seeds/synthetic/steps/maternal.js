@@ -8,10 +8,32 @@
 // live in the versioned clinical config (M4 FE-4).
 const { WOMEN, MEN, FAMILY, KNOWN_CONDITIONS } = require('../names');
 const { round } = require('../random');
+const {
+  gestational_age: GESTATION,
+  maternal_risk: { fetal_movement_from_weeks: FETAL_MOVEMENT_FROM_WEEKS },
+  visit_entry_checks: { blood_sugar_conversion: { mg_dl_per_mmol_l: MG_DL_PER_MMOL_L } },
+} = require('../../../../clinical-rules/clinical-rules.json');
 
 const DAY = 24 * 60 * 60 * 1000;
 const pad = (n, width) => String(n).padStart(width, '0');
 const dateOnly = (date) => date.toISOString().slice(0, 10);
+
+// Estimated delivery date from the pregnancy month, the LMP date or a known EDD,
+// as the app calculates it (Clinical Rules Table, gestational_age; M2 FE-1).
+function pregnancyDates(random, registeredAt, month) {
+  const weeksAtRegistration = (month - 0.5) * GESTATION.weeks_per_month;
+  const fromMonth = new Date(registeredAt.getTime() + Math.round((GESTATION.full_term_weeks - weeksAtRegistration) * 7) * DAY);
+  const basis = random.weighted({ month: 50, lmp: 40, edd: 10 });
+  if (basis === 'month') return { edd: dateOnly(fromMonth), basis, lmp: null, reported: null };
+  const lmp = new Date(fromMonth.getTime() - (GESTATION.lmp_to_edd_days + random.int(-6, 6)) * DAY);
+  const edd = new Date(lmp.getTime() + GESTATION.lmp_to_edd_days * DAY);
+  return basis === 'lmp'
+    ? { edd: dateOnly(edd), basis, lmp: dateOnly(lmp), reported: null }
+    : { edd: dateOnly(edd), basis, lmp: null, reported: dateOnly(edd) };
+}
+
+// Gestational age in weeks on a date, from the estimated delivery date.
+const weeksOn = (edd, date) => GESTATION.full_term_weeks - (new Date(`${edd}T00:00:00Z`) - date) / (7 * DAY);
 
 const PROFILES = {
   // [mean, sd, min, max] per vital, chances per symptom.
@@ -63,7 +85,8 @@ function build({ random, now }, homes) {
       ...base,
       created_on_device: registeredAt,
       household_id: household.id,
-      patient_code: `${lhw.lhwCode}-${pad(number, 4)}`,
+      // [LHW code]-[activation number]-[sequence]: one activation per synthetic phone (M2 FE-1).
+      patient_code: `${lhw.lhwCode}-01-${pad(number, 4)}`,
       name: `${random.pick(WOMEN)} ${family}`,
       age,
       husband_name: `${random.pick(MEN)} ${family}`,
@@ -80,6 +103,10 @@ function build({ random, now }, homes) {
       pregnancy_month_at_registration: month,
       status: 'active',
     };
+    const dates = pregnancyDates(random, registeredAt, month);
+    Object.assign(pregnancy, {
+      estimated_delivery_date: dates.edd, edd_basis: dates.basis, lmp_date: dates.lmp, reported_edd: dates.reported,
+    });
     pregnancies.push(pregnancy);
 
     const previous = random.int(0, Math.min(6, Math.floor((age - 18) / 3) + 1));
@@ -100,7 +127,8 @@ function build({ random, now }, homes) {
     for (let visitedAt = registeredAt; visitedAt <= now; visitedAt = new Date(visitedAt.getTime() + random.int(14, 35) * DAY)) {
       const monthNow = month + Math.floor((visitedAt - registeredAt) / (30 * DAY));
       const fever = random.chance(profile.fever);
-      const sugar = random.chance(0.4) ? vital('sugar', 1) : null; // optional reading
+      const sugar = random.chance(0.4) ? vital('sugar', 1) : null; // optional reading, in mmol/L
+      const sugarUnit = sugar === null ? null : random.weighted({ mmol_l: 70, mg_dl: 30 }); // stored as recorded
       visits.push({
         id: random.uuid(),
         ...base,
@@ -112,11 +140,12 @@ function build({ random, now }, homes) {
         weight_kg: round(startWeight + Math.max(0, monthNow - 3) * 1.6 + random.normal(0, 0.4), 2),
         temperature_c: fever ? round(random.normal(38.4, 0.4, 37.8, 39.8), 1) : round(random.normal(36.8, 0.2, 36.2, 37.4), 1),
         pulse_bpm: vital('pulse'),
-        blood_sugar_mmol_l: sugar,
-        blood_sugar_entered_unit: sugar === null ? null : 'mmol_l',
+        blood_sugar_value: sugar === null ? null : sugarUnit === 'mg_dl' ? Math.round(sugar * MG_DL_PER_MMOL_L) : sugar,
+        blood_sugar_unit: sugarUnit,
         blood_sugar_measured_on: sugar === null ? null : dateOnly(visitedAt),
         blood_sugar_source: sugar === null ? null : random.weighted({ glucometer: 85, lab_report: 15 }),
-        fetal_movement: monthNow < 5 ? null : random.weighted(profile.fetal),
+        // Not asked before the gestational age set in the Clinical Rules Table (M3 FE-1).
+        fetal_movement: weeksOn(dates.edd, visitedAt) < FETAL_MOVEMENT_FROM_WEEKS ? null : random.weighted(profile.fetal),
         swelling: random.chance(profile.swelling),
         bleeding: random.chance(profile.bleeding),
         fever,

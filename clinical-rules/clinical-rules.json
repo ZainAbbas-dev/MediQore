@@ -1,8 +1,8 @@
 {
   "name": "MediQore Clinical Rules Table",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "status": "pending clinical review",
-  "effective_from": "2026-10-09",
+  "effective_from": "2026-10-22",
   "notice": "Version 0 for the prototype on synthetic data only (LI-10). Every value is a WHO-referenced default that the Clinical Advisor has not yet reviewed. Do not use with real patients until the table is signed (M4 FE-4, LI-12).",
   "sign_off": {
     "clinical_advisor": null,
@@ -35,15 +35,15 @@
     "roadmap": "MediQore Full-Stack Implementation Roadmap, 10 Oct 2026 (Module 3: range checks to catch typing errors)."
   },
   "visit_entry_checks": {
-    "description": "Typing-error checks on the visit form (M3 FE-1). A value outside 'allowed' cannot be saved and the server refuses it. A value inside 'allowed' but outside 'plausible' is saved only after the LHW confirms it.",
+    "description": "Typing-error checks on the visit form (M3 FE-1). A value outside 'allowed' cannot be saved and the server refuses it. A value inside 'allowed' but outside 'plausible' is saved only after the LHW confirms it. A value outside 'normal' is highlighted on the form (SRS FR3.3); it does not change the risk level.",
     "reference": "roadmap",
-    "review_note": "Only systolic BP 60-250 comes from the roadmap; the other ranges are proposals for the Clinical Advisor.",
+    "review_note": "Only systolic BP 60-250 comes from the roadmap; the other ranges are proposals for the Clinical Advisor. The 'normal' ranges follow WHO PCPNC 2015 (raised BP from 140/90, fever from 38 °C, systolic below 90 a sign of shock); the pulse range 60-100 is a proposal.",
     "vitals": {
-      "systolicBpMmhg": { "unit": "mmHg", "decimals": 0, "allowed": [20, 300], "plausible": [60, 250] },
-      "diastolicBpMmhg": { "unit": "mmHg", "decimals": 0, "allowed": [10, 200], "plausible": [30, 150] },
+      "systolicBpMmhg": { "unit": "mmHg", "decimals": 0, "allowed": [20, 300], "plausible": [60, 250], "normal": [90, 139] },
+      "diastolicBpMmhg": { "unit": "mmHg", "decimals": 0, "allowed": [10, 200], "plausible": [30, 150], "normal": [60, 89] },
       "weightKg": { "unit": "kg", "decimals": 1, "allowed": [10, 250], "plausible": [30, 150] },
-      "temperatureC": { "unit": "°C", "decimals": 1, "allowed": [25, 45], "plausible": [34, 42] },
-      "pulseBpm": { "unit": "beats/min", "decimals": 0, "allowed": [20, 250], "plausible": [40, 180] },
+      "temperatureC": { "unit": "°C", "decimals": 1, "allowed": [25, 45], "plausible": [34, 42], "normal": [36.0, 37.9] },
+      "pulseBpm": { "unit": "beats/min", "decimals": 0, "allowed": [20, 250], "plausible": [40, 180], "normal": [60, 100] },
       "bloodSugarMmolL": { "unit": "mmol/L", "decimals": 1, "allowed": [0.5, 50], "plausible": [2, 30] }
     },
     "pulse_counter": {
@@ -52,7 +52,7 @@
       "multiplier": 2
     },
     "blood_sugar_conversion": {
-      "description": "A reading typed in mg/dL is stored in mmol/L: mmol/L = mg/dL / factor.",
+      "description": "Blood sugar is stored in the unit it was recorded in (M3 FE-1). A mg/dL reading is converted for the ranges above and for the model: mmol/L = mg/dL / factor (M4 FE-1).",
       "mg_dl_per_mmol_l": 18.0
     }
   },
@@ -61,6 +61,8 @@
     "levels": ["green", "yellow", "red"],
     "model_class_to_level": { "low": "green", "mid": "yellow", "high": "red" },
     "emergency_level": "red",
+    "fetal_movement_from_weeks": 28,
+    "fetal_movement_note": "Before this gestational age the visit form shows fetal movement as 'Not applicable yet' and records no answer, so the fetal-movement rules cannot fire (M3 FE-1, M4 FE-4). The 28-week value is a proposal for the Clinical Advisor.",
     "fields": {
       "systolicBpMmhg": "number",
       "diastolicBpMmhg": "number",
@@ -238,6 +240,15 @@
       { "id": "advanced_maternal_age", "description": "Age 35 or above at registration.", "when": { "field": "age", "op": ">=", "value": 35 }, "reference": "who_anc_2016" }
     ],
     "review_note": "The scope names 'Previous C-section' as an example. The other flags and their cut-offs are proposals for the Clinical Advisor."
+  },
+  "gestational_age": {
+    "description": "Estimated delivery date and gestational age (M2 FE-1). From the LMP date: EDD = LMP + lmp_to_edd_days. From a known EDD: as given. From the pregnancy month only: the month is taken as its midpoint, so gestational age at registration = (month - 0.5) x weeks_per_month and EDD = registration date + (full_term_weeks - that age) weeks. Gestational age on any date = full_term_weeks - (EDD - date) in weeks. A date that gives a gestational age outside registration_weeks at registration is refused.",
+    "full_term_weeks": 40,
+    "lmp_to_edd_days": 280,
+    "weeks_per_month": 4.345,
+    "registration_weeks": [1, 44],
+    "reference": "who_anc_2016",
+    "review_note": "Naegele's rule (LMP + 280 days) and the month-to-weeks estimate are standard arithmetic; the Clinical Advisor may prefer another estimate when only the month is known."
   },
   "pregnancy_outcomes": {
     "description": "A pregnancy that ends at or after this gestational age without a live birth is a stillbirth; before it, a miscarriage (M6 FE-4).",

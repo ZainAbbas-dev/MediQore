@@ -85,6 +85,44 @@ describe('visit entry checks (M3 FE-1)', () => {
   test('mg/dL converts to mmol/L with factor 18', () => {
     assert.equal(sugar.mg_dl_per_mmol_l, 18.0);
   });
+
+  test('every normal range lies inside its plausible range (SRS FR3.3)', () => {
+    for (const [field, range] of Object.entries(vitals)) {
+      if (!range.normal) continue;
+      const [plo, phi] = range.plausible;
+      const [nlo, nhi] = range.normal;
+      assert.ok(plo < nlo && nlo < nhi && nhi < phi, `${field}: ${range.normal} inside ${range.plausible}`);
+    }
+  });
+
+  test('BP from 140/90 is outside the normal range, matching the raised-BP rule', () => {
+    assert.equal(vitals.systolicBpMmhg.normal[1], 139);
+    assert.equal(vitals.diastolicBpMmhg.normal[1], 89);
+    assert.equal(vitals.temperatureC.normal[1] < 38, true);
+  });
+});
+
+describe('gestational age (M2 FE-1)', () => {
+  const ga = table.gestational_age;
+
+  test('full term is 40 weeks and EDD is LMP + 280 days (Naegele)', () => {
+    assert.equal(ga.full_term_weeks, 40);
+    assert.equal(ga.lmp_to_edd_days, 280);
+    assert.equal(ga.lmp_to_edd_days, ga.full_term_weeks * 7);
+  });
+
+  test('a pregnancy month maps to weeks inside the registration range', () => {
+    const [lo, hi] = ga.registration_weeks;
+    for (let month = 1; month <= 10; month += 1) {
+      const weeks = (month - 0.5) * ga.weeks_per_month;
+      assert.ok(weeks >= lo - 1 && weeks <= hi, `month ${month}: ${weeks} weeks`);
+    }
+  });
+
+  test('the fetal-movement threshold is a gestational age inside a pregnancy', () => {
+    const weeks = table.maternal_risk.fetal_movement_from_weeks;
+    assert.ok(Number.isInteger(weeks) && weeks > 12 && weeks < ga.full_term_weeks);
+  });
 });
 
 describe('maternal danger-sign rules (M4 FE-4)', () => {

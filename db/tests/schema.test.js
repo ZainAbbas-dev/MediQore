@@ -25,7 +25,7 @@ const SYNCED_TABLES = [
 
 const SERVER_ONLY_TABLES = [
   'districts', 'tehsils', 'union_councils', 'areas',
-  'users', 'lhw_profiles', 'supervisor_areas', 'devices', 'activation_codes', 'refresh_tokens',
+  'users', 'lhw_profiles', 'supervisor_areas', 'devices', 'activation_codes', 'refresh_tokens', 'role_permissions',
   'audit_log', 'sync_conflicts', 'report_jobs', 'clinical_rules_versions',
   'epi_schedule',
   'leave_and_campaign_weeks',
@@ -216,8 +216,9 @@ describe('schema v1', () => {
         [ids.areaId, ids.userId, household.id],
       );
       const insertPregnancy = () => client.query(
-        `INSERT INTO pregnancies (area_id, created_by, woman_id, registered_on, pregnancy_month_at_registration)
-         VALUES ($1, $2, $3, current_date, 4)`,
+        `INSERT INTO pregnancies (area_id, created_by, woman_id, registered_on, pregnancy_month_at_registration,
+           estimated_delivery_date, edd_basis)
+         VALUES ($1, $2, $3, current_date, 4, current_date + 160, 'month')`,
         [ids.areaId, ids.userId, woman.id],
       );
       await insertPregnancy();
@@ -234,8 +235,9 @@ describe('schema v1', () => {
       [ids.areaId, ids.userId, household.id],
     );
     const { rows: [pregnancy] } = await client.query(
-      `INSERT INTO pregnancies (area_id, created_by, woman_id, registered_on, pregnancy_month_at_registration)
-       VALUES ($1, $2, $3, current_date, 4) RETURNING id`,
+      `INSERT INTO pregnancies (area_id, created_by, woman_id, registered_on, pregnancy_month_at_registration,
+         estimated_delivery_date, edd_basis)
+       VALUES ($1, $2, $3, current_date, 4, current_date + 160, 'month') RETURNING id`,
       [ids.areaId, ids.userId, woman.id],
     );
     return { householdId: household.id, pregnancyId: pregnancy.id };
@@ -253,12 +255,14 @@ describe('schema v1', () => {
       const ids = await insertArea();
       const { pregnancyId } = await insertWomanWithPregnancy(ids);
       const insertVisit = (sugar, source) => client.query(
-        `INSERT INTO visits (area_id, created_by, pregnancy_id, visited_at, pulse_bpm, blood_sugar_mmol_l,
-           blood_sugar_entered_unit, blood_sugar_measured_on, blood_sugar_source, convulsions, fever_with_weakness)
-         VALUES ($1, $2, $3, now(), 80, $4, 'mg_dl', current_date, $5, false, true) RETURNING convulsions, fever_with_weakness`,
+        `INSERT INTO visits (area_id, created_by, pregnancy_id, visited_at, pulse_bpm, blood_sugar_value,
+           blood_sugar_unit, blood_sugar_measured_on, blood_sugar_source, convulsions, fever_with_weakness)
+         VALUES ($1, $2, $3, now(), 80, $4, 'mg_dl', current_date, $5, false, true)
+         RETURNING convulsions, fever_with_weakness, blood_sugar_value`,
         [ids.areaId, ids.userId, pregnancyId, sugar, source],
       );
-      const { rows: [visit] } = await insertVisit(5.4, 'glucometer');
+      const { rows: [visit] } = await insertVisit(110, 'glucometer');
+      assert.equal(Number(visit.blood_sugar_value), 110, 'a mg/dL reading keeps its exact value');
       assert.equal(visit.convulsions, false);
       assert.equal(visit.fever_with_weakness, true);
       await rejects(
@@ -268,11 +272,48 @@ describe('schema v1', () => {
         /visits_blood_sugar_details_need_value/,
       );
       await rejects(
-        `INSERT INTO visits (area_id, created_by, pregnancy_id, visited_at, blood_sugar_mmol_l, blood_sugar_source)
-         VALUES ($1, $2, $3, now(), 5.4, 'guess')`,
+        `INSERT INTO visits (area_id, created_by, pregnancy_id, visited_at, blood_sugar_value, blood_sugar_unit, blood_sugar_source)
+         VALUES ($1, $2, $3, now(), 5.4, 'mmol_l', 'guess')`,
         [ids.areaId, ids.userId, pregnancyId],
         /blood_sugar_source_check/,
       );
+      await rejects(
+        `INSERT INTO visits (area_id, created_by, pregnancy_id, visited_at, blood_sugar_value)
+         VALUES ($1, $2, $3, now(), 5.4)`,
+        [ids.areaId, ids.userId, pregnancyId],
+        /visits_blood_sugar_value_unit/,
+      );
+    });
+  });
+
+  test('every synced row starts at version 1 and each update raises it (M3 FE-2)', async () => {
+    await inRollback(async () => {
+      const ids = await insertArea();
+      const household = await insertHousehold(ids);
+      const read = async () => (await client.query('SELECT version FROM households WHERE id = $1', [household.id])).rows[0].version;
+      assert.equal(await read(), 1);
+      await client.query("UPDATE households SET village = 'Changed' WHERE id = $1", [household.id]);
+      assert.equal(await read(), 2);
+      await client.query('UPDATE households SET version = 99 WHERE id = $1', [household.id]);
+      assert.equal(await read(), 3, 'the version comes only from the trigger');
+    });
+  });
+
+  test('a pregnancy stores its estimated delivery date and what it came from (M2 FE-1)', async () => {
+    await inRollback(async () => {
+      const ids = await insertArea();
+      const household = await insertHousehold(ids);
+      const { rows: [woman] } = await client.query(
+        `INSERT INTO women (area_id, created_by, household_id, patient_code, name)
+         VALUES ($1, $2, $3, 'LHW001-01-0009', 'Test Woman') RETURNING id`,
+        [ids.areaId, ids.userId, household.id],
+      );
+      const insert = (basis, lmp, edd) => `INSERT INTO pregnancies (area_id, created_by, woman_id, registered_on,
+          pregnancy_month_at_registration, estimated_delivery_date, edd_basis, lmp_date, reported_edd)
+        VALUES ('${ids.areaId}', '${ids.userId}', '${woman.id}', current_date, 4, current_date + 160, '${basis}', ${lmp}, ${edd})`;
+      await rejects(insert('lmp', 'NULL', 'NULL'), [], /pregnancies_edd_basis_date/);
+      await rejects(insert('month', 'current_date - 100', 'NULL'), [], /pregnancies_edd_basis_date/);
+      await client.query(insert('lmp', 'current_date - 100', 'NULL'));
     });
   });
 

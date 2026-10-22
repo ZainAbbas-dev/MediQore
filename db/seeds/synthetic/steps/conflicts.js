@@ -1,72 +1,65 @@
-// M3 FE-2: a few visits waiting in the supervisors' conflict queue. Each is a
-// second visit to a pregnancy on the same day (Pakistan time) as a visit
-// already on the server, as two phones, or a phone that saved a visit twice,
-// would send it. The held visit is stored as the device sent it, so the
-// portal's review page has something to show in demos.
-const PAKISTAN_OFFSET = 5 * 60 * 60 * 1000;
-const MINUTE = 60 * 1000;
+// M3 FE-2, M10 FE-3: a few possible duplicates waiting on the supervisors'
+// Conflict Review page. Each is a woman registered a second time in the same
+// household with the same name and husband's name, as a second phone or a new
+// activation of the same phone would send her (activation number 02). Both
+// records are stored, as the server keeps them, and the newer one is listed for
+// the supervisor, so the portal's review page has something to show in demos.
+const DAY = 24 * 60 * 60 * 1000;
 
-const pakistanDay = (date) => new Date(date.getTime() + PAKISTAN_OFFSET).toISOString().slice(0, 10);
+function build({ random, now }, pregnant) {
+  const pregnancyOf = new Map(pregnant.pregnancies.map((p) => [p.woman_id, p]));
+  const historyOf = new Map(pregnant.obstetricHistory.map((h) => [h.woman_id, h]));
 
-function build({ random }, pregnant) {
-  const lastVisit = new Map(); // pregnancy -> its latest visit
-  for (const visit of pregnant.visits) lastVisit.set(visit.pregnancy_id, visit);
-
+  const women = [];
+  const pregnancies = [];
+  const obstetricHistory = [];
   const conflicts = [];
-  for (const existing of lastVisit.values()) {
-    if (!random.chance(0.08)) continue;
+  for (const existing of pregnant.women) {
+    if (!random.chance(0.05)) continue;
+    const registeredAt = new Date(Math.min(now.getTime() - DAY, existing.created_on_device.getTime() + random.int(1, 10) * DAY));
+    const base = { area_id: existing.area_id, created_by: existing.created_by, created_on_device: registeredAt };
 
-    // Later the same day if possible, otherwise earlier.
-    let visitedAt = new Date(existing.visited_at.getTime() + random.int(30, 240) * MINUTE);
-    if (pakistanDay(visitedAt) !== pakistanDay(existing.visited_at)) {
-      visitedAt = new Date(existing.visited_at.getTime() - random.int(30, 240) * MINUTE);
-    }
-    const incoming = {
-      table: 'visits',
+    const woman = {
+      ...existing,
+      ...base,
       id: random.uuid(),
-      areaId: existing.area_id,
-      createdOnDevice: visitedAt.toISOString(),
-      deleted: false,
-      data: {
-        pregnancyId: existing.pregnancy_id,
-        visitedAt: visitedAt.toISOString(),
-        systolicBpMmhg: existing.systolic_bp_mmhg + random.int(-6, 6),
-        diastolicBpMmhg: existing.diastolic_bp_mmhg + random.int(-4, 4),
-        weightKg: existing.weight_kg,
-        temperatureC: existing.temperature_c,
-        pulseBpm: existing.pulse_bpm,
-        bloodSugarMmolL: existing.blood_sugar_mmol_l,
-        bloodSugarEnteredUnit: existing.blood_sugar_entered_unit,
-        bloodSugarMeasuredOn: existing.blood_sugar_measured_on,
-        bloodSugarSource: existing.blood_sugar_source,
-        fetalMovement: existing.fetal_movement,
-        swelling: existing.swelling,
-        bleeding: existing.bleeding,
-        fever: existing.fever,
-        anaemiaSigns: existing.anaemia_signs,
-        urineSymptoms: existing.urine_symptoms,
-        convulsions: existing.convulsions,
-        severeHeadache: existing.severe_headache,
-        blurredVision: existing.blurred_vision,
-        severeAbdominalPain: existing.severe_abdominal_pain,
-        fastBreathing: existing.fast_breathing,
-        feverWithWeakness: existing.fever_with_weakness,
-      },
+      patient_code: existing.patient_code.replace(/-01-(\d{4})$/, '-02-$1'),
+      age: existing.age + random.int(-1, 1),
+      contact_number: existing.contact_number,
     };
+    women.push(woman);
+    pregnancies.push({ ...pregnancyOf.get(existing.id), ...base, id: random.uuid(), woman_id: woman.id, registered_on: registeredAt.toISOString().slice(0, 10) });
+    obstetricHistory.push({ ...historyOf.get(existing.id), ...base, id: random.uuid(), woman_id: woman.id });
+
+    const { id: _id, area_id: areaId, created_by: _by, created_on_device: createdOnDevice, ...fields } = woman;
     conflicts.push({
       id: random.uuid(),
-      area_id: existing.area_id,
-      table_name: 'visits',
-      incoming_record_id: incoming.id,
+      area_id: areaId,
+      table_name: 'women',
+      incoming_record_id: woman.id,
       existing_record_id: existing.id,
-      incoming_payload: JSON.stringify(incoming),
-      reason: 'same_parent_same_day',
+      incoming_payload: JSON.stringify({
+        table: 'women',
+        id: woman.id,
+        areaId,
+        createdOnDevice: createdOnDevice.toISOString(),
+        deleted: false,
+        data: {
+          householdId: fields.household_id,
+          patientCode: fields.patient_code,
+          name: fields.name,
+          age: fields.age,
+          husbandName: fields.husband_name,
+          contactNumber: fields.contact_number,
+        },
+      }),
+      reason: 'possible_duplicate',
       submitted_by: existing.created_by,
       status: 'pending',
-      created_at: visitedAt,
+      created_at: registeredAt,
     });
   }
-  return { conflicts };
+  return { women, pregnancies, obstetricHistory, conflicts };
 }
 
 module.exports = { build };

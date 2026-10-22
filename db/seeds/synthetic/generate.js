@@ -1,6 +1,6 @@
 // LI-10: synthetic data generator (P0-8). Builds made-up districts, Union
 // Councils, areas, accounts, households with GPS, pregnant women, visits, a
-// few visits waiting in the conflict queue (M3 FE-2) and hospitals (M10 FE-3), so
+// few possible duplicates waiting for Conflict Review (M3 FE-2) and hospitals (M10 FE-3), so
 // all development, testing and demos run without real patient data.
 //
 // generateSynthetic(client, options) inserts everything through `client`; the
@@ -71,9 +71,9 @@ function buildSynthetic(overrides, passwordHash) {
     ['lhw_profiles', people.lhwProfiles],
     ['supervisor_areas', people.supervisorAreas],
     ['households', homes.rows],
-    ['women', pregnant.women],
-    ['pregnancies', pregnant.pregnancies],
-    ['obstetric_history', pregnant.obstetricHistory],
+    ['women', [...pregnant.women, ...held.women]],
+    ['pregnancies', [...pregnant.pregnancies, ...held.pregnancies]],
+    ['obstetric_history', [...pregnant.obstetricHistory, ...held.obstetricHistory]],
     ['visits', pregnant.visits],
     ['sync_conflicts', held.conflicts],
     ['hospitals', care.hospitals],
