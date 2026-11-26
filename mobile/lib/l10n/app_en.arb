@@ -512,6 +512,68 @@
   "@homePatientsButton": {
     "description": "Home screen button that opens the patient list (M2 FE-3)."
   },
+  "regHouseholdNumber": "Household number",
+  "@regHouseholdNumber": {
+    "description": "Household number",
+    "placeholders": {}
+  },
+  "regChooseHousehold": "Choose a household",
+  "@regChooseHousehold": {
+    "description": "Choose a household",
+    "placeholders": {}
+  },
+  "regErrorChooseHousehold": "Select a household to continue.",
+  "@regErrorChooseHousehold": {
+    "description": "Select a household to continue.",
+    "placeholders": {}
+  },
+  "regUnnamedHousehold": "Household without details",
+  "@regUnnamedHousehold": {
+    "description": "Household without details",
+    "placeholders": {}
+  },
+  "regLaterPregnancy": "New pregnancy",
+  "@regLaterPregnancy": {
+    "description": "New pregnancy",
+    "placeholders": {}
+  },
+  "regPatientPreview": "Patient ID: {code}",
+  "@regPatientPreview": {
+    "description": "Patient ID: {code}",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "regPatientCodeChanged": "The Patient ID changed. Check the new number and save again.",
+  "@regPatientCodeChanged": {
+    "description": "The Patient ID changed. Check the new number and save again.",
+    "placeholders": {}
+  },
+  "regSaveFailed": "Could not save the record. Reopen the form and try again.",
+  "@regSaveFailed": {
+    "description": "Could not save the record. Reopen the form and try again.",
+    "placeholders": {}
+  },
+  "regGestationMonths": "Pregnancy month: {month}",
+  "@regGestationMonths": {
+    "description": "Pregnancy month: {month}",
+    "placeholders": {
+      "month": {
+        "type": "int"
+      }
+    }
+  },
+  "regErrorTooLong": "Use {limit} characters or fewer.",
+  "@regErrorTooLong": {
+    "description": "Use {limit} characters or fewer.",
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
   "regTitle": "New registration",
   "@regTitle": {
     "description": "Title of the registration form (M2 FE-1)."
@@ -557,7 +619,7 @@
   "@regHomeSection": {
     "description": "Registration form section: household and location (M2 FE-3)."
   },
-  "regSameHome": "In the home of a woman already registered",
+  "regSameHome": "Choose an existing household",
   "@regSameHome": {
     "description": "Checkbox: the woman lives in the home of a woman already registered."
   },

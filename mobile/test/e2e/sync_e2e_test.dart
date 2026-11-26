@@ -212,6 +212,7 @@ void main() {
           contactNumber: '03001234567',
           pregnancyMonth: 4,
           village: 'End-to-end village',
+          householdNumber: 'E2E-HH-01',
           address: 'House 1',
           latitude: 33.6844,
           longitude: 73.0479,
@@ -236,6 +237,29 @@ void main() {
       final pulled = await phone2.patients.file(woman.id);
       expect(pulled?.woman.patientCode, woman.patientCode);
       expect(pulled?.pregnancy?.pregnancyMonthAtRegistration, 4);
+      expect(pulled?.household?.householdNumber, 'E2E-HH-01');
+      final original = pulled!.pregnancy!;
+      // Model a recorded pregnancy outcome by closing the first file, then
+      // open the next pregnancy from the app under the same woman and home.
+      final closed = original.copyWith(status: 'closed');
+      await phone2.db.transaction(() async {
+        await phone2.db.update(phone2.db.pregnancies).replace(closed);
+        await phone2.db.enqueue(PatientRepository.pregnancyPayload(closed), queuedAt: DateTime.now());
+      });
+      expect((await phone2.session.sync()).rejected, 0);
+      await phone2.patients.startPregnancy(
+        woman.id,
+        const PregnancyInput(pregnancyMonth: 2, previousPregnancies: 2, knownConditions: 'None (synthetic)'),
+        by: phone2.session.user!,
+      );
+      expect((await phone2.session.sync()).rejected, 0);
+      await phone1.session.sync();
+      final later = (await phone1.patients.file(woman.id))!;
+      expect(later.woman.patientCode, woman.patientCode);
+      expect(later.woman.householdId, woman.householdId);
+      expect(later.pregnancy!.id, isNot(original.id));
+      expect(later.history!.id, pulled.history!.id);
+      expect(later.history!.previousPregnancies, 2);
       final next = await phone2.patients.register(
         const RegistrationInput(name: 'E2E Second Woman', age: 25, pregnancyMonth: 2, village: 'End-to-end village'),
         by: phone2.session.user!,

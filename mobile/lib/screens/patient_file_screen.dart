@@ -21,6 +21,7 @@ import '../widgets/app_cards.dart';
 import '../widgets/curved_header.dart';
 import '../widgets/gps_capture.dart';
 import '../widgets/large_button.dart';
+import 'register_screen.dart';
 import 'visit_screen.dart';
 import '../theme/app_motion.dart';
 
@@ -86,6 +87,13 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
     if (saved == null || !mounted) return;
     await _load();
     messenger.showSnackBar(SnackBar(content: Text(l10n.visitSaved)));
+  }
+
+  Future<void> _newPregnancy(PatientFile file) async {
+    final saved = await Navigator.of(context).push<bool>(
+      AppRoutes.form(RegisterScreen(services: widget.services, existing: file)),
+    );
+    if (saved == true && mounted) await _load();
   }
 
   Future<void> _saveLocation(LocationFix fix, AppLocalizations l10n) async {
@@ -206,6 +214,12 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
                   gap,
                   LargeButton(label: l10n.fileNewVisitButton, icon: Icons.add, onPressed: () => _newVisit(file, l10n, weeksToday: weeksToday)),
                 ],
+                if (pregnancy?.status != 'active' &&
+                    widget.services.session.user?.patientCodePrefix != null &&
+                    woman.areaId == widget.services.session.user?.areaId) ...[
+                  gap,
+                  LargeButton(label: l10n.regLaterPregnancy, icon: Icons.add, onPressed: () => _newPregnancy(file)),
+                ],
                 if (pregnancy != null) ...[
                   gap,
                   SectionCard(
@@ -265,6 +279,7 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
                   title: l10n.regHomeSection,
                   icon: Icons.home_outlined,
                   children: [
+                    InfoRow(l10n.regHouseholdNumber, household?.householdNumber, ltr: true),
                     InfoRow(l10n.regVillage, household?.village),
                     InfoRow(l10n.regAddress, household?.address),
                     if (household?.latitude != null && household?.longitude != null)

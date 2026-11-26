@@ -94,6 +94,47 @@ void main() {
       expect(await db.pendingCount(), 4);
     });
 
+    test('opens a later pregnancy for the same woman and updates her existing history once', () async {
+      final woman = await patients.register(input(), by: lhw);
+      final before = (await patients.file(woman.id))!;
+      final later = PregnancyInput(pregnancyMonth: 2, previousPregnancies: 3, previousCSections: 1);
+
+      await expectLater(patients.startPregnancy(woman.id, later, by: lhw), throwsStateError);
+      await db.update(db.pregnancies).replace(before.pregnancy!.copyWith(status: 'closed'));
+      await patients.startPregnancy(woman.id, later, by: lhw);
+      await expectLater(patients.startPregnancy(woman.id, later, by: lhw), throwsStateError);
+
+      final after = (await patients.file(woman.id))!;
+      expect(after.woman, woman);
+      expect(after.pregnancy!.id, isNot(before.pregnancy!.id));
+      expect(after.pregnancy!.womanId, woman.id);
+      expect(after.history!.id, before.history!.id);
+      expect(after.history!.previousPregnancies, 3);
+      expect((await db.select(db.pregnancies).get()).map((p) => p.status), ['closed', 'active']);
+      expect((await db.select(db.obstetricHistory).get()).length, 1);
+      expect((await queued()).where((p) => p['table'] == 'pregnancies').length, 2);
+    });
+
+    test('rejects a stale Patient ID preview without writing a duplicate registration', () async {
+      final preview = await patients.nextPatientCode(lhw);
+      await patients.register(input(name: 'Other Woman'), by: lhw, expectedCode: preview);
+
+      await expectLater(
+        patients.register(input(), by: lhw, expectedCode: preview),
+        throwsA(isA<PatientCodeChanged>().having((error) => error.code, 'code', 'LHW-DEMO-001-0002')),
+      );
+      expect(await db.pendingCount(), 4);
+      expect(await patients.nextPatientCode(lhw), 'LHW-DEMO-001-0002');
+    });
+
+    test('refuses to link a registration to a household from another area', () async {
+      final home = await HouseholdRepository(db).create(village: 'Different village', areaId: 'area-2');
+
+      await expectLater(patients.register(input(householdId: home.id), by: lhw), throwsStateError);
+      expect(await patients.list(), isEmpty);
+      expect(await db.pendingCount(), 1);
+    });
+
     test('numbers patients one after another on this phone', () async {
       final first = await patients.register(input(), by: lhw);
       final second = await patients.register(input(name: 'Second'), by: lhw);

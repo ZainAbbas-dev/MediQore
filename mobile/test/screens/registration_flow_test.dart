@@ -120,6 +120,7 @@ void main() {
 
     expect(find.text(l10n.stepOf(3, 4, l10n.regHomeSection)), findsOneWidget);
     await enter(tester, l10n.regVillage, 'Dhok Syedan');
+    await enter(tester, l10n.regHouseholdNumber, 'HH-12');
     await enter(tester, l10n.regAddress, 'House 12');
     await tapAndWait(tester, find.text(l10n.gpsCaptureButton));
     expect(find.text(l10n.gpsCaptured(8)), findsOneWidget);
@@ -132,6 +133,7 @@ void main() {
     await next(tester);
 
     expect(find.text(l10n.stepOf(4, 4, l10n.regHistorySection)), findsOneWidget);
+    expect(find.text(l10n.regPatientPreview('\u2066LHW-DEMO-001-03-0001\u2069')), findsOneWidget);
     await setCounter(tester, l10n.regPreviousPregnancies, 2);
     await setCounter(tester, l10n.regPreviousCSections, 1);
     await enter(tester, l10n.regKnownConditions, 'Asthma');
@@ -148,6 +150,7 @@ void main() {
     expect(find.text('03001234567'), findsOneWidget, reason: 'spaces and dashes are removed');
     expect(find.text('33.684412, 73.047912'), findsOneWidget);
     expect(find.text('Asthma'), findsOneWidget);
+    expect(find.text('HH-12'), findsOneWidget);
     expect(find.text(l10n.syncWaiting), findsOneWidget);
     // M2 FE-2: the flags the Clinical Rules Table finds in her history.
     expect(find.text(l10n.flagPreviousCSection), findsOneWidget);
@@ -185,8 +188,9 @@ void main() {
     await next(tester);
 
     await next(tester);
-    expect(find.text(l10n.regErrorRequired), findsOneWidget, reason: 'the village');
+    expect(find.text(l10n.regErrorRequired), findsNWidgets(2), reason: 'village and household number');
     await enter(tester, l10n.regVillage, 'Dhok Syedan');
+    await enter(tester, l10n.regHouseholdNumber, 'HH-12');
     await next(tester);
 
     await setCounter(tester, l10n.regPreviousPregnancies, 1);
@@ -209,6 +213,7 @@ void main() {
     await chooseMonth(tester, 3);
     await next(tester);
     await enter(tester, l10n.regVillage, 'Dhok Syedan');
+    await enter(tester, l10n.regHouseholdNumber, 'HH-12');
 
     await tapAndWait(tester, find.text(l10n.gpsCaptureButton));
     expect(find.text(l10n.gpsServiceOff), findsOneWidget);
@@ -230,11 +235,10 @@ void main() {
     expect(woman.household?.latitude, 33.7);
   });
 
-  testWidgets('a second woman can be registered in the same home', (tester) async {
+  testWidgets('a household without a registered woman can be selected', (tester) async {
     await pumpHome(tester);
-    final first = (await tester.runAsync(() => services.patients.register(
-          const RegistrationInput(name: 'First Woman', age: 30, pregnancyMonth: 5, village: 'Chak Beli'),
-          by: services.session.user!,
+    final home = (await tester.runAsync(() => services.households.create(
+          householdNumber: 'HH-21', village: 'Chak Beli', areaId: services.session.user!.areaId,
         )))!;
     await tapAndWait(tester, find.text(l10n.patientsNewButton));
     await enter(tester, l10n.regName, 'Second Woman');
@@ -248,14 +252,44 @@ void main() {
     final whose = find.byWidgetPredicate((w) => w is DropdownField<String>);
     await tester.tap(whose);
     await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.regWomanOption('First Woman', 'LHW-DEMO-001-03-0001')).last);
+    await tester.tap(find.text('HH-21 · Chak Beli').last);
     await tester.pumpAndSettle();
     await next(tester);
     await tapAndWait(tester, find.text(l10n.regSaveButton));
 
-    expect(find.text('LHW-DEMO-001-03-0002'), findsOneWidget);
+    expect(find.text('LHW-DEMO-001-03-0001'), findsOneWidget);
     final women = (await tester.runAsync(services.patients.list))!;
-    expect(women.map((p) => p.woman.householdId).toSet(), {first.householdId});
+    expect(women.map((p) => p.woman.householdId).toSet(), {home.id});
+  });
+
+  testWidgets('opens a later pregnancy from a closed file and keeps the Patient ID', (tester) async {
+    await pumpHome(tester);
+    final woman = (await tester.runAsync(() async {
+      final patient = await services.patients.register(
+        const RegistrationInput(name: 'Returning Woman', age: 28, pregnancyMonth: 4, previousPregnancies: 1),
+        by: services.session.user!,
+      );
+      final file = (await services.patients.file(patient.id))!;
+      await services.db.update(services.db.pregnancies).replace(file.pregnancy!.copyWith(status: 'closed'));
+      return patient;
+    }))!;
+    await tapAndWait(tester, find.text(l10n.homePatientsButton));
+    await tapAndWait(tester, find.text(woman.name));
+    await tapAndWait(tester, find.text(l10n.regLaterPregnancy));
+    expect(find.text(l10n.stepOf(1, 2, l10n.regPregnancySection)), findsOneWidget);
+    await chooseMonth(tester, 3);
+    await next(tester);
+    final previous = find.byWidgetPredicate((w) => w is CounterField && w.label == l10n.regPreviousPregnancies);
+    expect(tester.widget<CounterField>(previous).value, 1);
+    await setCounter(tester, l10n.regPreviousPregnancies, 2);
+    await tapAndWait(tester, find.text(l10n.regSaveButton));
+
+    expect(find.byType(PatientFileScreen), findsOneWidget);
+    expect(find.text(woman.patientCode), findsOneWidget);
+    expect(find.text(l10n.regLaterPregnancy), findsNothing);
+    final updated = (await tester.runAsync(() => services.patients.file(woman.id)))!;
+    expect(updated.history!.previousPregnancies, 2);
+    expect(updated.pregnancy!.pregnancyMonthAtRegistration, 3);
   });
 
   testWidgets('the pregnancy date from the last period gives the delivery date and weeks, and is kept (M2 FE-1)', (tester) async {
@@ -283,6 +317,7 @@ void main() {
     expect(find.text(eddNotice(edd)), findsOneWidget);
     await next(tester);
     await enter(tester, l10n.regVillage, 'Dhok Syedan');
+    await enter(tester, l10n.regHouseholdNumber, 'HH-12');
     await next(tester);
     await tapAndWait(tester, find.text(l10n.regSaveButton));
 

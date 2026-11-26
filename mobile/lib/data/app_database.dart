@@ -494,11 +494,10 @@ class AppDatabase extends _$AppDatabase {
   /// The prefix is [LHW code]-[activation number]- (or [LHW code]- before the
   /// phone knows its activation number), and each prefix has its own counter.
   /// The number is above the saved counter and above every patient ID with
-  /// this prefix already on the phone. Call it inside the transaction that
-  /// saves the woman.
+  /// this prefix already on the phone.
   /// [legacy] is the format without an activation number, whose counter
   /// [raisePatientCounter] keeps.
-  Future<int> takePatientNumber(String prefix, {bool legacy = false}) async {
+  Future<int> nextPatientNumber(String prefix, {bool legacy = false}) async {
     final counterKey = legacy ? _patientCounterKey : '$_patientCounterKey:$prefix';
     var last = int.tryParse(await readState(counterKey) ?? '') ?? 0;
     final codes = await (selectOnly(women)
@@ -510,7 +509,13 @@ class AppDatabase extends _$AppDatabase {
       final number = int.tryParse(code.substring(prefix.length));
       if (number != null && number > last) last = number;
     }
-    final next = last + 1;
+    return last + 1;
+  }
+
+  /// Saves the number inside the transaction that saves the woman.
+  Future<int> takePatientNumber(String prefix, {bool legacy = false}) async {
+    final next = await nextPatientNumber(prefix, legacy: legacy);
+    final counterKey = legacy ? _patientCounterKey : '$_patientCounterKey:$prefix';
     await writeState(counterKey, '$next');
     return next;
   }

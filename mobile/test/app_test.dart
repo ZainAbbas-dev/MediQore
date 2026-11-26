@@ -344,12 +344,14 @@ void main() {
         await tester.pumpAndSettle();
         await next();
 
-        expect(find.text(l10n.regSameHome), findsOneWidget, reason: 'women are registered, so the option shows');
+        expect(find.text(l10n.regSameHome), findsOneWidget, reason: 'households are registered, so the option shows');
         await next();
-        expect(find.text(l10n.regErrorRequired), findsOneWidget);
+        expect(find.text(l10n.regErrorRequired), findsNWidgets(2));
         await scrollToEnd(tester);
         expect(tester.takeException(), isNull);
         await tester.enterText(find.byType(TextFormField).first, 'ڈھوک سیداں والی بستی نمبر دو');
+        await tester.ensureVisible(find.byType(TextFormField).at(2));
+        await tester.enterText(find.byType(TextFormField).at(2), 'HH-21');
         await next();
 
         for (var i = 0; i < 2; i++) {

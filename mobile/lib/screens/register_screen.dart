@@ -31,24 +31,26 @@ final RegExp _mobileNumber = RegExp(r'^(03\d{9}|\+923\d{9})$');
 String _withoutSpaces(String text) => text.replaceAll(RegExp(r'[\s-]'), '');
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key, required this.services});
+  const RegisterScreen({super.key, required this.services, this.existing});
 
   final AppServices services;
+  final PatientFile? existing;
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  static const int _steps = 4;
-  final _forms = [for (var i = 0; i < _steps; i++) GlobalKey<FormState>()];
-  int _step = 0;
+  final _forms = List.generate(4, (_) => GlobalKey<FormState>());
+  late final List<int> _stepOrder;
+  late int _step;
   final _name = TextEditingController();
   final _age = TextEditingController();
   final _husbandName = TextEditingController();
   final _contact = TextEditingController();
   final _village = TextEditingController();
   final _address = TextEditingController();
+  final _householdNumber = TextEditingController();
   final _conditions = TextEditingController();
   int _previous = 0;
   int _cSections = 0;
@@ -63,7 +65,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   ClinicalRules? _rules;
   bool _sameHome = false;
   String? _homeOf;
-  List<PatientSummary> _registered = const [];
+  List<LocalHousehold> _households = const [];
+  String? _previewCode;
+  bool _codeChanged = false;
   LocationFix? _fix;
   bool _saving = false;
   bool _monthMissing = false;
@@ -71,9 +75,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-    widget.services.patients.list().then((women) {
-      if (mounted) setState(() => _registered = women);
-    });
+    final existing = widget.existing;
+    _stepOrder = existing == null ? const [0, 1, 2, 3] : const [1, 3];
+    _step = _stepOrder.first;
+    final history = existing?.history;
+    if (history != null) {
+      _previous = history.previousPregnancies;
+      _cSections = history.previousCSections;
+      _stillbirths = history.stillbirths;
+      _conditions.text = history.knownConditions ?? '';
+    }
+    if (existing == null) {
+      widget.services.households.all().then((homes) {
+        if (!mounted) return;
+        final area = widget.services.session.user!.areaId;
+        setState(() => _households = homes.where((home) => home.areaId == area).toList());
+      });
+    }
     final rules = widget.services.clinicalRules;
     if (rules != null) {
       _rules = rules;
@@ -164,6 +182,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _contact,
       _village,
       _address,
+      _householdNumber,
       _conditions,
     ]) {
       c.dispose();
@@ -182,25 +201,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _monthMissing = monthMissing;
       _dateMissing = dateMissing;
     });
-    if (!valid || monthMissing || dateMissing) return;
+    if (!valid || monthMissing || dateMissing || (_step == 1 && _edd == null)) return;
     if (_step == 0 && !await _notAlreadyRegistered()) return;
     if (!mounted) return;
-    if (_step < _steps - 1) {
-      setState(() => _step++);
+    if (_step != _stepOrder.last) {
+      final next = _stepOrder[_stepOrder.indexOf(_step) + 1];
+      final user = widget.services.session.user!;
+      final preview = next == _stepOrder.last
+          ? widget.existing?.woman.patientCode ?? await widget.services.patients.nextPatientCode(user)
+          : null;
+      if (!mounted) return;
+      setState(() {
+        _step = next;
+        _previewCode = preview;
+        _codeChanged = false;
+      });
     } else {
       await _save();
     }
   }
 
-  void _back() => setState(() => _step--);
+  void _back() => setState(() => _step = _stepOrder[_stepOrder.indexOf(_step) - 1]);
 
   Future<void> _save() async {
     setState(() => _saving = true);
     final services = widget.services;
-    final householdId = _sameHome ? _registered.firstWhere((p) => p.woman.id == _homeOf).woman.householdId : null;
+    final existing = widget.existing;
+    final householdId = _sameHome ? _homeOf : null;
     final contact = _optional(_contact.text);
+    final user = services.session.user!;
     final LocalWoman woman;
     try {
+      if (existing != null) {
+        await services.patients.startPregnancy(
+          existing.woman.id,
+          PregnancyInput(
+            pregnancyMonth: _pregnancyMonth!,
+            estimatedDeliveryDate: _edd,
+            eddBasis: _basis,
+            lmpDate: _basis == EddBasis.lmp ? _knownDate : null,
+            reportedEdd: _basis == EddBasis.edd ? _knownDate : null,
+            previousPregnancies: _previous,
+            previousCSections: _cSections,
+            stillbirths: _stillbirths,
+            knownConditions: _optional(_conditions.text),
+          ),
+          by: user,
+        );
+        if (mounted) Navigator.of(context).pop(true);
+        return;
+      }
       woman = await services.patients.register(
         RegistrationInput(
           name: _name.text.trim(),
@@ -213,6 +263,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           lmpDate: _basis == EddBasis.lmp ? _knownDate : null,
           reportedEdd: _basis == EddBasis.edd ? _knownDate : null,
           householdId: householdId,
+          householdNumber: householdId == null ? _optional(_householdNumber.text) : null,
           village: householdId == null ? _optional(_village.text) : null,
           address: householdId == null ? _optional(_address.text) : null,
           latitude: householdId == null ? _fix?.latitude : null,
@@ -222,8 +273,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
           stillbirths: _stillbirths,
           knownConditions: _optional(_conditions.text),
         ),
-        by: services.session.user!,
+        by: user,
+        expectedCode: _previewCode,
       );
+    } on PatientCodeChanged catch (error) {
+      if (mounted) setState(() {
+        _previewCode = error.code;
+        _codeChanged = true;
+      });
+      return;
+    } on StateError {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.regSaveFailed)));
+      }
+      return;
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -235,11 +299,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  String _householdLabel(LocalHousehold home, AppLocalizations l10n) {
+    final label = [home.householdNumber, home.village, home.address]
+        .whereType<String>().where((text) => text.trim().isNotEmpty).join(' · ');
+    return label.isEmpty ? l10n.regUnnamedHousehold : label;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    String? required(String? text) => (text ?? '').trim().isEmpty ? l10n.regErrorRequired : null;
+    String? validateText(String? text, int limit, {bool isRequired = false}) {
+      final value = (text ?? '').trim();
+      if (isRequired && value.isEmpty) return l10n.regErrorRequired;
+      return value.length > limit ? l10n.regErrorTooLong(limit) : null;
+    }
     const gap = SizedBox(height: 16);
     final question = theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700);
 
@@ -248,7 +322,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         l10n.regWomanSection,
         <Widget>[
           Text(l10n.regWomanQuestion, style: question),
-          AppTextField(label: l10n.regName, controller: _name, validator: required, icon: Icons.person_outline),
+          AppTextField(label: l10n.regName, controller: _name, validator: (text) => validateText(text, 200, isRequired: true), icon: Icons.person_outline),
           NumberField(
             label: l10n.regAge,
             controller: _age,
@@ -258,7 +332,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               return age == null || age < 10 || age > 60 ? l10n.regErrorAge : null;
             },
           ),
-          AppTextField(label: l10n.regHusbandName, controller: _husbandName, icon: Icons.man_outlined),
+          AppTextField(label: l10n.regHusbandName, controller: _husbandName, validator: (text) => validateText(text, 200), icon: Icons.man_outlined),
           AppTextField(
             label: l10n.regContactNumber,
             controller: _contact,
@@ -320,6 +394,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               tone: NoticeTone.success,
             ),
+          if (_edd != null) Text(l10n.regGestationMonths(_pregnancyMonth!)),
           if (_monthMissing) NoticeCard(text: l10n.regErrorChooseMonth, tone: NoticeTone.problem),
           if (_dateMissing) NoticeCard(text: l10n.regErrorChooseDate, tone: NoticeTone.problem),
         ],
@@ -328,7 +403,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         l10n.regHomeSection,
         <Widget>[
           Text(l10n.regHomeQuestion, style: question),
-          if (_registered.isNotEmpty)
+          if (_households.isNotEmpty)
             Card(
               child: CheckboxField(
                 label: l10n.regSameHome,
@@ -338,23 +413,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           if (_sameHome)
             DropdownField<String>(
-              label: l10n.regChooseWoman,
+              label: l10n.regChooseHousehold,
               value: _homeOf,
               options: [
-                for (final p in _registered)
-                  DropdownOption(p.woman.id, l10n.regWomanOption(p.woman.name, p.woman.patientCode)),
+                for (final home in _households)
+                  DropdownOption(home.id, _householdLabel(home, l10n)),
               ],
               onChanged: (id) => setState(() => _homeOf = id),
-              validator: (id) => id == null ? l10n.regErrorChooseWoman : null,
+              validator: (id) => id == null ? l10n.regErrorChooseHousehold : null,
             )
           else ...[
             AppTextField(
               label: l10n.regVillage,
               controller: _village,
-              validator: required,
+              validator: (text) => validateText(text, 200, isRequired: true),
               icon: Icons.holiday_village_outlined,
             ),
-            AppTextField(label: l10n.regAddress, controller: _address, icon: Icons.home_outlined),
+            AppTextField(
+              label: l10n.regAddress, controller: _address,
+              validator: (text) => validateText(text, 500), icon: Icons.home_outlined,
+            ),
+            AppTextField(
+              label: l10n.regHouseholdNumber, controller: _householdNumber, ltr: true,
+              validator: (text) => validateText(text, 50, isRequired: true),
+            ),
             SectionCard(
               title: l10n.gpsLabel,
               icon: Icons.location_on_outlined,
@@ -370,6 +452,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         l10n.regHistorySection,
         <Widget>[
           Text(l10n.regHistorySection, style: question),
+          if (_previewCode != null)
+            Text(l10n.regPatientPreview('\u2066$_previewCode\u2069')),
+          if (_codeChanged) NoticeCard(text: l10n.regPatientCodeChanged, tone: NoticeTone.problem),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -406,6 +491,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           AppTextField(
             label: l10n.regKnownConditions,
             controller: _conditions,
+            validator: (text) => validateText(text, 1000),
             icon: Icons.medical_information_outlined,
           ),
         ],
@@ -413,14 +499,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     };
 
     return StepScaffold(
-      title: l10n.regTitle,
-      step: _step + 1,
-      total: _steps,
+      title: widget.existing == null ? l10n.regTitle : l10n.regLaterPregnancy,
+      step: _stepOrder.indexOf(_step) + 1,
+      total: _stepOrder.length,
       stepName: name,
       statusBar: LiveStatusBar(services: widget.services, compact: true),
       busy: _saving,
-      onBack: _step == 0 ? null : _back,
-      nextLabel: _step == _steps - 1 ? l10n.regSaveButton : l10n.stepNext,
+      onBack: _step == _stepOrder.first ? null : _back,
+      nextLabel: _step == _stepOrder.last ? l10n.regSaveButton : l10n.stepNext,
       onNext: _next,
       child: Form(
         key: _forms[_step],

@@ -10,57 +10,67 @@ import '../location/distance.dart';
 import 'app_database.dart';
 import 'household_repository.dart';
 
-/// What the registration form collects (M2 FE-1, FE-2, FE-3).
-class RegistrationInput {
-  const RegistrationInput({
-    required this.name,
-    required this.age,
-    this.husbandName,
-    this.contactNumber,
+/// Pregnancy dating and history shared by new and returning patients.
+class PregnancyInput {
+  const PregnancyInput({
     required this.pregnancyMonth,
     this.estimatedDeliveryDate,
     this.eddBasis = EddBasis.month,
     this.lmpDate,
     this.reportedEdd,
-    this.householdId,
-    this.village,
-    this.address,
-    this.latitude,
-    this.longitude,
     this.previousPregnancies = 0,
     this.previousCSections = 0,
     this.stillbirths = 0,
     this.knownConditions,
   });
 
-  final String name;
-  final int age;
-  final String? husbandName;
-  final String? contactNumber;
   final int pregnancyMonth;
-
-  /// M2 FE-1: the estimated delivery date and what it came from: the LMP date
-  /// ([lmpDate]), a known EDD ([reportedEdd]) or the month only. The form
-  /// calculates it with the Clinical Rules Table (GestationalAge). Without it
-  /// the server estimates it from the month, as the app would.
   final DateTime? estimatedDeliveryDate;
   final EddBasis eddBasis;
   final DateTime? lmpDate;
   final DateTime? reportedEdd;
-
-  /// The home of an already registered woman, for a second woman in the same
-  /// household. When null, a new household is made from [village], [address]
-  /// and the GPS position.
-  final String? householdId;
-  final String? village;
-  final String? address;
-  final double? latitude;
-  final double? longitude;
-
   final int previousPregnancies;
   final int previousCSections;
   final int stillbirths;
   final String? knownConditions;
+}
+
+/// What the new patient form collects (M2 FE-1, FE-2, FE-3).
+class RegistrationInput extends PregnancyInput {
+  const RegistrationInput({
+    required this.name,
+    required this.age,
+    this.husbandName,
+    this.contactNumber,
+    required super.pregnancyMonth,
+    super.estimatedDeliveryDate,
+    super.eddBasis,
+    super.lmpDate,
+    super.reportedEdd,
+    this.householdId,
+    this.householdNumber,
+    this.village,
+    this.address,
+    this.latitude,
+    this.longitude,
+    super.previousPregnancies,
+    super.previousCSections,
+    super.stillbirths,
+    super.knownConditions,
+  });
+
+  final String name;
+  final int age;
+  final String? husbandName;
+  final String? contactNumber;
+
+  /// An existing home, or new household details if absent.
+  final String? householdId;
+  final String? householdNumber;
+  final String? village;
+  final String? address;
+  final double? latitude;
+  final double? longitude;
 }
 
 /// Whether a record has reached the server.
@@ -103,6 +113,11 @@ class PatientFile {
   final SyncStatus syncStatus;
 }
 
+class PatientCodeChanged implements Exception {
+  const PatientCodeChanged(this.code);
+  final String code;
+}
+
 class PatientRepository {
   PatientRepository(this._db, {this._uuid = const Uuid(), DateTime Function()? clock}) : _clock = clock ?? DateTime.now;
 
@@ -110,20 +125,30 @@ class PatientRepository {
   final Uuid _uuid;
   final DateTime Function() _clock;
 
+  static String _patientCode(String prefix, int number) => '$prefix${number.toString().padLeft(4, '0')}';
+
+  Future<String> nextPatientCode(SessionUser user) async {
+    final prefix = user.patientCodePrefix;
+    if (prefix == null) throw StateError('Only an LHW can register a woman');
+    return _patientCode(prefix, await _db.nextPatientNumber(prefix, legacy: user.activationNumber == null));
+  }
+
   /// Saves a registration made by [by], an LHW, and returns the woman with
   /// her new patient ID, [LHW code]-[activation number]-[sequence], made on
   /// this phone so it is unique before the first sync (M2 FE-1).
-  Future<LocalWoman> register(RegistrationInput input, {required SessionUser by}) async {
+  Future<LocalWoman> register(RegistrationInput input, {required SessionUser by, String? expectedCode}) async {
     final prefix = by.patientCodePrefix;
     if (prefix == null) throw StateError('Only an LHW can register a woman');
     final now = _clock();
     final createdOnDevice = now.toUtc();
 
     return _db.transaction(() async {
-      var householdId = input.householdId;
-      if (householdId == null) {
+      final existingId = input.householdId;
+      final String householdId;
+      if (existingId == null) {
         final household = LocalHousehold(
           id: _uuid.v4(),
+          householdNumber: input.householdNumber,
           village: input.village,
           address: input.address,
           latitude: input.latitude,
@@ -135,16 +160,24 @@ class PatientRepository {
         await _db.into(_db.households).insert(household);
         await _db.enqueue(HouseholdRepository.payloadOf(household), queuedAt: now);
         householdId = household.id;
+      } else {
+        final home = await (_db.select(_db.households)
+              ..where((h) => h.id.equals(existingId) & h.deletedAt.isNull()))
+            .getSingleOrNull();
+        if (home == null || home.areaId != by.areaId) throw StateError('Household is not in the LHW’s area');
+        householdId = existingId;
       }
 
       final number = await _db.takePatientNumber(prefix, legacy: by.activationNumber == null);
+      final code = _patientCode(prefix, number);
+      if (expectedCode != null && expectedCode != code) throw PatientCodeChanged(code);
       final woman = LocalWoman(
         id: _uuid.v4(),
         areaId: by.areaId,
         createdBy: by.id,
         createdOnDevice: createdOnDevice,
         householdId: householdId,
-        patientCode: '$prefix${number.toString().padLeft(4, '0')}',
+        patientCode: code,
         name: input.name,
         age: input.age,
         husbandName: input.husbandName,
@@ -153,39 +186,70 @@ class PatientRepository {
       await _db.into(_db.women).insert(woman);
       await _db.enqueue(womanPayload(woman), queuedAt: now);
 
-      final pregnancy = LocalPregnancy(
-        id: _uuid.v4(),
-        areaId: by.areaId,
-        createdBy: by.id,
-        createdOnDevice: createdOnDevice,
-        womanId: woman.id,
-        registeredOn: calendarDate(now),
-        pregnancyMonthAtRegistration: input.pregnancyMonth,
-        status: 'active',
-        estimatedDeliveryDate: input.estimatedDeliveryDate == null ? null : calendarDate(input.estimatedDeliveryDate!),
-        eddBasis: input.estimatedDeliveryDate == null ? null : input.eddBasis.code,
-        lmpDate: input.lmpDate == null ? null : calendarDate(input.lmpDate!),
-        reportedEdd: input.reportedEdd == null ? null : calendarDate(input.reportedEdd!),
-      );
-      await _db.into(_db.pregnancies).insert(pregnancy);
-      await _db.enqueue(pregnancyPayload(pregnancy), queuedAt: now);
-
-      final history = LocalObstetricHistory(
-        id: _uuid.v4(),
-        areaId: by.areaId,
-        createdBy: by.id,
-        createdOnDevice: createdOnDevice,
-        womanId: woman.id,
-        previousPregnancies: input.previousPregnancies,
-        previousCSections: input.previousCSections,
-        stillbirths: input.stillbirths,
-        knownConditions: input.knownConditions,
-      );
-      await _db.into(_db.obstetricHistory).insert(history);
-      await _db.enqueue(historyPayload(history), queuedAt: now);
-
+      await _writePregnancy(woman, input, by, now);
       return woman;
     });
+  }
+
+  /// Opens a new file for a woman whose previous pregnancy is closed.
+  Future<LocalWoman> startPregnancy(String womanId, PregnancyInput input, {required SessionUser by}) {
+    return _db.transaction(() async {
+      final woman = await (_db.select(_db.women)
+            ..where((w) => w.id.equals(womanId) & w.deletedAt.isNull()))
+          .getSingleOrNull();
+      if (by.patientCodePrefix == null || woman == null || woman.areaId != by.areaId) {
+        throw StateError('A pregnancy can only be opened for a woman in the LHW’s area');
+      }
+      final active = await (_db.select(_db.pregnancies)
+            ..where((p) => p.womanId.equals(womanId) & p.status.equals('active') & p.deletedAt.isNull()))
+          .getSingleOrNull();
+      if (active != null) throw StateError('The woman already has an active pregnancy');
+      await _writePregnancy(woman, input, by, _clock());
+      return woman;
+    });
+  }
+
+  Future<void> _writePregnancy(LocalWoman woman, PregnancyInput input, SessionUser by, DateTime now) async {
+    final pregnancy = LocalPregnancy(
+      id: _uuid.v4(),
+      areaId: by.areaId,
+      createdBy: by.id,
+      createdOnDevice: now.toUtc(),
+      womanId: woman.id,
+      registeredOn: calendarDate(now),
+      pregnancyMonthAtRegistration: input.pregnancyMonth,
+      status: 'active',
+      estimatedDeliveryDate: input.estimatedDeliveryDate == null ? null : calendarDate(input.estimatedDeliveryDate!),
+      eddBasis: input.estimatedDeliveryDate == null ? null : input.eddBasis.code,
+      lmpDate: input.lmpDate == null ? null : calendarDate(input.lmpDate!),
+      reportedEdd: input.reportedEdd == null ? null : calendarDate(input.reportedEdd!),
+    );
+    await _db.into(_db.pregnancies).insert(pregnancy);
+    await _db.enqueue(pregnancyPayload(pregnancy), queuedAt: now);
+
+    final existing = await (_db.select(_db.obstetricHistory)
+          ..where((h) => h.womanId.equals(woman.id) & h.deletedAt.isNull()))
+        .getSingleOrNull();
+    final history = LocalObstetricHistory(
+      id: existing?.id ?? _uuid.v4(),
+      areaId: by.areaId,
+      createdBy: existing?.createdBy ?? by.id,
+      createdOnDevice: existing?.createdOnDevice ?? now.toUtc(),
+      serverSeq: existing?.serverSeq,
+      version: existing?.version,
+      conflictId: existing?.conflictId,
+      womanId: woman.id,
+      previousPregnancies: input.previousPregnancies,
+      previousCSections: input.previousCSections,
+      stillbirths: input.stillbirths,
+      knownConditions: input.knownConditions,
+    );
+    if (existing == null) {
+      await _db.into(_db.obstetricHistory).insert(history);
+    } else {
+      await _db.update(_db.obstetricHistory).replace(history);
+    }
+    await _db.enqueue(historyPayload(history), queuedAt: now);
   }
 
   /// Women already on this phone with the same name and husband's name (case

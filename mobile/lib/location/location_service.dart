@@ -34,6 +34,17 @@ class LocationResult {
   const LocationResult.found(LocationFix this.fix) : problem = null;
   const LocationResult.failed(LocationProblem this.problem) : fix = null;
 
+  factory LocationResult.fromPosition(Position position, {required DateTime now}) {
+    // A provider can return a cached fix. Do not tag a home with one that
+    // could have been captured at a previous stop.
+    if (now.difference(position.timestamp) > const Duration(seconds: 30)) {
+      return const LocationResult.failed(LocationProblem.unavailable);
+    }
+    return LocationResult.found(
+      LocationFix(latitude: position.latitude, longitude: position.longitude, accuracyMetres: position.accuracy),
+    );
+  }
+
   final LocationFix? fix;
   final LocationProblem? problem;
 }
@@ -68,9 +79,7 @@ class GeolocatorLocationService implements LocationService {
       final position = await Geolocator.getCurrentPosition(
         locationSettings: LocationSettings(accuracy: LocationAccuracy.high, timeLimit: timeLimit),
       );
-      return LocationResult.found(
-        LocationFix(latitude: position.latitude, longitude: position.longitude, accuracyMetres: position.accuracy),
-      );
+      return LocationResult.fromPosition(position, now: DateTime.now());
     } on LocationServiceDisabledException {
       return const LocationResult.failed(LocationProblem.serviceOff);
     } on PermissionDeniedException {
