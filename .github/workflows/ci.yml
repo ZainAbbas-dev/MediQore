@@ -352,7 +352,16 @@ jobs:
           export NODE_ENV=development PORT=3000
           node ../api/src/server.js &
           api_pid=$!
-          trap 'kill "$api_pid" 2>/dev/null || true' EXIT
+          log="$(mktemp)"
+          trap 'kill "$api_pid" 2>/dev/null || true; rm -f "$log"' EXIT
           curl --fail --silent --show-error --max-time 2 --retry 15 --retry-delay 1 \
             --retry-connrefused http://127.0.0.1:3000/api/v1/health
-          flutter test --dart-define=E2E_API_BASE_URL=http://127.0.0.1:3000/api/v1
+          if flutter test --reporter expanded --dart-define=E2E_API_BASE_URL=http://127.0.0.1:3000/api/v1 2>&1 | tee "$log"; then
+            exit 0
+          fi
+          details="$(grep -E '\[E\]|Expected:|Actual:|Which:|Exception:|Error:' "$log" | tail -c 3500 || true)"
+          details="${details//%/%25}"
+          details="${details//$'\r'/%0D}"
+          details="${details//$'\n'/%0A}"
+          printf '::error title=Flutter tests failed::%s\n' "$details"
+          exit 1

@@ -346,7 +346,7 @@ class PatientRepository {
       woman: woman,
       household: household,
       pregnancy: current,
-      pregnancies: [if (current != null) current, ...previous],
+      pregnancies: [?current, ...previous],
       history: history,
       syncStatus: _patientStatus(statuses[womanId], pregnancies, pregnancyStatuses),
     );
