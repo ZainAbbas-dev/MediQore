@@ -273,6 +273,22 @@ jobs:
     defaults:
       run:
         working-directory: mobile
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: mediqore
+          POSTGRES_PASSWORD: ci-only
+          POSTGRES_DB: mediqore_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mediqore -d mediqore_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://mediqore:ci-only@localhost:5432/mediqore_e2e
     steps:
       - uses: actions/checkout@v5
 
@@ -291,6 +307,8 @@ jobs:
         if: steps.manifest.outputs.found == 'true'
         with:
           channel: stable
+          # Keep CI and the test APK on the supported Material API line.
+          flutter-version: '3.47.9'
           cache: true
 
       - name: Install dependencies
@@ -314,11 +332,27 @@ jobs:
           printf '::error title=Flutter analysis failed::%s\n' "$details"
           exit 1
 
-      - name: Test
+      - uses: actions/setup-node@v5
         if: steps.manifest.outputs.found == 'true'
+        with:
+          node-version: 24
+
+      - name: Prepare API and synthetic demo database
+        if: steps.manifest.outputs.found == 'true'
+        working-directory: .
         run: |
-          if [ -d test ]; then
-            flutter test
-          else
-            echo "::notice::mobile/test not found; skipping tests."
-          fi
+          (cd api && npm ci)
+          (cd db && npm ci && npm run migrate:up && npm run rules:load && npm run seed:demo)
+
+      - name: Test against the local API
+        if: steps.manifest.outputs.found == 'true'
+        shell: bash
+        run: |
+          export JWT_ACCESS_SECRET="$(openssl rand -hex 32)"
+          export NODE_ENV=development PORT=3000
+          node ../api/src/server.js &
+          api_pid=$!
+          trap 'kill "$api_pid" 2>/dev/null || true' EXIT
+          curl --fail --silent --show-error --max-time 2 --retry 15 --retry-delay 1 \
+            --retry-connrefused http://127.0.0.1:3000/api/v1/health
+          flutter test --dart-define=E2E_API_BASE_URL=http://127.0.0.1:3000/api/v1
