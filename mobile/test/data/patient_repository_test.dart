@@ -105,7 +105,7 @@ void main() {
       await expectLater(patients.startPregnancy(woman.id, later, by: lhw), throwsStateError);
 
       final after = (await patients.file(woman.id))!;
-      expect(after.woman, woman);
+      expect(after.woman, before.woman);
       expect(after.pregnancy!.id, isNot(before.pregnancy!.id));
       expect(after.pregnancy!.womanId, woman.id);
       expect(after.pregnancies.map((p) => p.id), [after.pregnancy!.id, before.pregnancy!.id]);

@@ -306,7 +306,10 @@ void main() {
         await tester.pumpAndSettle();
         final l10n = lookupAppLocalizations(english ? AppSettings.english : AppSettings.urdu);
         Future<void> next() async {
-          await tester.tap(find.text(l10n.stepNext));
+          await tester.runAsync(() async {
+            await tester.tap(find.text(l10n.stepNext));
+            await Future<void>.delayed(const Duration(milliseconds: 100));
+          });
           await tester.pumpAndSettle();
         }
 
@@ -354,8 +357,11 @@ void main() {
         await tester.enterText(find.byType(TextFormField).at(2), 'HH-21');
         await next();
 
+        expect(find.text(l10n.stepOf(4, 4, l10n.regHistorySection)), findsOneWidget);
+        final moreCSections = find.byTooltip(l10n.stepperMore).at(1);
         for (var i = 0; i < 2; i++) {
-          await tester.tap(find.byTooltip(l10n.stepperMore).at(1));
+          await tester.ensureVisible(moreCSections);
+          await tester.tap(moreCSections);
           await tester.pump();
         }
         await tester.pumpAndSettle();
