@@ -13,6 +13,7 @@ class LoginThrottle {
     this.windowMs = windowMs;
     this.now = now;
     this.failures = new Map(); // key -> timestamps of recent failures
+    this.inFlight = new Map(); // key -> requests currently verifying credentials
   }
 
   static key(ip, username) {
@@ -30,11 +31,27 @@ class LoginThrottle {
   // Throws 429 TOO_MANY_ATTEMPTS while the key is blocked.
   check(key) {
     const recent = this.recent(key);
-    if (recent.length >= this.maxFailures) {
-      const retryAfterSeconds = Math.ceil((recent[0] + this.windowMs - this.now()) / 1000);
+    if (recent.length + (this.inFlight.get(key) ?? 0) >= this.maxFailures) {
+      const retryAfterSeconds = recent.length >= this.maxFailures
+        ? Math.ceil((recent[0] + this.windowMs - this.now()) / 1000)
+        : 1;
       throw new AppError(429, 'TOO_MANY_ATTEMPTS', 'Too many failed attempts. Try again later.', undefined, {
         'Retry-After': String(retryAfterSeconds),
       });
+    }
+  }
+
+  async attempt(key, verify) {
+    this.check(key);
+    this.inFlight.set(key, (this.inFlight.get(key) ?? 0) + 1);
+    try {
+      const session = await verify(key);
+      this.succeed(key);
+      return session;
+    } finally {
+      const remaining = this.inFlight.get(key) - 1;
+      if (remaining > 0) this.inFlight.set(key, remaining);
+      else this.inFlight.delete(key);
     }
   }
 

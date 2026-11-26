@@ -40,7 +40,6 @@ const APP_FOR_LHWS = () => new AppError(403, 'APP_FOR_LHWS', 'The app is for LHW
 
 // Checks the password, counting failures for rate limiting. Returns the user row.
 async function checkPassword(username, password, throttleKey, deviceId) {
-  loginThrottle.check(throttleKey);
   const { rows: [user] } = await db.query(
     `SELECT id, role, full_name, password_hash, is_active FROM users
      WHERE lower(username) = lower($1) AND deleted_at IS NULL`,
@@ -60,7 +59,6 @@ async function checkPassword(username, password, throttleKey, deviceId) {
     throw INVALID();
   }
 
-  loginThrottle.succeed(throttleKey);
   if (!user.is_active) {
     await writeAudit(db, {
       userId: user.id, action: 'login', entityType: 'users', entityId: user.id,
@@ -87,11 +85,11 @@ async function supervisorsFor(client, userId) {
 }
 
 // Tokens and profile for a signed-in user.
-async function sessionBody(client, user, deviceId) {
-  const refresh = await tokens.issueRefreshToken(client, user.id, deviceId);
+async function sessionBody(client, user, deviceId, sessionExpiresAt) {
+  const refresh = await tokens.issueRefreshToken(client, user.id, deviceId, sessionExpiresAt);
   const body = {
     status: 'ok',
-    accessToken: tokens.signAccessToken(user, deviceId),
+    accessToken: tokens.signAccessToken(user, deviceId, refresh.expiresAt),
     tokenType: 'Bearer',
     expiresIn: config.jwt.accessExpiresIn,
     refreshToken: refresh.token,
@@ -130,8 +128,12 @@ async function auditRefusal(client, user, deviceId, reason) {
 
 // POST /auth/activate: the first sign-in on a phone. Consumes the activation
 // code, marks the phone activated and returns its activation secret once.
-async function activate({ username, password, activationCode, deviceId, deviceModel }, { ip }) {
-  const throttleKey = LoginThrottle.key(ip, username);
+function activate(credentials, { ip }) {
+  const key = `activate|${LoginThrottle.key(ip, credentials.username)}`;
+  return loginThrottle.attempt(key, (throttleKey) => activateDevice(credentials, throttleKey));
+}
+
+async function activateDevice({ username, password, activationCode, deviceId, deviceModel }, throttleKey) {
   const user = await checkPassword(username, password, throttleKey, deviceId);
   if (user.role !== 'lhw') throw APP_FOR_LHWS();
 
@@ -178,8 +180,12 @@ async function activate({ username, password, activationCode, deviceId, deviceMo
 
 // POST /auth/login: the portal (supervisors and admins, no phone) or an
 // already activated phone signing in again with the password.
-async function login({ username, password, deviceId }, { ip }) {
-  const user = await checkPassword(username, password, LoginThrottle.key(ip, username), deviceId);
+function login(credentials, { ip }) {
+  return loginThrottle.attempt(LoginThrottle.key(ip, credentials.username), (key) => loginAccount(credentials, key));
+}
+
+async function loginAccount({ username, password, deviceId }, throttleKey) {
+  const user = await checkPassword(username, password, throttleKey, deviceId);
 
   if (user.role === 'lhw' && !deviceId) {
     throw new AppError(400, 'DEVICE_REQUIRED', 'LHWs sign in with the MediQore app');
@@ -212,11 +218,11 @@ async function login({ username, password, deviceId }, { ip }) {
 // POST /auth/refresh: swaps a refresh token for a new pair.
 async function refresh({ refreshToken }) {
   return db.withTransaction(async (client) => {
-    const { userId, deviceId, tokenId } = await tokens.consumeRefreshToken(client, refreshToken);
+    const { userId, deviceId, tokenId, expiresAt } = await tokens.consumeRefreshToken(client, refreshToken);
     const user = await usersService.findById(userId);
     if (!user) throw new AppError(401, 'INVALID_REFRESH_TOKEN', 'Sign in again');
     if (!user.isActive) throw INACTIVE();
-    const body = await sessionBody(client, user, deviceId);
+    const body = await sessionBody(client, user, deviceId, expiresAt);
     await tokens.linkReplacement(client, tokenId, body.refreshToken);
     return body;
   });

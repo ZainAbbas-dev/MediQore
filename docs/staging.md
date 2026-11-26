@@ -11,6 +11,7 @@ How it runs:
 
 - Render builds `db/`, `api/` and `web/` from the `dev` branch after every push.
 - Each start applies new migrations (`db`: `npm run migrate:up`), loads the Clinical Rules Table (`npm run rules:load`, P0-11), then starts the API.
+- For the first deployment of `1792000000000_absolute-session-expiry`, stop old API instances from issuing or refreshing sessions before applying the migration. The migration caps linked refresh tokens at their original deadline. Unlinked refresh tokens keep their recorded deadline because no earlier one is stored. Access tokens issued before deployment retain their signed expiry.
 - The API serves the built portal (`PORTAL_DIR=../web/dist`), so the portal is at `https://<address>/` and the API at `https://<address>/api/v1`.
 - Plain HTTP is refused (M1 FE-2). Render ends TLS in front of the service (`TRUST_PROXY=1`).
 

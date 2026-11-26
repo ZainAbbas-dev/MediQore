@@ -5,6 +5,7 @@ const request = require('supertest');
 const { createApp } = require('../src/app');
 const { loginThrottle } = require('../src/services/login-throttle');
 const { describeDb, resetDatabase, createFixtures, insertActivatedDevice, tokenFor, closePool, query } = require('./db');
+const { hashToken } = require('../src/services/tokens.service');
 
 const app = createApp();
 
@@ -138,7 +139,13 @@ describeDb('LHW accounts (admin)', () => {
     expect(off.body.lhw.isActive).toBe(false);
     expect(sync.status).toBe(403);
     expect(sync.body.error.code).toBe('ACCOUNT_INACTIVE');
-    expect(refresh.status).toBe(401);
+    expect(refresh.status).toBe(403);
+    expect(refresh.body.error.code).toBe('ACCOUNT_INACTIVE');
+    await query("UPDATE refresh_tokens SET expires_at = now() - interval '1 minute' WHERE token_hash = $1",
+      [hashToken(session.refreshToken)]);
+    const expired = await request(app).post('/api/v1/auth/refresh').send({ refreshToken: session.refreshToken });
+    expect(expired.status).toBe(403);
+    expect(expired.body.error.code).toBe('ACCOUNT_INACTIVE');
 
     const on = await admin.post(`/admin/lhws/${lhw.id}/activate`);
     const login = await request(app).post('/api/v1/auth/login')
@@ -149,6 +156,8 @@ describeDb('LHW accounts (admin)', () => {
     expect(on.body.lhw.isActive).toBe(true);
     expect(login.status).toBe(200);
     expect(oldCode.body.error.code).toBe('ACTIVATION_CODE_INVALID');
+    const revoked = await request(app).post('/api/v1/auth/refresh').send({ refreshToken: session.refreshToken });
+    expect(revoked.status).toBe(401);
 
     const { rows } = await query(
       `SELECT details->>'change' AS change FROM audit_log WHERE action = 'edit' AND entity_id = $1 ORDER BY id`, [lhw.id]);

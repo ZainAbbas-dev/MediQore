@@ -209,8 +209,9 @@ paths:
         at every sync, which also updates its profile, area and supervisor list. A replaced token is
         accepted again as long as its replacement has never been used, because the phone then lost the
         answer (a weak network, or a sleeping server that answered after the phone gave up); the unused
-        replacement is revoked instead. There is no time limit, only the token's own expiry
-        (REFRESH_TOKEN_TTL_DAYS). Once the replacement has been used, the old token is refused.
+        replacement is revoked instead. Once the replacement has been used, the old token is refused.
+        All refresh rotations share the absolute session deadline (REFRESH_TOKEN_TTL_DAYS, default
+        30 days from sign-in). Once it expires, sign in online again.
       operationId: refreshTokens
       security: []
       requestBody:
@@ -1836,7 +1837,7 @@ components:
           const: ok
         accessToken:
           type: string
-          description: JWT, valid for expiresIn. App tokens carry the activated phone (claim `did`).
+          description: JWT, valid for up to expiresIn and capped at the absolute session deadline. App tokens carry the activated phone (claim `did`).
         tokenType:
           type: string
           const: Bearer
@@ -1849,6 +1850,7 @@ components:
         refreshExpiresAt:
           type: string
           format: date-time
+          description: Absolute session deadline. It stays the same when refresh tokens rotate.
         user:
           $ref: '#/components/schemas/UserProfile'
         supervisors:

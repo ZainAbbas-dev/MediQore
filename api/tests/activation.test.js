@@ -2,10 +2,13 @@
 // again on an activated phone, the supervisor's PIN-reset reply code, refresh
 // tokens, sign-out and login rate limiting.
 const { randomUUID } = require('node:crypto');
+const jwt = require('jsonwebtoken');
 const request = require('supertest');
 const { createApp } = require('../src/app');
+const config = require('../src/config');
 const { loginThrottle } = require('../src/services/login-throttle');
 const activation = require('../src/services/activation.service');
+const { hashToken } = require('../src/services/tokens.service');
 const { describeDb, resetDatabase, createFixtures, tokenFor, closePool, query, PASSWORD } = require('./db');
 
 const app = createApp();
@@ -236,6 +239,19 @@ describeDb('sign-in from the app (M1 FE-2)', () => {
     expect(res.body.error.code).toBe('ACTIVATION_CODE_INVALID');
   });
 
+  it('consumes one activation code only once when two phones activate concurrently', async () => {
+    const { body } = await issueCode(tokenFor(ids.admin, 'admin'), ids.lhwB);
+    const credentials = { username: 'lhw.b', password: PASSWORD, activationCode: body.activationCode };
+    const devices = [randomUUID(), randomUUID()];
+
+    const responses = await Promise.all(devices.map((deviceId) => activate({ ...credentials, deviceId })));
+
+    expect(responses.map(({ status }) => status).sort()).toEqual([200, 400]);
+    expect(responses.find(({ status }) => status === 400).body.error.code).toBe('ACTIVATION_CODE_INVALID');
+    const { rows } = await query('SELECT id FROM devices WHERE id = ANY($1::uuid[])', [devices]);
+    expect(rows).toEqual([{ id: devices[responses.findIndex(({ status }) => status === 200)] }]);
+  });
+
   it('refuses a phone that belongs to another account', async () => {
     const signIn = await login({ username: 'lhw.b', password: PASSWORD, deviceId: ids.deviceA });
     const { body } = await issueCode(tokenFor(ids.admin, 'admin'), ids.lhwB);
@@ -247,6 +263,43 @@ describeDb('sign-in from the app (M1 FE-2)', () => {
   });
 
   describe('refresh and sign-out', () => {
+    it('keeps the original session deadline through rotation and a lost-response retry', async () => {
+      const { body: first } = await login({ username: 'lhw.a', password: PASSWORD, deviceId: ids.deviceA });
+      const deadline = new Date(Date.now() + 60_000);
+      await query('UPDATE refresh_tokens SET expires_at = $1 WHERE token_hash = $2', [deadline, hashToken(first.refreshToken)]);
+      const refresh = (refreshToken) => request(app).post('/api/v1/auth/refresh').send({ refreshToken });
+
+      const rotated = await refresh(first.refreshToken);
+      const retry = await refresh(first.refreshToken);
+      const next = await refresh(retry.body.refreshToken);
+
+      for (const rotation of [rotated, retry, next]) {
+        expect(rotation.status).toBe(200);
+        expect(rotation.body.refreshExpiresAt).toBe(deadline.toISOString());
+      }
+      const expiresAt = Math.floor(deadline.getTime() / 1000);
+      const accessToken = jwt.verify(next.body.accessToken, config.jwt.accessSecret, { clockTimestamp: expiresAt - 1 });
+      expect(accessToken).toMatchObject({ sub: ids.lhwA, did: ids.deviceA, exp: expiresAt });
+      expect(() => jwt.verify(next.body.accessToken, config.jwt.accessSecret, { clockTimestamp: expiresAt }))
+        .toThrow('jwt expired');
+    });
+
+    it('requires online sign-in once the original session expires', async () => {
+      const { body: first } = await login({ username: 'lhw.a', password: PASSWORD, deviceId: ids.deviceA });
+      const refresh = (refreshToken) => request(app).post('/api/v1/auth/refresh').send({ refreshToken });
+      const rotation = await refresh(first.refreshToken);
+      expect(rotation.status).toBe(200);
+      await query('UPDATE refresh_tokens SET expires_at = now() - interval \'1 second\' WHERE token_hash = $1',
+        [hashToken(rotation.body.refreshToken)]);
+
+      expect((await refresh(rotation.body.refreshToken)).body.error.code).toBe('INVALID_REFRESH_TOKEN');
+      const signIn = await login({ username: 'lhw.a', password: PASSWORD, deviceId: ids.deviceA });
+      expect(signIn.status).toBe(200);
+      expect(new Date(signIn.body.refreshExpiresAt).getTime() - Date.now()).toBeGreaterThan(
+        (config.refreshTokenTtlDays - 1) * 86_400_000,
+      );
+    });
+
     it('swaps a refresh token for a new pair; an old token is refused once its replacement was used', async () => {
       const { body: first } = await login({ username: 'lhw.a', password: PASSWORD, deviceId: ids.deviceA });
       const refresh = (refreshToken) => request(app).post('/api/v1/auth/refresh').send({ refreshToken });
@@ -329,6 +382,31 @@ describeDb('sign-in from the app (M1 FE-2)', () => {
   });
 
   describe('login rate limiting', () => {
+    it('counts in-progress activation requests against the configured limit', async () => {
+      const { body } = await issueCode(tokenFor(ids.admin, 'admin'), ids.lhwB);
+      const wrongCode = body.activationCode === 'ZZZZ-ZZZZ' ? 'YYYY-YYYY' : 'ZZZZ-ZZZZ';
+      const responses = await Promise.all(Array.from({ length: config.loginRateLimit.maxFailures + 1 }, () =>
+        activate({ username: 'lhw.b', password: PASSWORD, deviceId: ids.deviceB, activationCode: wrongCode })));
+
+      expect(responses.filter(({ status }) => status === 400)).toHaveLength(config.loginRateLimit.maxFailures);
+      expect(responses.filter(({ status }) => status === 429)).toHaveLength(1);
+    });
+
+    it('blocks repeated failed activation-code checks even after a successful password sign-in', async () => {
+      const issued = await issueCode(tokenFor(ids.admin, 'admin'), ids.lhwB);
+      const code = issued.body.activationCode;
+      const invalidCode = code === 'ZZZZ-ZZZZ' ? 'YYYY-YYYY' : 'ZZZZ-ZZZZ';
+      const credentials = { username: 'lhw.b', password: PASSWORD, deviceId: ids.deviceB };
+      for (let i = 0; i < config.loginRateLimit.maxFailures; i += 1) {
+        expect((await activate({ ...credentials, activationCode: invalidCode })).status).toBe(400);
+      }
+      expect((await login(credentials)).status).toBe(200);
+
+      const blocked = await activate({ ...credentials, activationCode: code });
+      expect(blocked.status).toBe(429);
+      expect(Number(blocked.headers['retry-after'])).toBeGreaterThan(0);
+    });
+
     it('blocks a username from one address after five wrong passwords, even with the right one', async () => {
       for (let i = 0; i < 5; i += 1) {
         expect((await login({ username: 'supervisor.a', password: 'wrong' })).status).toBe(401);
