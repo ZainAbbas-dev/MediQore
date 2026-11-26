@@ -108,6 +108,7 @@ void main() {
       expect(after.woman, woman);
       expect(after.pregnancy!.id, isNot(before.pregnancy!.id));
       expect(after.pregnancy!.womanId, woman.id);
+      expect(after.pregnancies.map((p) => p.id), [after.pregnancy!.id, before.pregnancy!.id]);
       expect(after.history!.id, before.history!.id);
       expect(after.history!.previousPregnancies, 3);
       expect((await db.select(db.pregnancies).get()).map((p) => p.status), ['closed', 'active']);
@@ -244,7 +245,7 @@ void main() {
 
     test('shows which women the server has, is waiting for, or refused', () async {
       final [bushra, zainab, ..._] = await patients.list();
-      await (db.delete(db.outbox)..where((o) => o.recordId.equals(bushra.woman.id))).go();
+      await (db.delete(db.outbox)..where((o) => o.recordId.isIn([bushra.woman.id, bushra.pregnancy!.id]))).go();
       await (db.update(db.outbox)..where((o) => o.recordId.equals(zainab.woman.id)))
           .write(const OutboxCompanion(lastError: Value('DUPLICATE_PATIENT_ID')));
 

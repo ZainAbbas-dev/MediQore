@@ -532,6 +532,8 @@
     "description": "Household without details",
     "placeholders": {}
   },
+  "filePregnancyHistory": "Pregnancy files",
+  "@filePregnancyHistory": {"description": "Label for the pregnancy file selector"},
   "regLaterPregnancy": "New pregnancy",
   "@regLaterPregnancy": {
     "description": "New pregnancy",

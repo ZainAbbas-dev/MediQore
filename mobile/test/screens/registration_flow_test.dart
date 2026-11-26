@@ -290,6 +290,11 @@ void main() {
     final updated = (await tester.runAsync(() => services.patients.file(woman.id)))!;
     expect(updated.history!.previousPregnancies, 2);
     expect(updated.pregnancy!.pregnancyMonthAtRegistration, 3);
+    final history = find.byWidgetPredicate((w) => w is DropdownField<String> && w.label == l10n.filePregnancyHistory);
+    await tapAndWait(tester, history);
+    await tapAndWait(tester, find.textContaining(l10n.fileStatusClosed).last);
+    expect(find.text(l10n.fileNewVisitButton), findsNothing);
+    expect(find.text(l10n.fileStatusClosed), findsOneWidget);
   });
 
   testWidgets('the pregnancy date from the last period gives the delivery date and weeks, and is kept (M2 FE-1)', (tester) async {

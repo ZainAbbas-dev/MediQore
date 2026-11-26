@@ -115,6 +115,7 @@
   "regChooseHousehold": "گھر منتخب کریں",
   "regErrorChooseHousehold": "آگے بڑھنے کے لیے گھر منتخب کریں۔",
   "regUnnamedHousehold": "بغیر تفصیل والا گھر",
+  "filePregnancyHistory": "حمل کی فائلیں",
   "regLaterPregnancy": "نیا حمل",
   "regPatientPreview": "مریضہ کا شناختی نمبر: {code}",
   "regPatientCodeChanged": "مریضہ کا شناختی نمبر بدل گیا ہے۔ نیا نمبر دیکھ کر دوبارہ محفوظ کریں۔",

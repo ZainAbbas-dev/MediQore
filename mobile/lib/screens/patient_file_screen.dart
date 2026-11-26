@@ -20,6 +20,7 @@ import '../theme/app_colors.dart';
 import '../widgets/app_cards.dart';
 import '../widgets/curved_header.dart';
 import '../widgets/gps_capture.dart';
+import '../widgets/form_fields.dart';
 import '../widgets/large_button.dart';
 import 'register_screen.dart';
 import 'visit_screen.dart';
@@ -50,6 +51,7 @@ String obstetricFlagText(AppLocalizations l10n, String id) => switch (id) {
 class _PatientFileScreenState extends State<PatientFileScreen> {
   PatientFile? _file;
   List<VisitSummary> _visits = const [];
+  String? _selectedPregnancyId;
   ClinicalRules? _rules;
 
   @override
@@ -61,7 +63,7 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
   Future<void> _load() async {
     _rules ??= widget.services.clinicalRules ?? await ClinicalRules.load();
     final file = await widget.services.patients.file(widget.womanId);
-    final pregnancy = file?.pregnancy;
+    final pregnancy = _viewedPregnancy(file);
     final visits = pregnancy == null ? const <VisitSummary>[] : await widget.services.visits.forPregnancy(pregnancy.id);
     if (mounted) {
       setState(() {
@@ -69,6 +71,14 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
         _visits = visits;
       });
     }
+  }
+
+  LocalPregnancy? _viewedPregnancy(PatientFile? file) {
+    if (file == null) return null;
+    for (final pregnancy in file.pregnancies) {
+      if (pregnancy.id == _selectedPregnancyId) return pregnancy;
+    }
+    return file.pregnancy;
   }
 
   Future<void> _newVisit(PatientFile file, AppLocalizations l10n, {int? weeksToday}) async {
@@ -93,7 +103,10 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
     final saved = await Navigator.of(context).push<bool>(
       AppRoutes.form(RegisterScreen(services: widget.services, existing: file)),
     );
-    if (saved == true && mounted) await _load();
+    if (saved == true && mounted) {
+      _selectedPregnancyId = null;
+      await _load();
+    }
   }
 
   Future<void> _saveLocation(LocationFix fix, AppLocalizations l10n) async {
@@ -123,7 +136,7 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
 
     final woman = file.woman;
     final household = file.household;
-    final pregnancy = file.pregnancy;
+    final pregnancy = _viewedPregnancy(file);
     final history = file.history;
     final dateFormat = DateFormat.yMMMMd(Localizations.localeOf(context).toLanguageTag());
 
@@ -214,11 +227,30 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
                   gap,
                   LargeButton(label: l10n.fileNewVisitButton, icon: Icons.add, onPressed: () => _newVisit(file, l10n, weeksToday: weeksToday)),
                 ],
-                if (pregnancy?.status != 'active' &&
+                if (file.pregnancy?.status != 'active' &&
                     widget.services.session.user?.patientCodePrefix != null &&
                     woman.areaId == widget.services.session.user?.areaId) ...[
                   gap,
                   LargeButton(label: l10n.regLaterPregnancy, icon: Icons.add, onPressed: () => _newPregnancy(file)),
+                ],
+                if (file.pregnancies.length > 1) ...[
+                  gap,
+                  DropdownField<String>(
+                    label: l10n.filePregnancyHistory,
+                    value: pregnancy?.id,
+                    options: [
+                      for (final option in file.pregnancies)
+                        DropdownOption(
+                          option.id,
+                          '${_formatDate(dateFormat, option.registeredOn)} · '
+                          '${option.status == 'active' ? l10n.fileStatusActive : l10n.fileStatusClosed}',
+                        ),
+                    ],
+                    onChanged: (id) {
+                      _selectedPregnancyId = id;
+                      _load();
+                    },
+                  ),
                 ],
                 if (pregnancy != null) ...[
                   gap,

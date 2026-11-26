@@ -104,11 +104,19 @@ class PatientSummary {
 
 /// Everything the phone holds about one woman: her digital pregnancy file.
 class PatientFile {
-  const PatientFile({required this.woman, this.household, this.pregnancy, this.history, required this.syncStatus});
+  const PatientFile({
+    required this.woman,
+    this.household,
+    this.pregnancy,
+    this.pregnancies = const [],
+    this.history,
+    required this.syncStatus,
+  });
 
   final LocalWoman woman;
   final LocalHousehold? household;
   final LocalPregnancy? pregnancy;
+  final List<LocalPregnancy> pregnancies;
   final LocalObstetricHistory? history;
   final SyncStatus syncStatus;
 }
@@ -321,7 +329,7 @@ class PatientRepository {
   /// One woman's file, or null if she is not on this phone.
   Future<PatientFile?> file(String womanId) async {
     final woman = await (_db.select(_db.women)..where((w) => w.id.equals(womanId))).getSingleOrNull();
-    if (woman == null) return null;
+    if (woman == null || woman.deletedAt != null) return null;
     final household = await (_db.select(_db.households)..where((h) => h.id.equals(woman.householdId))).getSingleOrNull();
     final pregnancies =
         await (_db.select(_db.pregnancies)..where((p) => p.womanId.equals(womanId) & p.deletedAt.isNull())).get();
@@ -331,10 +339,14 @@ class PatientRepository {
         .getSingleOrNull();
     final statuses = await _syncStatuses('women');
     final pregnancyStatuses = await _syncStatuses('pregnancies');
+    final current = _currentPregnancy(pregnancies);
+    final previous = pregnancies.where((p) => p.id != current?.id && p.status == 'closed').toList()
+      ..sort((a, b) => _pregnancyOrder(b).compareTo(_pregnancyOrder(a)));
     return PatientFile(
       woman: woman,
       household: household,
-      pregnancy: _currentPregnancy(pregnancies),
+      pregnancy: current,
+      pregnancies: [if (current != null) current, ...previous],
       history: history,
       syncStatus: _patientStatus(statuses[womanId], pregnancies, pregnancyStatuses),
     );
