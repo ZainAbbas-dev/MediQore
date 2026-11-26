@@ -99,8 +99,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final pending = await data.db.pendingCount();
     final refused = await data.db.refusedCount();
     final lastSync = await data.db.lastSyncAt();
-    final isLhw = _services.session.user?.lhwCode != null;
-    final women = isLhw ? (await data.patients.list()).length : null;
+    final user = _services.session.user;
+    final isLhw = user?.lhwCode != null;
+    final women = isLhw ? (await data.patients.list(areaId: user?.areaId)).length : null;
     final recent = isLhw ? await data.visits.recent(limit: 5) : const <RecentVisit>[];
     if (!mounted) return;
     setState(() {

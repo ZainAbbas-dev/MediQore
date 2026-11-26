@@ -115,6 +115,23 @@ void main() {
       expect((await queued()).where((p) => p['table'] == 'pregnancies').length, 2);
     });
 
+    test('uses the accepted pregnancy when another device won the same active slot', () async {
+      final woman = await patients.register(input(), by: lhw);
+      final file = (await patients.file(woman.id))!;
+      final local = file.pregnancy!;
+      final accepted = local.copyWith(id: 'accepted-pregnancy', serverSeq: const Value(25));
+      await db.into(db.pregnancies).insert(accepted);
+      await (db.update(db.outbox)..where((row) => row.recordId.equals(local.id))).write(
+        const OutboxCompanion(lastError: Value('ACTIVE_PREGNANCY_EXISTS')),
+      );
+
+      final updated = (await patients.file(woman.id))!;
+      expect(updated.pregnancy!.id, accepted.id);
+      expect(updated.syncStatus, SyncStatus.refused);
+      expect((await patients.list()).single.pregnancy!.id, accepted.id);
+      expect((await db.select(db.pregnancies).get()).length, 2, reason: 'do not discard the refused offline record');
+    });
+
     test('rejects a stale Patient ID preview without writing a duplicate registration', () async {
       final preview = await patients.nextPatientCode(lhw);
       await patients.register(input(name: 'Other Woman'), by: lhw, expectedCode: preview);
@@ -195,6 +212,15 @@ void main() {
       await patients.register(input(name: 'Amina', village: 'Dhok Syedan'), by: lhw);
       await patients.register(input(name: 'Bushra', village: 'Chak Beli'), by: lhw);
       await patients.register(input(name: 'Kiran', village: null), by: lhw);
+    });
+
+    test('search results omit another area while preserving its local records for sync', () async {
+      final woman = (await patients.list(search: 'Zainab')).single.woman;
+      await db.update(db.women).replace(woman.copyWith(areaId: const Value('previous-area')));
+
+      expect(await patients.list(search: 'Zainab', areaId: lhw.areaId), isEmpty);
+      expect(await patients.sameWoman(name: 'Zainab', husbandName: 'Imran', areaId: lhw.areaId), isEmpty);
+      expect(await patients.list(search: 'Zainab', areaId: 'previous-area'), hasLength(1));
     });
 
     test('sorts by village, then by name, with no village last', () async {

@@ -201,7 +201,8 @@ class PatientRepository {
         throw StateError('A pregnancy can only be opened for a woman in the LHW’s area');
       }
       final active = await (_db.select(_db.pregnancies)
-            ..where((p) => p.womanId.equals(womanId) & p.status.equals('active') & p.deletedAt.isNull()))
+            ..where((p) => p.womanId.equals(womanId) & p.status.equals('active') & p.deletedAt.isNull())
+            ..limit(1))
           .getSingleOrNull();
       if (active != null) throw StateError('The woman already has an active pregnancy');
       await _writePregnancy(woman, input, by, _clock());
@@ -256,10 +257,10 @@ class PatientRepository {
   /// and spaces ignored): a woman is registered only once (M2 FE-1), so the
   /// form warns before a second registration. The server also flags likely
   /// duplicates for the supervisor (M3 FE-2).
-  Future<List<PatientSummary>> sameWoman({required String name, String? husbandName}) async {
+  Future<List<PatientSummary>> sameWoman({required String name, String? husbandName, String? areaId}) async {
     String norm(String? text) => (text ?? '').trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
     final wanted = (norm(name), norm(husbandName));
-    final all = await list();
+    final all = await list(areaId: areaId);
     return [for (final p in all) if ((norm(p.woman.name), norm(p.woman.husbandName)) == wanted) p];
   }
 
@@ -267,11 +268,18 @@ class PatientRepository {
   /// [search] matches part of a name, patient ID, husband's name or village.
   /// With [near] (the LHW's position), they are sorted by the estimated
   /// distance to their home instead, nearest first; homes without GPS come last.
-  Future<List<PatientSummary>> list({String search = '', ({double latitude, double longitude})? near}) async {
-    final women = await (_db.select(_db.women)..where((w) => w.deletedAt.isNull())).get();
+  Future<List<PatientSummary>> list({
+    String search = '',
+    String? areaId,
+    ({double latitude, double longitude})? near,
+  }) async {
+    final women = await (_db.select(_db.women)
+          ..where((w) => areaId == null ? w.deletedAt.isNull() : w.deletedAt.isNull() & w.areaId.equals(areaId)))
+        .get();
     final households = {for (final h in await _db.select(_db.households).get()) h.id: h};
     final pregnancies = await (_db.select(_db.pregnancies)..where((p) => p.deletedAt.isNull())).get();
     final statuses = await _syncStatuses('women');
+    final pregnancyStatuses = await _syncStatuses('pregnancies');
 
     final query = search.trim().toLowerCase();
     final result = <PatientSummary>[];
@@ -284,11 +292,12 @@ class PatientRepository {
       }
       final lat = household?.latitude;
       final lon = household?.longitude;
+      final womanPregnancies = pregnancies.where((p) => p.womanId == woman.id);
       result.add(PatientSummary(
         woman: woman,
         household: household,
-        pregnancy: _currentPregnancy(pregnancies.where((p) => p.womanId == woman.id)),
-        syncStatus: statuses[woman.id] ?? SyncStatus.synced,
+        pregnancy: _currentPregnancy(womanPregnancies),
+        syncStatus: _patientStatus(statuses[woman.id], womanPregnancies, pregnancyStatuses),
         distanceKm: near == null || lat == null || lon == null ? null : distanceKm(near.latitude, near.longitude, lat, lon),
       ));
     }
@@ -321,12 +330,13 @@ class PatientRepository {
           ..limit(1))
         .getSingleOrNull();
     final statuses = await _syncStatuses('women');
+    final pregnancyStatuses = await _syncStatuses('pregnancies');
     return PatientFile(
       woman: woman,
       household: household,
       pregnancy: _currentPregnancy(pregnancies),
       history: history,
-      syncStatus: statuses[womanId] ?? SyncStatus.synced,
+      syncStatus: _patientStatus(statuses[womanId], pregnancies, pregnancyStatuses),
     );
   }
 
@@ -337,11 +347,29 @@ class PatientRepository {
     for (final p in pregnancies) {
       if (best == null ||
           (p.status == 'active' && best.status != 'active') ||
-          (p.status == best.status && (p.serverSeq ?? 1 << 62) > (best.serverSeq ?? 1 << 62))) {
+          (p.status == best.status && _pregnancyOrder(p) > _pregnancyOrder(best))) {
         best = p;
       }
     }
     return best;
+  }
+
+  // When offline devices compete for one active slot, prefer the file the
+  // server accepted. Keep the rejected local record and its outbox entry.
+  static int _pregnancyOrder(LocalPregnancy pregnancy) =>
+      pregnancy.serverSeq ?? (pregnancy.status == 'active' ? -1 : 1 << 62);
+
+  static SyncStatus _patientStatus(
+    SyncStatus? womanStatus,
+    Iterable<LocalPregnancy> pregnancies,
+    Map<String, SyncStatus> outbox,
+  ) {
+    var status = womanStatus ?? SyncStatus.synced;
+    for (final pregnancy in pregnancies) {
+      final entry = outbox[pregnancy.id] ?? (pregnancy.conflictId == null ? SyncStatus.synced : SyncStatus.held);
+      if (entry.index > status.index) status = entry;
+    }
+    return status;
   }
 
   static int _compareVillages(String? a, String? b) {
@@ -355,7 +383,9 @@ class PatientRepository {
   // and those the server holds for the supervisor's review.
   Future<Map<String, SyncStatus>> _syncStatuses(String table) async {
     final entries = await (_db.select(_db.outbox)..where((o) => o.entityTable.equals(table))).get();
-    final held = await (_db.select(_db.women)..where((w) => w.conflictId.isNotNull())).get();
+    final held = table == 'women'
+        ? await (_db.select(_db.women)..where((w) => w.conflictId.isNotNull())).get()
+        : const <LocalWoman>[];
     return {
       for (final w in held) w.id: SyncStatus.held,
       for (final e in entries) e.recordId: e.lastError == null ? SyncStatus.waiting : SyncStatus.refused,

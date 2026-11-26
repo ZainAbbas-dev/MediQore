@@ -150,7 +150,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // A woman is registered only once (M2 FE-1): before a second registration of
   // the same name and husband's name, offer her file. Returns whether to go on.
   Future<bool> _notAlreadyRegistered() async {
-    final same = await widget.services.patients.sameWoman(name: _name.text, husbandName: _husbandName.text);
+    final same = await widget.services.patients.sameWoman(
+      name: _name.text,
+      husbandName: _husbandName.text,
+      areaId: widget.services.session.user?.areaId,
+    );
     if (same.isEmpty || !mounted) return true;
     final l10n = AppLocalizations.of(context);
     final woman = same.first.woman;
@@ -277,10 +281,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         expectedCode: _previewCode,
       );
     } on PatientCodeChanged catch (error) {
-      if (mounted) setState(() {
-        _previewCode = error.code;
-        _codeChanged = true;
-      });
+      if (mounted) {
+        setState(() {
+          _previewCode = error.code;
+          _codeChanged = true;
+        });
+      }
       return;
     } on StateError {
       if (mounted) {

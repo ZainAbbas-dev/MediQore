@@ -332,6 +332,39 @@ void main() {
     );
   });
 
+  testWidgets('saves an English registration offline with a known EDD, no contact, and GPS denied', (tester) async {
+    final en = lookupAppLocalizations(AppSettings.english);
+    await services.settings.setLocale(AppSettings.english);
+    gps.result = const LocationResult.failed(LocationProblem.denied);
+    await pumpHome(tester);
+    await tapAndWait(tester, find.text(en.patientsNewButton));
+    await enter(tester, en.regName, 'Synthetic Patient');
+    await enter(tester, en.regAge, '29');
+    await enter(tester, en.regHusbandName, 'Synthetic Spouse');
+    await tapAndWait(tester, find.text(en.stepNext));
+    await tapAndWait(tester, find.text(en.regBasisEdd));
+    await tapAndWait(tester, find.text(en.regPickDate));
+    final picker = find.byType(CalendarDatePicker);
+    final date = tester.widget<CalendarDatePicker>(picker).initialDate!;
+    await tester.tap(find.text(MaterialLocalizations.of(tester.element(picker)).okButtonLabel));
+    await settle(tester);
+    await tapAndWait(tester, find.text(en.stepNext));
+    await enter(tester, en.regVillage, 'Synthetic Village');
+    await enter(tester, en.regAddress, 'Synthetic Street');
+    await enter(tester, en.regHouseholdNumber, 'HH-EN-1');
+    await tapAndWait(tester, find.text(en.gpsCaptureButton));
+    expect(find.text(en.gpsDenied), findsOneWidget);
+    await tapAndWait(tester, find.text(en.stepNext));
+    await tapAndWait(tester, find.text(en.regSaveButton));
+
+    expect(find.text(en.savedOnPhone), findsOneWidget);
+    final [saved] = (await tester.runAsync(services.patients.list))!;
+    expect(saved.woman.contactNumber, isNull);
+    expect(saved.household?.latitude, isNull);
+    expect(saved.pregnancy?.reportedEdd, PatientRepository.calendarDate(date));
+    expect(saved.pregnancy?.eddBasis, 'edd');
+  });
+
   testWidgets('a woman already on the phone is pointed out before a second registration (M2 FE-1)', (tester) async {
     await pumpHome(tester);
     await tester.runAsync(() => services.patients.register(

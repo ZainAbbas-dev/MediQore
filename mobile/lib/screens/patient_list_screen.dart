@@ -51,8 +51,9 @@ class _PatientListScreenState extends State<PatientListScreen> {
   Future<void> _load() async {
     final search = _search.text;
     final near = _near;
-    final patients = await widget.services.patients.list(search: search, near: near);
-    final all = search.trim().isEmpty ? patients : await widget.services.patients.list();
+    final area = widget.services.session.user?.areaId;
+    final patients = await widget.services.patients.list(search: search, near: near, areaId: area);
+    final all = search.trim().isEmpty ? patients : await widget.services.patients.list(areaId: area);
     if (!mounted || search != _search.text || near != _near) return; // a newer request is on its way
     setState(() {
       _patients = patients;
