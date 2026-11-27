@@ -39,6 +39,7 @@ class PulledRecord {
     this.areaId,
     this.createdOnDevice,
     this.version,
+    this.pendingConflictIds = const [],
   });
 
   factory PulledRecord.fromJson(Map<String, dynamic> json) => PulledRecord(
@@ -47,6 +48,7 @@ class PulledRecord {
         areaId: json['areaId'] as String?,
         serverSeq: json['serverSeq'] as int,
         version: json['version'] as int?,
+        pendingConflictIds: (json['pendingConflictIds'] as List?)?.cast<String>() ?? const [],
         deleted: json['deleted'] as bool,
         data: Map<String, dynamic>.from(json['data'] as Map),
         createdOnDevice: json['createdOnDevice'] == null ? null : DateTime.parse(json['createdOnDevice'] as String),
@@ -61,6 +63,7 @@ class PulledRecord {
 
   /// The record's version on the server (M3 FE-2).
   final int? version;
+  final List<String> pendingConflictIds;
   final bool deleted;
   final Map<String, dynamic> data;
   final DateTime? createdOnDevice;

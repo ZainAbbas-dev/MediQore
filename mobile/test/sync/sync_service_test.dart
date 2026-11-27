@@ -58,6 +58,69 @@ void main() {
     expect(report.lastServerSeq, stored.serverSeq);
   });
 
+  test('a committed push with a lost response retries the same operation after a restart', () async {
+    final home = await households.create(village: 'Test village');
+    // Simulate an outbox entry written by the previous release.
+    final legacy = jsonEncode(HouseholdRepository.payloadOf(home));
+    await db.customStatement('UPDATE outbox SET payload = ?', [legacy]);
+    server.afterPush = () async => throw http.ClientException('response lost after commit');
+
+    await expectLater(sync.syncNow('token-1'), throwsA(isA<http.ClientException>()));
+    final sent = server.pushedBatches.single.single;
+    expect(sent['operationId'], isA<String>());
+    expect(jsonDecode((await db.select(db.outbox).getSingle()).payload), sent);
+    final committed = server.records[home.id]!['serverSeq'];
+
+    final restarted = SyncService(db: db, api: SyncApi(client: server.client, baseUrl: 'http://test/api/v1'), deviceId: 'device-1');
+    await restarted.syncNow('token-1');
+    expect(server.pushedBatches.last.single, sent);
+    expect(server.records[home.id]!['serverSeq'], committed);
+    expect(await db.pendingCount(), 0);
+  });
+
+  test('an acknowledgment of the first edit preserves and rebases a newer unsent edit', () async {
+    final home = await households.create(village: 'Test village');
+    await sync.syncNow('token-1');
+    await households.setLocation(home.id, latitude: 33.61, longitude: 73.01);
+    server.afterPush = () async {
+      await households.setLocation(home.id, latitude: 33.62, longitude: 73.02);
+    };
+    await sync.syncNow('token-1');
+
+    final oldEdit = server.pushedBatches.last.single;
+    final newer = jsonDecode((await db.select(db.outbox).getSingle()).payload) as Map;
+    expect(oldEdit['baseVersion'], 1);
+    expect(newer['baseVersion'], 2);
+    expect(newer['operationId'], isNot(oldEdit['operationId']));
+    await sync.syncNow('token-1');
+    expect(server.records[home.id]!['data'], containsPair('latitude', 33.62));
+    expect(await db.pendingCount(), 0);
+  });
+
+  test('a refused edit keeps its original base when a newer server copy is pulled', () async {
+    final home = await households.create(village: 'Test village');
+    await sync.syncNow('token-1');
+    await households.setLocation(home.id, latitude: 33.62, longitude: 73.02);
+    server.rejectIds.add(home.id);
+    server.editOnServer(home.id, {'latitude': 33.61, 'longitude': 73.01});
+    await sync.syncNow('token-1');
+
+    expect((await households.all()).single.latitude, 33.62);
+    server.rejectIds.remove(home.id);
+    final retried = await sync.syncNow('token-1');
+    expect(retried.held, 1);
+    expect(server.pushedBatches.last.single['baseVersion'], 1);
+    expect(server.records[home.id]!['data'], containsPair('latitude', 33.61));
+  });
+
+  test('prioritises urgent independent records ahead of earlier routine records', () async {
+    final routine = await households.create(village: 'Routine');
+    final urgent = await households.create(village: 'Urgent');
+    await db.customStatement('UPDATE outbox SET priority = 10 WHERE record_id = ?', [urgent.id]);
+    await sync.syncNow('token-1');
+    expect(server.pushedBatches.single.map((r) => r['id']), [urgent.id, routine.id]);
+  });
+
   test('pushes as this phone, which must be activated on the server (M1 FE-2)', () async {
     await households.create(village: 'Test village');
     final notActivated = SyncService(db: db, api: SyncApi(client: server.client, baseUrl: 'http://test/api/v1'), deviceId: 'device-2');

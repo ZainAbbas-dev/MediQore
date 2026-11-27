@@ -80,6 +80,7 @@ class SyncService {
   /// order as the rest (highest priority, then oldest first, so parents go
   /// before their children).
   Future<(int, int, int)> push(String token) async {
+    await _db.prepareOutboxOperations();
     final device = deviceId;
     var pushed = 0;
     var rejected = 0;
@@ -99,14 +100,7 @@ class SyncService {
       if (batch.isEmpty) return (pushed, rejected, held);
       sent.addAll(batch.map((entry) => entry.id));
 
-      final records = <Map<String, dynamic>>[];
-      for (final entry in batch) {
-        final record = jsonDecode(entry.payload) as Map<String, dynamic>;
-        // An edit of a record the server has carries the version it was made on.
-        final version = await _db.versionOf(entry.entityTable, entry.recordId);
-        if (version != null) record['baseVersion'] = version;
-        records.add(record);
-      }
+      final records = [for (final entry in batch) jsonDecode(entry.payload) as Map<String, dynamic>];
       final results = await _api.push(token, device, records);
 
       await _db.transaction(() async {
@@ -114,7 +108,7 @@ class SyncService {
           final result = results[index];
           if (result['status'] == 'rejected') {
             rejected++;
-            await (_db.update(_db.outbox)..where((o) => o.id.equals(entry.id))).write(
+            await (_db.update(_db.outbox)..where((o) => o.id.equals(entry.id) & o.payload.equals(entry.payload))).write(
               OutboxCompanion(lastError: Value(result['reason'] as String? ?? 'rejected'), attempts: Value(entry.attempts + 1)),
             );
             continue;
@@ -140,7 +134,18 @@ class SyncService {
           ..where((o) => o.id.equals(entry.id) & o.payload.equals(entry.payload)))
         .go();
     if (removed == 0) {
-      if (version != null) await _db.setVersion(entry.entityTable, entry.recordId, version);
+      if (version == null) return;
+      final newer = await (_db.select(_db.outbox)..where((o) => o.id.equals(entry.id))).getSingleOrNull();
+      if (newer == null) return;
+      final previous = jsonDecode(entry.payload) as Map<String, dynamic>;
+      final edit = jsonDecode(newer.payload) as Map<String, dynamic>;
+      final base = edit['baseVersion'] as int?;
+      if (base != previous['baseVersion'] || (base != null && version <= base)) return;
+      edit['baseVersion'] = version;
+      await (_db.update(_db.outbox)..where((o) => o.id.equals(entry.id))).write(
+        OutboxCompanion(payload: Value(jsonEncode(edit))),
+      );
+      await _db.setVersion(entry.entityTable, entry.recordId, version);
       return;
     }
     await _db.setServerSeq(entry.entityTable, entry.recordId, serverSeq, version: version);
@@ -197,12 +202,17 @@ class SyncService {
   }
 
   Future<void> _apply(PulledRecord record) async {
-    // A local change that is still queued is newer than the server copy; it wins
-    // until it has been pushed.
+    if (!AppDatabase.syncedTables.contains(record.table)) return;
+    // Keep local edits and their original base version until they are accepted
+    // or a supervisor decides the conflict.
     final queued = await (_db.select(_db.outbox)
-          ..where((o) => o.entityTable.equals(record.table) & o.recordId.equals(record.id) & o.lastError.isNull()))
+          ..where((o) => o.entityTable.equals(record.table) & o.recordId.equals(record.id)))
         .getSingleOrNull();
     if (queued != null) return;
+    if (record.pendingConflictIds.isNotEmpty) {
+      final held = await _db.conflictIdOf(record.table, record.id);
+      if (record.pendingConflictIds.contains(held)) return;
+    }
 
     final d = record.data;
     final version = Value(record.version);
@@ -286,8 +296,6 @@ class SyncService {
               ),
             );
       case 'visits':
-        // Every pulled record is no longer held: the supervisor decided (or it
-        // never was held).
         await _db.into(_db.visits).insertOnConflictUpdate(
               VisitsCompanion.insert(
                 id: record.id,

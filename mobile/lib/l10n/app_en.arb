@@ -946,6 +946,10 @@
   "@homeLostUnsynced": {
     "description": "Shown once after activation when an earlier version left unsynced records that could not be opened (LI-8)."
   },
+  "visitGestationWeeks": "{weeks} weeks pregnant",
+  "visitSaveFailed": "Visit could not be saved. Free up storage if needed and try again.",
+  "@visitGestationWeeks": {"description": "Gestational age at the visit date", "placeholders": {"weeks": {"type": "int"}}},
+  "@visitSaveFailed": {"description": "Shown when the local visit transaction fails"},
   "visitTitle": "New visit",
   "@visitTitle": {
     "description": "Title of the visit form (M3 FE-1)."

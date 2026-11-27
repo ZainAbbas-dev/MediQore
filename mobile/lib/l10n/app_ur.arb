@@ -201,6 +201,8 @@
   "fileStatusClosed": "بند",
   "fileLocationSaved": "گھر کا مقام محفوظ ہو گیا۔",
   "homeLostUnsynced": "پرانے ورژن کے جو ریکارڈ سنک نہیں ہوئے تھے وہ نہیں کھل سکے، کیونکہ پاس ورڈ تبدیل ہو چکا تھا۔ سرور پر موجود ریکارڈ ڈاؤن لوڈ کر لیے گئے ہیں۔",
+  "visitGestationWeeks": "حمل کے {weeks} ہفتے",
+  "visitSaveFailed": "معائنہ محفوظ نہیں ہو سکا۔ ضرورت ہو تو جگہ خالی کریں اور دوبارہ کوشش کریں۔",
   "visitTitle": "نیا وزٹ",
   "visitVitalsSection": "پیمائشیں",
   "visitSymptomsSection": "علامات",

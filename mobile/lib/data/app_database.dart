@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
 
 part 'app_database.g.dart';
 
@@ -365,9 +366,9 @@ class AppDatabase extends _$AppDatabase {
   /// Queues [payload] for the next push, replacing an earlier version of the
   /// same record that has not been pushed yet. Call it in the same transaction
   /// as the write (roadmap, Offline sync).
-  Future<void> enqueue(Map<String, Object?> payload, {required DateTime queuedAt}) {
-    final text = jsonEncode(payload);
-    return into(outbox).insert(
+  Future<void> enqueue(Map<String, Object?> payload, {required DateTime queuedAt}) async {
+    final text = await _operationPayload(payload);
+    await into(outbox).insert(
       OutboxCompanion.insert(
         entityTable: payload['table']! as String,
         recordId: payload['id']! as String,
@@ -385,6 +386,31 @@ class AppDatabase extends _$AppDatabase {
       ),
     );
   }
+
+  Future<String> _operationPayload(Map<String, Object?> payload) async {
+    final version = await versionOf(payload['table']! as String, payload['id']! as String);
+    return jsonEncode({
+      ...payload,
+      'operationId': const Uuid().v4(),
+      if (version != null) 'baseVersion': version,
+    });
+  }
+
+  /// Adds operation IDs to outbox entries created by older releases. Persist
+  /// them before sending so a restart or a lost reply retries the same operation.
+  Future<void> prepareOutboxOperations() => transaction(() async {
+        final legacy = await customSelect(
+          'SELECT id, payload FROM outbox WHERE json_extract(payload, ?) IS NULL',
+          variables: [Variable.withString(r'$.operationId')],
+          readsFrom: {outbox},
+        ).get();
+        for (final entry in legacy) {
+          final payload = jsonDecode(entry.read<String>('payload')) as Map<String, dynamic>;
+          await (update(outbox)..where((o) => o.id.equals(entry.read<int>('id')))).write(
+            OutboxCompanion(payload: Value(await _operationPayload(payload))),
+          );
+        }
+      });
 
   /// Stores the number the server gave a pushed record, and its version there.
   Future<void> setServerSeq(String table, String id, int serverSeq, {int? version}) async {
@@ -416,6 +442,16 @@ class AppDatabase extends _$AppDatabase {
       readsFrom: {target},
     ).getSingleOrNull();
     return row?.read<int?>('version');
+  }
+
+  Future<String?> conflictIdOf(String table, String id) async {
+    final target = _syncedTable(table);
+    final row = await customSelect(
+      'SELECT conflict_id FROM ${target.actualTableName} WHERE id = ?',
+      variables: [Variable.withString(id)],
+      readsFrom: {target},
+    ).getSingleOrNull();
+    return row?.read<String?>('conflict_id');
   }
 
   /// Marks a record the server holds for the supervisor's review (M3 FE-2).

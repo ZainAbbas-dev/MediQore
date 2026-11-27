@@ -69,6 +69,8 @@ class VisitScreen extends StatefulWidget {
     required this.pregnancyId,
     required this.title,
     this.ranges,
+    this.visitDate,
+    this.gestationalWeeks,
     this.fetalMovementFromWeeks,
   });
 
@@ -78,6 +80,8 @@ class VisitScreen extends StatefulWidget {
   /// The woman's name and patient ID, shown at the top.
   final String title;
   final VisitRanges? ranges;
+  final DateTime? visitDate;
+  final int? gestationalWeeks;
 
   /// Set while the pregnancy is younger than the gestational age at which the
   /// Clinical Rules Table asks about fetal movement (that age in weeks): the
@@ -166,7 +170,7 @@ class _VisitScreenState extends State<VisitScreen> {
     if ((text ?? '').trim().isEmpty) return required ? l10n.regErrorRequired : null;
     final range = _ranges![field];
     final (min, max) = field == 'bloodSugarMmolL' ? _sugarRange(range.allowed) : range.allowed;
-    if (value == null || value < min || value > max) {
+    if (value == null || !value.isFinite || value < min || value > max) {
       return l10n.visitErrorNotPossible(_number(min), _number(max));
     }
     return null;
@@ -205,7 +209,7 @@ class _VisitScreenState extends State<VisitScreen> {
     switch (_step) {
       case 0:
         if (!_measurements.currentState!.validate()) return;
-        if (!await _confirmUnusual(l10n)) return;
+        if (!await _confirmUnusual(l10n) || !mounted) return;
         setState(() => _step = 1);
       case 1:
         setState(() => _step = 2);
@@ -326,7 +330,14 @@ class _VisitScreenState extends State<VisitScreen> {
           feverWithWeakness: _danger['feverWithWeakness'],
         ),
         by: _services.session.user!,
+        visitedAt: widget.visitDate,
       );
+    } on Exception {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.visitSaveFailed)));
+      }
+      return;
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -355,7 +366,10 @@ class _VisitScreenState extends State<VisitScreen> {
     };
     return StepScaffold(
       title: l10n.visitTitle,
-      subtitle: widget.title,
+      subtitle: switch (widget.gestationalWeeks) {
+        final weeks? => '${widget.title}\n${l10n.visitGestationWeeks(weeks)}',
+        null => widget.title,
+      },
       step: _step + 1,
       total: _steps,
       stepName: name,

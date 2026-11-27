@@ -23,6 +23,23 @@ void main() {
   });
   tearDown(() => db.close());
 
+  test('an outbox write failure rolls back the visit and a later retry saves exactly once', () async {
+    await db.customStatement('''
+      CREATE TRIGGER reject_visit_outbox BEFORE INSERT ON outbox
+      WHEN NEW.entity_table = 'visits'
+      BEGIN SELECT RAISE(ABORT, 'simulated outbox write failure'); END
+    ''');
+    const input = VisitInput(pregnancyId: 'pregnancy-1', pulseBpm: 84);
+    await expectLater(visits.record(input, by: lhw), throwsException);
+    expect(await db.select(db.visits).get(), isEmpty);
+    expect(await db.select(db.outbox).get(), isEmpty);
+
+    await db.customStatement('DROP TRIGGER reject_visit_outbox');
+    final saved = await visits.record(input, by: lhw);
+    expect((await db.select(db.visits).getSingle()).id, saved.id);
+    expect((await db.select(db.outbox).getSingle()).recordId, saved.id);
+  });
+
   test('a visit is saved with its outbox entry, in the units and field names the server takes (M3 FE-1)', () async {
     final visit = await visits.record(
       const VisitInput(

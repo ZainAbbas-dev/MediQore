@@ -81,8 +81,10 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
     return file.pregnancy;
   }
 
-  Future<void> _newVisit(PatientFile file, AppLocalizations l10n, {int? weeksToday}) async {
+  Future<void> _newVisit(PatientFile file, AppLocalizations l10n, {DateTime? edd}) async {
     final messenger = ScaffoldMessenger.of(context);
+    final visitDate = DateTime.now();
+    final weeks = edd == null ? null : _rules?.gestationalAge.completedWeeksOn(edd, visitDate);
     final from = _rules?.fetalMovementFromWeeks;
     final saved = await Navigator.of(context).push<LocalVisit>(
       AppRoutes.form(
@@ -90,7 +92,9 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
           services: widget.services,
           pregnancyId: file.pregnancy!.id,
           title: '${file.woman.name} · ${file.woman.patientCode}',
-          fetalMovementFromWeeks: from != null && weeksToday != null && weeksToday < from ? from : null,
+          visitDate: visitDate,
+          gestationalWeeks: weeks,
+          fetalMovementFromWeeks: from != null && weeks != null && weeks < from ? from : null,
         ),
       ),
     );
@@ -225,7 +229,7 @@ class _PatientFileScreenState extends State<PatientFileScreen> {
                 Align(alignment: AlignmentDirectional.centerStart, child: SyncStatusChip(file.syncStatus)),
                 if (pregnancy != null && pregnancy.status == 'active') ...[
                   gap,
-                  LargeButton(label: l10n.fileNewVisitButton, icon: Icons.add, onPressed: () => _newVisit(file, l10n, weeksToday: weeksToday)),
+                  LargeButton(label: l10n.fileNewVisitButton, icon: Icons.add, onPressed: () => _newVisit(file, l10n, edd: edd)),
                 ],
                 if (file.pregnancy?.status != 'active' &&
                     widget.services.session.user?.patientCodePrefix != null &&

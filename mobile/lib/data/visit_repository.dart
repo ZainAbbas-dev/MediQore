@@ -102,16 +102,20 @@ class VisitRepository {
   /// Saves a visit made by [by] and queues it for the next sync. The visit
   /// time is the phone's clock: shown to people, never used to order or
   /// resolve records (LI-7).
-  Future<LocalVisit> record(VisitInput input, {required SessionUser by}) async {
+  Future<LocalVisit> record(VisitInput input, {required SessionUser by, DateTime? visitedAt}) async {
     // Whole seconds, so the time reads back exactly as it was pushed.
     final now = DateTime.fromMillisecondsSinceEpoch(_clock().millisecondsSinceEpoch ~/ 1000 * 1000);
+    final visitTime = DateTime.fromMillisecondsSinceEpoch(
+      (visitedAt ?? now).millisecondsSinceEpoch ~/ 1000 * 1000,
+      isUtc: true,
+    );
     final visit = LocalVisit(
       id: _uuid.v4(),
       areaId: by.areaId,
       createdBy: by.id,
       createdOnDevice: now.toUtc(),
       pregnancyId: input.pregnancyId,
-      visitedAt: now.toUtc(),
+      visitedAt: visitTime,
       systolicBpMmhg: input.systolicBpMmhg,
       diastolicBpMmhg: input.diastolicBpMmhg,
       weightKg: input.weightKg,

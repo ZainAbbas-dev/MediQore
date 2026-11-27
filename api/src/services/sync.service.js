@@ -88,19 +88,19 @@ async function insertRecord(client, record, { areaId, userId, deviceId, details 
 const NORMALISED = (column) => `lower(regexp_replace(trim(coalesce(${column}, '')), '\\s+', ' ', 'g'))`;
 
 // Lists a conflict for the supervisor's Conflict Review page (M3 FE-2, M10 FE-3)
-// and audits it. One pending conflict per record and reason: a resend updates
-// the payload of the pending one. Returns the conflict ID.
+// and audits it. Each modern operation keeps its own candidate. Legacy
+// requests still share a pending conflict per record and reason.
 async function listConflict(client, ctx, { table, record, areaId, existingId, reason, baseVersion = null, existingVersion = null }) {
   const { rows: [conflict] } = await client.query(
     `INSERT INTO sync_conflicts
        (area_id, table_name, incoming_record_id, existing_record_id, incoming_payload, reason, submitted_by, device_id,
-        base_version, existing_version)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-     ON CONFLICT (table_name, incoming_record_id, reason) WHERE status = 'pending'
+        base_version, existing_version, operation_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+     ON CONFLICT (table_name, incoming_record_id, reason) WHERE status = 'pending' AND operation_id IS NULL
      DO UPDATE SET incoming_payload = EXCLUDED.incoming_payload, base_version = EXCLUDED.base_version,
                    existing_version = EXCLUDED.existing_version
      RETURNING id, (xmax = 0) AS inserted`,
-    [areaId, table, record.id, existingId, JSON.stringify(record), reason, ctx.userId, ctx.deviceId, baseVersion, existingVersion],
+    [areaId, table, record.id, existingId, JSON.stringify(record), reason, ctx.userId, ctx.deviceId, baseVersion, existingVersion, record.operationId || null],
   );
   if (conflict.inserted) {
     await writeAudit(client, {
@@ -151,6 +151,9 @@ async function applyRecord(client, ctx, record) {
   );
 
   if (!existing) {
+    if (record.operationId && record.baseVersion !== undefined) {
+      return { ...result, status: 'rejected', reason: 'MISSING_RECORD' };
+    }
     const areaId = areaForNewRecord(ctx, record);
     if (!areaId) return { ...result, status: 'rejected', reason: 'OUT_OF_AREA' };
     const problem = await parentProblem(client, def, record, areaId);
@@ -167,6 +170,10 @@ async function applyRecord(client, ctx, record) {
     return { ...result, status: 'rejected', reason: 'OUT_OF_AREA' };
   }
 
+  if (record.operationId && record.baseVersion > existing.version) {
+    return { ...result, status: 'rejected', reason: 'VERSION_AHEAD' };
+  }
+
   // Resending the same record is harmless (roadmap, Offline sync).
   // An identical resend is acknowledged again and never a conflict.
   if (sameAsStored(def, existing, record)) {
@@ -176,7 +183,9 @@ async function applyRecord(client, ctx, record) {
   // M3 FE-2: an edit made on an older version than the server's is not applied.
   // It waits on the Conflict Review page, and the phone keeps it held until the
   // supervisor's decision comes back by pull.
-  if (record.baseVersion !== undefined && record.baseVersion < existing.version) {
+  const stale = record.baseVersion !== undefined && record.baseVersion < existing.version;
+  const missingBase = record.operationId && record.baseVersion === undefined;
+  if (stale || missingBase) {
     const conflictId = await listConflict(client, ctx, {
       table: record.table, record, areaId: existing.area_id, existingId: existing.id, reason: 'outdated_edit',
       baseVersion: record.baseVersion, existingVersion: existing.version,
@@ -204,19 +213,50 @@ async function applyRecord(client, ctx, record) {
   return { ...result, status: 'updated', serverSeq, version: updated.version };
 }
 
+// The activated-device row is locked for this transaction. Retries from one
+// device therefore see a committed receipt before they can apply the mutation.
+async function applyOperation(client, ctx, record) {
+  if (!record.operationId) return applyRecord(client, ctx, record);
+  const fields = TABLES[record.table].fields;
+  const requestHash = crypto.createHash('sha256').update(JSON.stringify([
+    record.table, record.id, record.areaId ?? null, record.createdOnDevice,
+    record.deleted, record.baseVersion ?? null, ...Object.keys(fields).map((key) => record.data[key]),
+  ])).digest('hex');
+  const { rows: [receipt] } = await client.query(
+    'SELECT request_hash, result FROM sync_operation_receipts WHERE device_id = $1 AND operation_id = $2',
+    [ctx.deviceId, record.operationId],
+  );
+  if (receipt) {
+    if (receipt.request_hash === requestHash) return receipt.result;
+    return { table: record.table, id: record.id, status: 'rejected', reason: 'OPERATION_ID_REUSED' };
+  }
+
+  const result = await applyRecord(client, ctx, record);
+  // A missing parent or out-of-order base can become valid at the next sync.
+  if (result.status !== 'rejected') {
+    await client.query(
+      `INSERT INTO sync_operation_receipts (device_id, operation_id, request_hash, result)
+       VALUES ($1, $2, $3, $4)`,
+      [ctx.deviceId, record.operationId, requestHash, JSON.stringify(result)],
+    );
+  }
+  return result;
+}
+
 // Runs applyRecord inside a savepoint, so a record that breaks a database
 // constraint (for example a patient ID already used) is refused on its own
 // instead of failing the whole batch.
 async function applyRecordOrRefuse(client, ctx, record) {
   await client.query('SAVEPOINT pushed_record');
   try {
-    const result = await applyRecord(client, ctx, record);
+    const result = await applyOperation(client, ctx, record);
     await client.query('RELEASE SAVEPOINT pushed_record');
     return result;
   } catch (error) {
     const reason = CONSTRAINT_REASONS[error.constraint] || SQLSTATE_REASONS[error.code];
     if (!reason) throw error;
     await client.query('ROLLBACK TO SAVEPOINT pushed_record');
+    await client.query('RELEASE SAVEPOINT pushed_record');
     return { table: record.table, id: record.id, status: 'rejected', reason };
   }
 }
@@ -273,6 +313,24 @@ async function pull(user, since, limit) {
     }
     rows.sort((a, b) => a.serverSeq - b.serverSeq);
     const records = rows.slice(0, limit);
+    if (records.length) {
+      const { rows: pending } = await client.query(
+        `SELECT id, table_name, incoming_record_id FROM sync_conflicts
+         WHERE device_id = $1 AND area_id = $2 AND status = 'pending'
+           AND reason = 'outdated_edit' AND incoming_record_id = ANY($3::uuid[])`,
+        [user.deviceId, areaId, records.map(({ id }) => id)],
+      );
+      const byRecord = new Map();
+      for (const conflict of pending) {
+        const key = `${conflict.table_name}:${conflict.incoming_record_id}`;
+        if (!byRecord.has(key)) byRecord.set(key, []);
+        byRecord.get(key).push(conflict.id);
+      }
+      for (const record of records) {
+        const ids = byRecord.get(`${record.table}:${record.id}`);
+        if (ids) record.pendingConflictIds = ids;
+      }
+    }
     return {
       records,
       nextSince: records.length ? records[records.length - 1].serverSeq : since,

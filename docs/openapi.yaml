@@ -276,13 +276,17 @@ paths:
         applies: a patient ID already used (`DUPLICATE_PATIENT_ID`), a second active pregnancy for the
         same woman (`ACTIVE_PREGNANCY_EXISTS`), a second obstetric history (`DUPLICATE_RECORD`).
 
-        Every record carries a version (1 when created, raised by each accepted change). An edit sends
-        `baseVersion`, the version it was made on. An edit made on an older version than the server's
-        is not applied: it waits on the supervisor's Conflict Review page (status `conflict`, with
-        `conflictId`; M3 FE-2, LI-7), and resending it returns the same conflict. A woman with the same
-        name, husband's name and household as one already on the server is stored, and listed on the
-        Conflict Review page as a possible duplicate (`possibleDuplicate` holds the conflict ID). The
-        supervisor's decision reaches the device through pull.
+        Send a fresh UUID v4 as `operationId` for each mutation and keep it stable across retries.
+        A replay returns the original committed result, even if another device has changed the record.
+        Reusing a committed operation ID for different content is rejected (`OPERATION_ID_REUSED`).
+        Requests without an operation ID retain legacy identical-content replay behaviour.
+
+        Every record carries a version. A new operation editing an existing record sends `baseVersion`,
+        the version it was made on. A stale edit or one with an unknown base is held as its own
+        Conflict Review candidate. A future base (`VERSION_AHEAD`) or an edit whose record has not
+        arrived (`MISSING_RECORD`) can be retried after the preceding operation. A likely duplicate
+        woman is stored and listed for review (`possibleDuplicate` holds the conflict ID).
+        The supervisor’s decision reaches the device through pull.
         Every create, edit and delete writes an audit row. The device is registered on first use.
       operationId: syncPush
       requestBody:
@@ -324,7 +328,8 @@ paths:
         consistent snapshot. Store `nextSince` and send it as `since` next time; repeat while
         `hasMore` is true. Device clocks are never used for ordering (LI-7). An edit gives a record a
         new number, so a child (a woman) can arrive before its parent (her household): apply pulled
-        rows without requiring the parent.
+        rows without requiring the parent. A pulled record can list `pendingConflictIds` for the
+        submitting device so it can preserve a held local edit until a resolution arrives.
       operationId: syncPull
       parameters:
         - name: since
@@ -2622,6 +2627,10 @@ components:
                 type: string
                 format: uuid
                 description: UUID v4 generated on the device.
+              operationId:
+                type: string
+                format: uuid
+                description: Stable UUID v4 for this mutation, separate from the record ID.
               areaId:
                 type: string
                 format: uuid
@@ -2668,7 +2677,7 @@ components:
           description: With status `conflict`, the item in the supervisor's queue.
         reason:
           type: string
-          enum: [OUT_OF_AREA, MISSING_PARENT, DUPLICATE_PATIENT_ID, ACTIVE_PREGNANCY_EXISTS, DUPLICATE_RECORD, INVALID_VALUE]
+          enum: [OUT_OF_AREA, MISSING_PARENT, DUPLICATE_PATIENT_ID, ACTIVE_PREGNANCY_EXISTS, DUPLICATE_RECORD, INVALID_VALUE, OPERATION_ID_REUSED, VERSION_AHEAD, MISSING_RECORD]
 
     SyncRecord:
       type: object
@@ -2686,6 +2695,12 @@ components:
           type: integer
         version:
           type: integer
+        pendingConflictIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Pending stale edits for this record on the requesting device.
         createdOnDevice:
           type: [string, 'null']
           format: date-time

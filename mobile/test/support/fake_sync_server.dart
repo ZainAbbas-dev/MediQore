@@ -38,6 +38,8 @@ class FakeSyncServer {
   int? activationNumber = 3;
   bool deactivated = false;
   bool offline = false;
+  Future<void> Function()? afterPush;
+  final Map<(String, String), Map<String, dynamic>> _receipts = {};
 
   /// Phones activated for the account.
   final Set<String> activatedDevices = {};
@@ -172,15 +174,11 @@ class FakeSyncServer {
       if (!activatedDevices.contains(body['deviceId'])) return _error(403, 'DEVICE_NOT_ALLOWED');
       final batch = (body['records'] as List).cast<Map<String, dynamic>>();
       pushedBatches.add(batch);
-      final results = [
-        for (final r in batch)
-          if (rejectIds.contains(r['id']))
-            {'table': r['table'], 'id': r['id'], 'status': 'rejected', 'reason': 'OUT_OF_AREA'}
-          else if (holdIds.contains(r['id']) || _outdated(r))
-            {'table': r['table'], 'id': r['id'], 'status': 'conflict', 'conflictId': 'conflict-${r['id']}'}
-          else
-            _store(r),
-      ];
+      final device = body['deviceId'] as String;
+      final results = [for (final record in batch) _pushRecord(device, record)];
+      final hook = afterPush;
+      afterPush = null;
+      if (hook != null) await hook();
       return _json({'results': results}, 200);
     }
     if (path.endsWith('/sync/pull')) {
@@ -203,6 +201,23 @@ class FakeSyncServer {
     }
     return http.Response('', 404);
   });
+
+  Map<String, dynamic> _pushRecord(String device, Map<String, dynamic> record) {
+    final operation = record['operationId'] as String?;
+    final key = operation == null ? null : (device, operation);
+    final receipt = _receipts[key];
+    if (receipt != null) return receipt;
+    final id = record['id'];
+    final table = record['table'];
+    if (rejectIds.contains(id)) {
+      return {'table': table, 'id': id, 'status': 'rejected', 'reason': 'OUT_OF_AREA'};
+    }
+    final result = holdIds.contains(id) || _outdated(record)
+        ? {'table': table, 'id': id, 'status': 'conflict', 'conflictId': 'conflict-$id'}
+        : _store(record);
+    if (key != null) _receipts[key] = result;
+    return result;
+  }
 
   // An edit made on an older version than the server's (M3 FE-2).
   bool _outdated(Map<String, dynamic> r) {

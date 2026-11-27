@@ -117,8 +117,39 @@ void main() {
     await tapAndWait(tester, find.text(ur.visitSaveButton));
   }
 
+  testWidgets('a failed local visit save keeps the form open and allows retry', (tester) async {
+    await openVisitForm(tester);
+    await tester.runAsync(() => services.db.customStatement('''
+      CREATE TRIGGER reject_visit_outbox BEFORE INSERT ON outbox
+      WHEN NEW.entity_table = 'visits'
+      BEGIN SELECT RAISE(ABORT, 'simulated outbox write failure'); END
+    '''));
+
+    await recordNormalVisit(tester);
+    expect(find.byType(VisitScreen), findsOneWidget);
+    expect(find.text(ur.visitSaveFailed), findsOneWidget);
+    expect(find.text(ur.visitSaved), findsNothing);
+    expect(await savedVisits(tester), isEmpty);
+
+    await tester.runAsync(() => services.db.customStatement('DROP TRIGGER reject_visit_outbox'));
+    await tapAndWait(tester, find.text(ur.visitSaveButton));
+    expect(find.text(ur.visitSaved), findsOneWidget);
+    expect(await savedVisits(tester), hasLength(1));
+  });
+
   testWidgets('records a visit offline in three steps and lists it as not sent yet (M3 FE-1, FE-2)', (tester) async {
     await openVisitForm(tester);
+    final [patient] = (await tester.runAsync(services.patients.list))!;
+    final pregnancy = patient.pregnancy!;
+    final gestation = services.clinicalRules!.gestationalAge;
+    final edd = gestation.eddOf(
+      estimatedDeliveryDate: pregnancy.estimatedDeliveryDate,
+      registeredOn: pregnancy.registeredOn,
+      month: pregnancy.pregnancyMonthAtRegistration,
+    );
+    final weeks = gestation.completedWeeksOn(edd, DateTime.now());
+    expect(find.textContaining(patient.woman.patientCode), findsOneWidget);
+    expect(find.textContaining(ur.visitGestationWeeks(weeks)), findsOneWidget);
     expect(find.text(ur.stepOf(1, 3, ur.visitVitalsSection)), findsOneWidget);
     await fillVitals(tester, ur);
     // A blood sugar typed in mg/dL, from a lab report.

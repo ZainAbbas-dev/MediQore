@@ -343,6 +343,10 @@ void main() {
       expect(conflict['resolutions'], ['keep_server', 'use_device']);
       expect((conflict['incoming'] as Map)['data'], containsPair('latitude', 33.62));
       expect((conflict['existing'] as Map)['data'], containsPair('latitude', 33.61));
+      final heldHome = (await phone2.households.all()).singleWhere((h) => h.id == householdId);
+      expect((heldHome.latitude, heldHome.conflictId), (33.62, conflict['id']));
+      await phone2.session.sync();
+      expect((await phone2.households.all()).singleWhere((h) => h.id == householdId).conflictId, conflict['id']);
       await send('POST', '/conflicts/${conflict['id']}/resolve', token: token, body: {'resolution': 'use_device'});
 
       // The decision reaches both phones at their next sync.

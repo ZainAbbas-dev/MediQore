@@ -1,7 +1,7 @@
 const { randomUUID } = require('node:crypto');
 const request = require('supertest');
 const { createApp } = require('../src/app');
-const { describeDb, resetDatabase, createFixtures, tokenFor, closePool, query } = require('./db');
+const { describeDb, resetDatabase, createFixtures, insertActivatedDevice, tokenFor, closePool, query } = require('./db');
 
 const app = createApp();
 
@@ -66,6 +66,65 @@ describeDb('sync', () => {
       expect(again.body.results[0]).toEqual({ ...first.body.results[0], status: 'unchanged' });
       const { rows } = await query('SELECT count(*)::int AS n FROM audit_log WHERE entity_id = $1', [record.id]);
       expect(rows[0].n).toBe(1);
+    });
+
+    it('replays the committed operation after another phone edits the record, without another write', async () => {
+      const original = household({ operationId: randomUUID() });
+      const created = await push(lhwA, deviceA, [original]);
+      expect(created.status).toBe(200);
+      const otherPhone = await insertActivatedDevice(ids.lhwA);
+      const otherToken = tokenFor(ids.lhwA, 'lhw', otherPhone);
+      const edit = { ...original, operationId: randomUUID(), baseVersion: 1, data: { ...original.data, village: 'New village' } };
+      expect((await push(otherToken, otherPhone, [edit])).body.results[0]).toMatchObject({ status: 'updated', version: 2 });
+
+      const retry = await push(lhwA, deviceA, [original]);
+      expect(retry.body.results).toEqual(created.body.results);
+      const { rows: [row] } = await query('SELECT village, version FROM households WHERE id = $1', [original.id]);
+      expect(row).toEqual({ village: 'New village', version: 2 });
+      const { rows: [audit] } = await query('SELECT count(*)::int AS total FROM audit_log WHERE entity_id = $1', [original.id]);
+      expect(audit.total).toBe(2);
+    });
+
+    it('rejects operation ID reuse with a different mutation and waits for an out-of-order base version', async () => {
+      const record = household({ operationId: randomUUID() });
+      expect((await push(lhwA, deviceA, [record])).status).toBe(200);
+      const changed = { ...record, data: { ...record.data, village: 'New village' } };
+      expect((await push(lhwA, deviceA, [changed])).body.results[0]).toMatchObject({
+        status: 'rejected', reason: 'OPERATION_ID_REUSED',
+      });
+
+      const future = { ...changed, operationId: randomUUID(), baseVersion: 2 };
+      expect((await push(lhwA, deviceA, [future])).body.results[0]).toMatchObject({
+        status: 'rejected', reason: 'VERSION_AHEAD',
+      });
+      const previous = { ...record, operationId: randomUUID(), baseVersion: 1, data: { ...record.data, village: 'First edit' } };
+      expect((await push(lhwA, deviceA, [previous])).body.results[0]).toMatchObject({ status: 'updated', version: 2 });
+      expect((await push(lhwA, deviceA, [future])).body.results[0]).toMatchObject({ status: 'updated', version: 3 });
+      const { rows: [row] } = await query('SELECT village, version FROM households WHERE id = $1', [record.id]);
+      expect(row).toEqual({ village: 'New village', version: 3 });
+    });
+
+    it('retains separate stale candidates for one record and identifies held edits on the submitting phone', async () => {
+      const record = household({ operationId: randomUUID() });
+      await push(lhwA, deviceA, [record]);
+      const otherPhone = await insertActivatedDevice(ids.lhwA);
+      const otherToken = tokenFor(ids.lhwA, 'lhw', otherPhone);
+      const changed = (village) => ({ ...record, operationId: randomUUID(), baseVersion: 1, data: { ...record.data, village } });
+      expect((await push(lhwA, deviceA, [changed('Server edit')])).body.results[0].status).toBe('updated');
+      const first = changed('Offline edit one');
+      const second = changed('Offline edit two');
+      const [a] = (await push(lhwA, deviceA, [first])).body.results;
+      const [b] = (await push(otherToken, otherPhone, [second])).body.results;
+      expect(a.status).toBe('conflict');
+      expect(b.status).toBe('conflict');
+      expect(a.conflictId).not.toBe(b.conflictId);
+      expect((await push(lhwA, deviceA, [first])).body.results).toEqual([a]);
+
+      const pulled = (await pull(lhwA)).body.records.find(({ id }) => id === record.id);
+      expect(pulled).toMatchObject({ pendingConflictIds: [a.conflictId], data: { village: 'Server edit' } });
+      const { rows } = await query(
+        'SELECT incoming_payload FROM sync_conflicts WHERE incoming_record_id = $1 AND status = $2', [record.id, 'pending']);
+      expect(rows.map(({ incoming_payload }) => incoming_payload.data.village).sort()).toEqual(['Offline edit one', 'Offline edit two']);
     });
 
     it('applies an edit with a new, higher sequence number', async () => {
@@ -203,4 +262,44 @@ describeDb('sync', () => {
       expect(res.status).toBe(400);
     });
   });
+
+  it('reconciles 1,000 operations across three phones with exact cursor coverage and no extra writes', async () => {
+    const cursor = (await pull(lhwA, '?limit=500')).body.nextSince;
+    const devices = [deviceA, await insertActivatedDevice(ids.lhwA), await insertActivatedDevice(ids.lhwA)];
+    const tokens = devices.map((id) => tokenFor(ids.lhwA, 'lhw', id));
+    const records = Array.from({ length: 1000 }, () => household({ operationId: randomUUID() }));
+    const batches = Array.from({ length: 10 }, (_, i) => records.slice(i * 100, (i + 1) * 100));
+    await Promise.all(devices.map(async (device, index) => {
+      for (const [i, batch] of batches.entries()) {
+        if (i % devices.length !== index) continue;
+        const sent = await push(tokens[index], device, batch);
+        expect(sent.status).toBe(200);
+        expect(sent.body.results.map(({ status }) => status)).toEqual(batch.map(() => 'created'));
+        expect((await push(tokens[index], device, batch)).body.results).toEqual(sent.body.results);
+      }
+    }));
+
+    const expected = records.map(({ id }) => id).sort();
+    await Promise.all(tokens.map(async (token) => {
+      let since = cursor;
+      const seen = [];
+      const order = [];
+      while (true) {
+        const page = await pull(token, `?since=${since}&limit=137`);
+        expect(page.status).toBe(200);
+        const pulled = page.body.records;
+        seen.push(...pulled.map(({ id }) => id));
+        order.push(...pulled.map(({ serverSeq }) => serverSeq));
+        if (!page.body.hasMore) break;
+        expect(page.body.nextSince).toBeGreaterThan(since);
+        since = page.body.nextSince;
+      }
+      expect(seen.sort()).toEqual(expected);
+      expect(order.every((seq, i) => i === 0 || seq > order[i - 1])).toBe(true);
+    }));
+    const { rows: [audit] } = await query(
+      'SELECT count(*)::int AS total FROM audit_log WHERE entity_id = ANY($1::uuid[])', [expected]);
+    expect(audit.total).toBe(1000);
+  }, 30_000);
+
 });
