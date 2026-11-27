@@ -54,26 +54,30 @@ jobs:
           flutter-version: '3.47.9'
           cache: true
 
-      # The same debug key for every build, so a new test APK installs over the
-      # old one and keeps the phone's data. The key is made here once and kept
-      # in the Actions cache, never in git. When the cache expires (7 days
-      # without a build), the next APK has a new key and the old app must be
-      # uninstalled first. The build reads it through ANDROID_USER_HOME.
-      - name: Reuse the debug signing key
-        uses: actions/cache@v4
+      # A repository secret preserves the original test key beyond cache expiry.
+      # The existing cache remains usable during migration to that secret.
+      - name: Restore the existing test signing key
+        uses: actions/cache/restore@v4
         with:
           path: ~/.android-mediqore/debug.keystore
           key: mediqore-test-apk-debug-keystore-v2
 
-      - name: Make the debug signing key if the cache had none
+      - name: Prepare the existing test signing key
+        env:
+          TEST_KEYSTORE_BASE64: ${{ secrets.MEDIQORE_TEST_KEYSTORE_BASE64 }}
         run: |
-          mkdir -p ~/.android-mediqore
-          if [ ! -f ~/.android-mediqore/debug.keystore ]; then
-            keytool -genkeypair -keystore ~/.android-mediqore/debug.keystore \
-              -storepass android -keypass android -alias androiddebugkey \
-              -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          set -euo pipefail
+          mkdir -p "$HOME/.android-mediqore"
+          if [ -n "$TEST_KEYSTORE_BASE64" ]; then
+            printf '%s' "$TEST_KEYSTORE_BASE64" | base64 --decode > "$HOME/.android-mediqore/debug.keystore"
           fi
-          keytool -list -keystore ~/.android-mediqore/debug.keystore -storepass android | grep -i fingerprint
+          if [ ! -s "$HOME/.android-mediqore/debug.keystore" ]; then
+            echo "::error::The original test signing key is unavailable. Restore it as MEDIQORE_TEST_KEYSTORE_BASE64. Building with a replacement key would prevent updates to installed apps."
+            exit 1
+          fi
+          keytool -exportcert -keystore "$HOME/.android-mediqore/debug.keystore" \
+            -storepass android -alias androiddebugkey -file "$RUNNER_TEMP/mediqore-test-cert.der"
+          sha256sum "$RUNNER_TEMP/mediqore-test-cert.der" | cut -d' ' -f1 > "$RUNNER_TEMP/mediqore-test-cert.sha256"
 
       - name: Install dependencies
         run: flutter pub get
@@ -87,14 +91,19 @@ jobs:
           API_BASE_URL="${INPUT_API_BASE_URL:-${VAR_API_BASE_URL:-https://mediqore-staging.onrender.com/api/v1}}"
           echo "The app starts with the server address $API_BASE_URL"
           export ANDROID_USER_HOME="$HOME/.android-mediqore"
+          export MEDIQORE_TEST_KEYSTORE="$ANDROID_USER_HOME/debug.keystore"
           flutter build apk --release \
             --dart-define=API_BASE_URL="$API_BASE_URL" \
             --dart-define=MEDIQORE_TEST_BUILD=true
           mkdir -p build/test-apk
           cp build/app/outputs/flutter-apk/app-release.apk "build/test-apk/mediqore-test-${GITHUB_SHA::7}.apk"
           ls -l build/test-apk
-          # The signing certificate: the same in every build while the cached key lasts.
-          "$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner" verify --print-certs build/test-apk/*.apk | grep -i "SHA-256" || true
+          APK_SIGNER="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
+          "$APK_SIGNER" verify --print-certs build/test-apk/*.apk > "$RUNNER_TEMP/mediqore-apk-cert.txt"
+          EXPECTED_CERT="$(cat "$RUNNER_TEMP/mediqore-test-cert.sha256")"
+          ACTUAL_CERT="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/mediqore-apk-cert.txt" | tr '[:upper:]' '[:lower:]')"
+          test "$ACTUAL_CERT" = "$EXPECTED_CERT"
+          printf 'Test APK signing certificate SHA-256 %s\n' "$ACTUAL_CERT"
 
       - uses: actions/upload-artifact@v4
         with:

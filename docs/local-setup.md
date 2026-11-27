@@ -177,7 +177,7 @@ It is signed with a test key and is for testing only. Builds for LHWs will use o
 3. **Install it:** open the APK on the phone.
    - Android asks whether to allow installs from that app (Files, Drive or Chrome): allow it, go back and tap **Install**.
    - If Google Play Protect warns about an unknown app, tap **More details** → **Install anyway**.
-   - If Android says **App not installed** or that the package conflicts, uninstall the old MediQore first. This happens when the old app came from VS Code or from a test APK built before 6 October 2026, or when no test APK was built for a week (the test key then changes). Uninstalling deletes records on the phone that were not synced.
+   - If Android reports a package conflict, keep the installed app and its data. Compare the signing certificate of the installed APK with the downloaded APK. An update requires the original signing key. Preserve that key in the repository Actions secret `MEDIQORE_TEST_KEYSTORE_BASE64` as Base64 of the original debug keystore. The workflow can also restore the existing signing-key cache, and stops if both sources are unavailable. Recovering a private signing key from an APK is impossible.
 4. **Wake the staging server:** open `https://mediqore-staging.onrender.com` in a browser and wait until the portal loads. The free server sleeps after 15 minutes without use and takes about a minute to wake.
 5. **Activate the phone** as a synthetic LHW, for example `syn.lhw.001`, with the staging password and an activation code from the portal (as `syn.admin`: **LHW accounts** → **New activation code**), then continue from step 7.5: the PIN, PIN reset (as `syn.sup.01`), registration, visits and the conflict queue all work the same way. Staging has no `lhw.demo` account.
 

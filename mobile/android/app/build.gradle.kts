@@ -35,6 +35,16 @@ android {
         manifestPlaceholders["usesCleartextTraffic"] = (System.getenv("MEDIQORE_ALLOW_HTTP") == "true").toString()
     }
 
+    // CI explicitly selects the retained key used by installed test APKs.
+    System.getenv("MEDIQORE_TEST_KEYSTORE")?.let { testKeystore ->
+        signingConfigs.getByName("debug") {
+            storeFile = file(testKeystore)
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         debug {
             // The API on the development machine, for example http://10.0.2.2:3000.
