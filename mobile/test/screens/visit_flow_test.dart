@@ -141,8 +141,9 @@ void main() {
 
     await tester.runAsync(() => services.db.customStatement('DROP TRIGGER reject_visit_outbox'));
     await tapAndWait(tester, find.text(ur.visitSaveButton));
-    expect(find.text(ur.visitSaved), findsOneWidget);
     expect(await savedVisits(tester), hasLength(1));
+    expect(find.byType(PatientFileScreen), findsOneWidget);
+    expect(find.text(ur.visitSaveFailed), findsNothing);
   });
 
   testWidgets('records a visit offline in three steps and lists it as not sent yet (M3 FE-1, FE-2)', (tester) async {

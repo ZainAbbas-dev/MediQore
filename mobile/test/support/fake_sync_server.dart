@@ -39,6 +39,7 @@ class FakeSyncServer {
   bool deactivated = false;
   bool offline = false;
   Future<void> Function()? afterPush;
+  bool rejectNextPushEnvelope = false;
   final Map<(String, String), Map<String, dynamic>> _receipts = {};
 
   /// Phones activated for the account.
@@ -174,6 +175,10 @@ class FakeSyncServer {
       if (!activatedDevices.contains(body['deviceId'])) return _error(403, 'DEVICE_NOT_ALLOWED');
       final batch = (body['records'] as List).cast<Map<String, dynamic>>();
       pushedBatches.add(batch);
+      if (rejectNextPushEnvelope) {
+        rejectNextPushEnvelope = false;
+        return _error(400, 'VALIDATION_ERROR');
+      }
       final device = body['deviceId'] as String;
       final results = [for (final record in batch) _pushRecord(device, record)];
       final hook = afterPush;

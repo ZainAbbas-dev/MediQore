@@ -113,6 +113,21 @@ void main() {
     expect(server.records[home.id]!['data'], containsPair('latitude', 33.61));
   });
 
+  test('a definitive validation rejection allows a corrected mutation to replace the failed batch', () async {
+    final home = await households.create(village: 'Test village');
+    server.rejectNextPushEnvelope = true;
+    await expectLater(
+      sync.syncNow('token-1'),
+      throwsA(isA<ApiException>().having((e) => e.code, 'code', 'VALIDATION_ERROR')),
+    );
+
+    await households.setLocation(home.id, latitude: 33.62, longitude: 73.02);
+    expect((await sync.syncNow('token-1')).pushed, 1);
+    expect(server.pushedBatches.last.single['operationId'], isNot(server.pushedBatches.first.single['operationId']));
+    expect(server.records[home.id]!['data'], containsPair('latitude', 33.62));
+    expect(await db.pendingCount(), 0);
+  });
+
   test('an acknowledgment of the first edit preserves and rebases a newer unsent edit', () async {
     final home = await households.create(village: 'Test village');
     await sync.syncNow('token-1');

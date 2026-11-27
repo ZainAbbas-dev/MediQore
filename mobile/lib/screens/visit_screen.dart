@@ -299,6 +299,7 @@ class _VisitScreenState extends State<VisitScreen> {
   }
 
   Future<void> _save() async {
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
     setState(() => _saving = true);
     // Blood sugar is stored in the unit it was recorded in (M3 FE-1).
     final sugar = _double(_sugar);
