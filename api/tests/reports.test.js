@@ -226,3 +226,14 @@ chromeTest('prints and embeds the Urdu font in a downloadable PDF', async () => 
   expect(output.subarray(0, 5).toString()).toBe('%PDF-');
   expect(output.toString('latin1')).toMatch(/Nastaleeq/i);
 }, 20000);
+
+chromeTest('closes the bundled font server when Chromium cannot start', async () => {
+  const { stdout } = await promisify(execFile)(process.execPath, ['-e',
+    `require('./src/services/reports-render.service').renderReport('pdf', {})
+      .then(() => { process.exitCode = 1; })
+      .catch(() => process.stdout.write('render rejected'))`], {
+    env: { ...process.env, CHROME_PATH: '/missing-mediqore-test-browser' },
+    timeout: 10000,
+  });
+  expect(stdout).toBe('render rejected');
+}, 15000);

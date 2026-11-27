@@ -1,5 +1,8 @@
-const fs = require('node:fs/promises');
+const { once } = require('node:events');
+const { createReadStream } = require('node:fs');
+const { createServer } = require('node:http');
 const path = require('node:path');
+const { pipeline } = require('node:stream/promises');
 const ExcelJS = require('exceljs');
 
 const FONT = path.resolve(__dirname, '../../../mobile/assets/fonts/JameelNooriNastaleeq.ttf');
@@ -125,16 +128,18 @@ function pdfSection({ name, description, tables }) {
       : `<tr><td colspan="${headers.length}" class="context">No records</td></tr>`}</tbody></table>`).join('')}</section>`;
 }
 
-function reportHtml(report, font) {
+function reportHtml(report, fontUrl) {
   const title = report.period === 'weekly' ? 'ہفتہ وار صحت رپورٹ' : 'ماہانہ صحت رپورٹ';
   const summary = [
     ['درج شدہ حمل', report.maternal.registrations], ['گھریلو معائنے', report.maternal.visits],
     ['زیادہ خطرے والے کیس', report.maternal.highRisk], ['ہسپتال بھیجے گئے کیس', report.maternal.referrals],
     ['پینٹا کی پہلی خوراک کے بغیر بچے', report.coverage.zeroDose], ['غذائی معائنے', report.nutrition.screenings],
   ];
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${reportTitle(report)} | MediQore</title>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src ${fontUrl}">
+  <title>${reportTitle(report)} | MediQore</title>
   <style>
-    @font-face { font-family: 'Jameel Noori Nastaleeq'; src: url('data:font/ttf;base64,${font}') format('truetype'); }
+    @font-face { font-family: 'Jameel Noori Nastaleeq'; src: url('${fontUrl}') format('truetype'); }
     @page { size: A4; margin: 15mm; }
     * { box-sizing: border-box; }
     body { margin: 0; color: #142f2c; font: 10pt Arial, 'Jameel Noori Nastaleeq', sans-serif; }
@@ -165,17 +170,42 @@ function reportHtml(report, font) {
   </body></html>`;
 }
 
-let font;
+// Stream only the bundled font over loopback. Inlining the TTF duplicates it
+// in Node's HTML and Chromium's DevTools and CSS buffers for every PDF.
+async function startFontServer() {
+  const server = createServer((request, response) => {
+    if (request.method !== 'GET' || request.url !== '/report.ttf') {
+      response.writeHead(404).end();
+      return;
+    }
+    response.setHeader('Access-Control-Allow-Origin', '*');
+    response.setHeader('Content-Type', 'font/ttf');
+    void pipeline(createReadStream(FONT), response).catch(() => {
+      // A failed read or cancelled render closes the response through pipeline.
+    });
+  });
+  await once(server.listen(0, '127.0.0.1'), 'listening');
+  return server;
+}
+
 async function pdf(report) {
   const executablePath = process.env.CHROME_PATH;
   if (!executablePath) throw new Error('CHROME_PATH is required to render a PDF');
-  if (!font) font = (await fs.readFile(FONT)).toString('base64');
-  const args = process.env.CHROME_NO_SANDBOX === 'true' ? ['--no-sandbox'] : [];
+  const args = ['--disable-gpu'];
+  if (process.env.CHROME_NO_SANDBOX === 'true') {
+    args.push('--no-sandbox');
+    // The Linux container gives each static, network-restricted report its own
+    // short-lived browser. Avoid extra Chromium processes within that browser.
+    if (process.platform === 'linux') args.push('--no-zygote', '--single-process');
+  }
   const { launch } = await import('puppeteer-core');
-  const browser = await launch({ executablePath, args });
+  const fontServer = await startFontServer();
+  let browser;
   try {
+    const fontUrl = `http://127.0.0.1:${fontServer.address().port}/report.ttf`;
+    browser = await launch({ executablePath, args });
     const page = await browser.newPage();
-    await page.setContent(reportHtml(report, font), { waitUntil: 'load' });
+    await page.setContent(reportHtml(report, fontUrl), { waitUntil: 'load' });
     const shaped = await page.evaluate(async () => {
       // eslint-disable-next-line no-undef -- Evaluated in Chromium.
       const fonts = await document.fonts.load('20pt "Jameel Noori Nastaleeq"', 'ماہانہ صحت رپورٹ');
@@ -184,7 +214,11 @@ async function pdf(report) {
     if (!shaped) throw new Error('The Urdu report font could not be loaded');
     return Buffer.from(await page.pdf({ printBackground: true, preferCSSPageSize: true }));
   } finally {
-    await browser.close();
+    try {
+      await browser?.close();
+    } finally {
+      await fontServer[Symbol.asyncDispose]();
+    }
   }
 }
 
