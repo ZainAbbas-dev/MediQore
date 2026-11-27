@@ -140,6 +140,7 @@ router.patch('/geography/:level/:id', geography, validate({ params: unitParams, 
 router.delete('/geography/:level/:id', geography, validate({ params: unitParams }), adminController.deleteUnit);
 
 const facilities = requirePermission('facilities.manage');
+router.get('/facilities/geography', facilities, adminController.facilityGeography);
 for (const [kind, typeRequired] of [['hospitals', false], ['referral-centres', true]]) {
   router.get(`/${kind}`, facilities, validate({ query: facilityListQuery }), adminController.listFacilities(kind));
   router.post(`/${kind}`, facilities, validate({ body: facilityCreateBody(typeRequired) }), adminController.createFacility(kind));

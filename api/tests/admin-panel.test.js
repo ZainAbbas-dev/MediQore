@@ -63,14 +63,21 @@ describeDb('admin panel (M10 FE-3)', () => {
 
     it("sends each portal account the permissions its role holds now, so the portal shows only those pages", async () => {
       const login = () => request(app).post('/api/v1/auth/login').send({ username: 'supervisor.a', password: PASSWORD });
-      expect((await login()).body.user.permissions).toEqual(['records.view', 'conflicts.resolve', 'pin_reset.reply']);
+      expect((await login()).body.user.permissions).toEqual([
+        'records.view', 'conflicts.resolve', 'pin_reset.reply', 'alerts.view',
+        'alerts.acknowledge', 'reports.view', 'inactivity.manage',
+      ]);
 
       await admin.put('/admin/roles/permissions', { changes: [{ role: 'supervisor', permission: 'facilities.manage', granted: true }] });
       expect((await login()).body.user.permissions).toContain('facilities.manage');
       await admin.put('/admin/roles/permissions', { changes: [{ role: 'supervisor', permission: 'facilities.manage', granted: false }] });
 
       const adminLogin = await request(app).post('/api/v1/auth/login').send({ username: 'admin', password: PASSWORD });
-      expect(adminLogin.body.user.permissions).toEqual(Object.keys(PERMISSIONS).filter((p) => p !== 'sync'));
+      expect(adminLogin.body.user.permissions).toEqual([
+        'records.view', 'conflicts.resolve', 'pin_reset.reply', 'accounts.manage',
+        'staff.manage', 'geography.manage', 'facilities.manage', 'alerts.view',
+        'reports.view', 'escalation.manage', 'campaigns.manage', 'audit.view', 'roles.manage',
+      ]);
     });
 
     it.each([
@@ -284,6 +291,24 @@ describeDb('admin panel (M10 FE-3)', () => {
   });
 
   describe('hospitals and referral centres', () => {
+    it('offers only assigned geography to a supervisor delegated facility management', async () => {
+      const supervisor = as(tokenFor(ids.supervisorA, 'supervisor'));
+      const delegate = (granted) => admin.put('/admin/roles/permissions', {
+        changes: [{ role: 'supervisor', permission: 'facilities.manage', granted }],
+      });
+      expect((await supervisor.get('/admin/facilities/geography')).status).toBe(403);
+      expect((await delegate(true)).status).toBe(200);
+      try {
+        expect((await supervisor.get('/admin/geography')).status).toBe(403);
+        const res = await supervisor.get('/admin/facilities/geography');
+        expect(res.status).toBe(200);
+        expect(res.body.districts.map((district) => district.name)).toEqual(['Area A District']);
+        expect(res.body.districts[0].tehsils.flatMap((tehsil) => tehsil.unionCouncils).flatMap((uc) => uc.areas).map(({ id }) => id))
+          .toEqual([ids.areaA]);
+      } finally {
+        await delegate(false);
+      }
+    });
     let hospital;
 
     it('adds a hospital with its district, GPS and a server number, and audits it', async () => {

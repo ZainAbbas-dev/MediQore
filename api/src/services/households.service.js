@@ -18,17 +18,36 @@ async function listForPortal(user, { limit, districtId, tehsilId, unionCouncilId
   if (tehsilId) add(tehsilId, 'uc.tehsil_id = ?');
   if (unionCouncilId) add(unionCouncilId, 'a.union_council_id = ?');
   if (lhwId) add(lhwId, 'h.created_by = ?');
-  if (days) add(days, "h.synced_at >= now() - make_interval(days => ?)");
+  let since = '';
+  if (days) {
+    params.push(days);
+    since = `now() - make_interval(days => $${params.length})`;
+    where.push(`(h.synced_at >= ${since} OR risk.risk_level IS NOT NULL)`);
+  }
 
   const { rows } = await db.query(
     `SELECT h.id, h.household_number, h.village, h.address, h.latitude, h.longitude,
             h.area_id, a.name AS area_name, uc.name AS union_council_name, lp.lhw_code,
-            h.server_seq, h.synced_at, h.created_on_device
+            h.server_seq, h.synced_at, h.created_on_device, risk.risk_level
      FROM households h
      JOIN areas a ON a.id = h.area_id
      JOIN union_councils uc ON uc.id = a.union_council_id
      JOIN tehsils t ON t.id = uc.tehsil_id
      LEFT JOIN lhw_profiles lp ON lp.user_id = h.created_by
+     LEFT JOIN LATERAL (
+       SELECT CASE max(CASE r.final_level WHEN 'red' THEN 3 WHEN 'yellow' THEN 2 WHEN 'green' THEN 1 END)
+                WHEN 3 THEN 'red' WHEN 2 THEN 'yellow' WHEN 1 THEN 'green' END AS risk_level
+       FROM women w JOIN pregnancies p ON p.woman_id = w.id AND p.area_id = h.area_id
+       JOIN LATERAL (
+         SELECT ra.final_level FROM risk_assessments ra
+         JOIN visits v ON v.id = ra.visit_id AND v.area_id = h.area_id AND v.deleted_at IS NULL
+         WHERE ra.pregnancy_id = p.id AND ra.area_id = h.area_id AND ra.deleted_at IS NULL
+           AND v.visited_at <= now() ${since ? `AND v.visited_at >= ${since}` : ''}
+         ORDER BY v.visited_at DESC, ra.server_seq DESC LIMIT 1
+       ) r ON true
+       WHERE w.household_id = h.id AND w.area_id = h.area_id AND w.deleted_at IS NULL
+         AND p.deleted_at IS NULL AND p.status = 'active'
+     ) risk ON true
      WHERE ${where.join(' AND ')}
      ORDER BY h.server_seq DESC
      LIMIT $1`,
@@ -42,6 +61,7 @@ async function listForPortal(user, { limit, districtId, tehsilId, unionCouncilId
     address: row.address,
     latitude: row.latitude === null ? null : Number(row.latitude),
     longitude: row.longitude === null ? null : Number(row.longitude),
+    riskLevel: row.risk_level,
     areaId: row.area_id,
     areaName: row.area_name,
     unionCouncilName: row.union_council_name,

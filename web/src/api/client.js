@@ -10,9 +10,9 @@ export class ApiError extends Error {
   }
 }
 
-// Calls the REST API (docs/openapi.yaml) and returns the parsed JSON body.
-export async function apiRequest(path, { method = 'GET', body, token } = {}) {
-  const headers = { Accept: 'application/json' };
+// Calls the REST API (docs/openapi.yaml) and returns parsed JSON or a requested file.
+export async function apiRequest(path, { method = 'GET', body, token, responseType } = {}) {
+  const headers = { Accept: responseType === 'blob' ? '*/*' : 'application/json' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -27,6 +27,7 @@ export async function apiRequest(path, { method = 'GET', body, token } = {}) {
     throw new ApiError(0, 'NETWORK_ERROR', 'Cannot reach the server');
   }
 
+  if (response.ok && responseType === 'blob') return response.blob();
   const text = await response.text();
   let data = {};
   try {

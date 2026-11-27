@@ -12,6 +12,7 @@ const ACTION_LABELS = {
   alert: 'Alert',
   login: 'Sign-in or sign-out',
   sync_conflict: 'Sync conflict',
+  report_download: 'Report downloaded',
 };
 
 // A sign-out is stored as a login entry with the result "logout".

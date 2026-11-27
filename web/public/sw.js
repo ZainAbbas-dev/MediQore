@@ -1,6 +1,5 @@
 // M10 FE-1, M5 FE-2 (P0-5): service worker of the installable portal, ready for
-// web push. Phase 2 subscribes supervisors through Firebase Cloud Messaging for
-// web; the server's push message arrives here and is shown as a notification.
+// web push. Supervisors subscribe through Firebase Cloud Messaging for web.
 //
 // It has no fetch handler and caches nothing: the portal shows patient data,
 // which must never sit in the browser's storage, and it needs the API anyway.
@@ -19,7 +18,8 @@ self.addEventListener('activate', (event) => {
 function notificationFor(data) {
   let payload;
   try {
-    payload = data ? data.json() : {};
+    const message = data?.json();
+    payload = message?.data ?? message ?? {};
   } catch {
     payload = { body: data.text() };
   }
@@ -41,10 +41,20 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
+function notificationUrl(path) {
+  try {
+    const url = new URL(path || '/', self.location.origin);
+    if (url.origin === self.location.origin) return url.href;
+  } catch {
+    // A broken URL still opens the alerts page.
+  }
+  return new URL('/alerts', self.location.origin).href;
+}
+
 // Tapping the notification focuses an open portal tab on the alert's page, or opens one.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = new URL(event.notification.data?.url || '/', self.location.origin).href;
+  const url = notificationUrl(event.notification.data?.url);
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
       const open = windows.find((client) => new URL(client.url).origin === self.location.origin);

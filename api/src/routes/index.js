@@ -23,5 +23,10 @@ router.use('/pin-reset', pinResetRoutes);
 router.use('/women', womenRoutes);
 router.use('/conflicts', conflictsRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/alerts', require('./alerts.routes'));
+router.use('/area-config', require('./area-config.routes'));
+router.use('/child-analytics', require('./child-analytics.routes'));
+router.use('/inactivity', require('./inactivity.routes'));
+router.use('/reports', require('./reports.routes'));
 
 module.exports = router;

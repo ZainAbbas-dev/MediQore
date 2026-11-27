@@ -11,7 +11,7 @@ async function writeAudit(client, { userId = null, deviceId = null, action, enti
   );
 }
 
-const ACTIONS = ['create', 'edit', 'delete', 'referral', 'alert', 'login', 'sync_conflict'];
+const ACTIONS = ['create', 'edit', 'delete', 'referral', 'alert', 'login', 'sync_conflict', 'report_download'];
 
 // GET /admin/audit: the audit log viewer, newest first, filtered by user (part
 // of a username or name), action, record type and dates. Dates are whole days,

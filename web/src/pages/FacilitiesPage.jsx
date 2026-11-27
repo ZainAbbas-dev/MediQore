@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../auth/context';
 import Dialog from '../components/Dialog';
 
+const NUTRITION_REHABILITATION_CENTRE = 'Nutrition Rehabilitation Centre';
+
 const KINDS = {
   hospitals: {
     title: 'Hospitals',
@@ -17,7 +19,6 @@ const KINDS = {
     title: 'Referral centres',
     one: 'referral centre',
     typeLabel: 'Type',
-    typePlaceholder: 'for example Nutrition Rehabilitation Centre',
     typeRequired: true,
   },
 };
@@ -77,6 +78,14 @@ function FacilityForm({ kind, districts, facility, onSubmit, onCancel }) {
       <input id="facility-name" value={values.name} onChange={set('name')} required minLength={2} maxLength={150} />
       <label htmlFor="facility-type">{def.typeLabel}</label>
       <input id="facility-type" value={values.type} onChange={set('type')} required={def.typeRequired} placeholder={def.typePlaceholder} maxLength={100} />
+      {kind === 'referral-centres' && (
+        <div className="actions">
+          <button type="button" className="secondary" aria-pressed={values.type === NUTRITION_REHABILITATION_CENTRE}
+            onClick={() => setValues((current) => ({ ...current, type: NUTRITION_REHABILITATION_CENTRE }))}>
+            {NUTRITION_REHABILITATION_CENTRE} (NRC)
+          </button>
+        </div>
+      )}
       <label htmlFor="facility-district">District</label>
       <select id="facility-district" value={values.districtId} onChange={set('districtId')} required>
         <option value="">Choose a district</option>
@@ -151,7 +160,7 @@ export default function FacilitiesPage() {
   }, [load]);
 
   useEffect(() => {
-    request('/admin/geography')
+    request('/admin/facilities/geography')
       .then((data) => setDistricts(data.districts))
       .catch((err) => setError(err.message));
   }, [request]);

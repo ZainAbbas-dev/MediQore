@@ -23,7 +23,10 @@ function createApp(options = {}) {
   if (httpsOnly) app.use(requireHttps);
   app.use(express.json());
 
-  app.use('/api/v1', routes);
+  app.use('/api/v1', (_req, res, next) => {
+    res.set('Cache-Control', 'private, no-store');
+    next();
+  }, routes);
 
   // Staging (docs/staging.md): the portal's files, and its index.html for any
   // other page address, so a reload on /conflicts still opens the portal.

@@ -302,7 +302,7 @@ function toRecord(table, def, row) {
 async function pull(user, since, limit) {
   // The device check writes the sync time, so it runs before the read-only snapshot.
   await requireActivatedDevice(db, user.deviceId, user);
-  return db.withTransaction(async (client) => {
+  const result = await db.withTransaction(async (client) => {
     const areaId = await lhwAreaId(client, user.id);
     const rows = [];
     for (const [table, def] of Object.entries(TABLES)) {
@@ -341,6 +341,15 @@ async function pull(user, since, limit) {
       hasMore: rows.length > limit,
     };
   }, { readOnly: true });
+  // The app drains its outbox before pulling, and requests subsequent pages
+  // until none remain. Config-only requests do not cover a week of visits.
+  if (!result.hasMore) {
+    await db.query(
+      'UPDATE devices SET last_records_sync_at = now() WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL',
+      [user.deviceId, user.id],
+    );
+  }
+  return result;
 }
 
 // The Clinical Rules Table in the repository, used when the server has loaded none.

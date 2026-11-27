@@ -1,6 +1,7 @@
 // M10 / M1 FE-2: portal sign-in state (P0-5), with refresh tokens (Phase 1).
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { apiRequest, ApiError } from '../api/client';
+import { disableAlertPush } from '../pwa/alerts-push';
 import { AuthContext, PORTAL_ROLES } from './context';
 
 const STORAGE_KEY = 'mediqore.session';
@@ -42,8 +43,12 @@ export default function AuthProvider({ children }) {
   }, [update]);
 
   const logout = useCallback(() => {
-    const refreshToken = sessionRef.current?.refreshToken;
+    const previous = sessionRef.current;
     update(null);
+    if (previous?.token) {
+      disableAlertPush((path, options) => apiRequest(path, { ...options, token: previous.token }), previous.user.id).catch(() => {});
+    }
+    const refreshToken = previous?.refreshToken;
     if (refreshToken) {
       apiRequest('/auth/logout', { method: 'POST', body: { refreshToken } }).catch(() => {});
     }

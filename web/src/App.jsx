@@ -6,6 +6,12 @@ import { Route, Routes } from 'react-router-dom';
 import RequireAuth from './auth/RequireAuth';
 import RequirePermission from './auth/RequirePermission';
 import AppLayout from './layout/AppLayout';
+import ActivityPage from './pages/ActivityPage';
+import AlertsPage from './pages/AlertsPage';
+import AreaConfigPage from './pages/AreaConfigPage';
+import ChildrenPage from './pages/ChildrenPage';
+import PolioPage from './pages/PolioPage';
+import ReportsPage from './pages/ReportsPage';
 import AuditPage from './pages/AuditPage';
 import ConflictsPage from './pages/ConflictsPage';
 import DashboardPage from './pages/DashboardPage';
@@ -28,6 +34,21 @@ export default function App() {
           <Route element={<RequirePermission permission="records.view" />}>
             <Route index element={<DashboardPage />} />
             <Route path="women" element={<WomenPage />} />
+            <Route path="activity" element={<ActivityPage />} />
+            <Route path="children" element={<ChildrenPage />} />
+            <Route path="polio" element={<PolioPage />} />
+          </Route>
+          <Route element={<RequirePermission permission="alerts.view" />}>
+            <Route path="alerts" element={<AlertsPage />} />
+          </Route>
+          <Route element={<RequirePermission permission="reports.view" />}>
+            <Route path="reports" element={<ReportsPage />} />
+          </Route>
+          <Route element={<RequirePermission permission="escalation.manage" />}>
+            <Route path="admin/escalation-contacts" element={<AreaConfigPage section="contacts" />} />
+          </Route>
+          <Route element={<RequirePermission permission="campaigns.manage" />}>
+            <Route path="admin/campaign-rounds" element={<AreaConfigPage section="campaigns" />} />
           </Route>
           <Route element={<RequirePermission permission="conflicts.resolve" />}>
             <Route path="conflicts" element={<ConflictsPage />} />

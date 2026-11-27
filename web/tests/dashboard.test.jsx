@@ -48,13 +48,27 @@ const activity = {
 };
 
 const summary = { registeredWomen: 37, visitsThisWeek: 12, pendingConflicts: 2, lhws: 16, lhwsSyncedToday: 13 };
+const maternal = {
+  riskDistribution: { green: 4, yellow: 1, red: 1 },
+  referrals: { total: 4, completed: 3, overdue: 1 },
+  unacknowledgedAlerts: 1,
+  highRisk: [{ id: 'risk-1', patientCode: 'TEST-1', name: 'Synthetic Case', area: 'Demo Area 1', emergency: true }],
+  facilities: [],
+  limit: 15,
+  offset: 0,
+};
 
 // The dashboard's answers; `overrides` replaces some of them.
 function dashboardApi(overrides = {}) {
   return mockApi({
     'GET /dashboard/filters': [200, filters],
     'GET /dashboard/summary': [200, summary],
+    'GET /alerts?emergencyOnly=true&limit=3': [200, { alerts: [] }],
     'GET /dashboard/lhw-activity': [200, activity],
+    'GET /dashboard/maternal': [200, { ...maternal, riskDistribution: { green: 0, yellow: 0, red: 0 }, highRisk: [] }],
+    'GET /inactivity': [200, { lhws: [] }],
+    'GET /child-analytics/coverage': [200, { antigens: [], zeroDose: 0, coverageThreshold: 80 }],
+    'GET /child-analytics/hotspots': [200, { households: [] }],
     'GET /households': [200, { households: [household] }],
     ...overrides,
   });
@@ -64,6 +78,30 @@ const requested = (fetchMock, path) => fetchMock.mock.calls.filter(([url]) => ur
 
 describe('dashboard (M10 FE-1)', () => {
   afterEach(() => jest.useRealTimers());
+
+  it('shows and acknowledges a recent emergency on the dashboard', async () => {
+    const alert = {
+      id: 'emergency-1', type: 'emergency', status: 'open',
+      patient: { name: 'Dashboard patient', patientCode: 'TEST-2' },
+      lhw: { name: 'Dashboard worker', code: 'LHW-0007' },
+      triggeringSigns: ['vaginal_bleeding'], areaName: 'Demo Area 1', occurredAt: '2026-10-03T10:00:00.000Z',
+    };
+    let recorded = alert;
+    dashboardApi({
+      'GET /alerts?emergencyOnly=true&limit=3': () => [200, { alerts: [recorded] }],
+      'POST /alerts/emergency-1/acknowledge': () => {
+        recorded = { ...alert, status: 'acknowledged',
+          acknowledgement: { acknowledgedAt: '2026-10-03T10:03:00.000Z', method: 'dashboard' } };
+        return [200, { alert: recorded }];
+      },
+    });
+    renderApp('/', { session: supervisorSession });
+    const card = await screen.findByRole('article', { name: /Dashboard patient/ });
+    expect(card).toHaveTextContent('Dashboard worker');
+    expect(card).toHaveTextContent('Vaginal bleeding');
+    fireEvent.click(within(card).getByRole('button', { name: 'Acknowledge' }));
+    expect(await within(card).findByText('Acknowledged at')).toBeInTheDocument();
+  });
 
   it('shows the cards, the households on the map and each LHW\'s activity (screen 20)', async () => {
     jest.useFakeTimers({ now: new Date('2026-10-04T12:00:00.000Z'), doNotFake: ['setTimeout', 'queueMicrotask', 'nextTick', 'setImmediate'] });
@@ -91,6 +129,31 @@ describe('dashboard (M10 FE-1)', () => {
     expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer token-1');
   });
 
+  it('shows maternal totals and filters child map layers using the underlying records', async () => {
+    dashboardApi({
+      'GET /dashboard/maternal': [200, maternal],
+      'GET /child-analytics/coverage': [200, {
+        antigens: [{ antigen: 'Penta', eligible: 4, fullyVaccinated: 2, percentage: 50, lowCoverage: true }],
+        zeroDose: 2, coverageThreshold: 80,
+      }],
+      'GET /child-analytics/hotspots': [200, { households: [{ ...household, coverageGaps: 2, sam: 0, mam: 0, stunting: 1 }] }],
+      'GET /inactivity': [200, { lhws: [{ id: 'l1', inactivity: { status: 'unusual_inactivity', visits: 0, historyWeeks: 6 } }] }],
+    });
+    renderApp('/', { session: supervisorSession });
+
+    expect(await screen.findByText('Synthetic Case')).toBeInTheDocument();
+    expect(screen.getByText('75%')).toBeInTheDocument();
+    expect(screen.getByText('50%')).toBeInTheDocument();
+    expect(screen.getByText('Red · Emergency')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Unacknowledged alerts' })).toHaveAttribute('href', '/alerts');
+    expect(screen.getByText(/Unusual inactivity/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Map layer'), { target: { value: 'highRisk' } });
+    expect(screen.getByTestId('area-map')).toHaveTextContent('0 on map');
+    fireEvent.change(screen.getByLabelText('Map layer'), { target: { value: 'nutrition' } });
+    expect(screen.getByTestId('area-map')).toHaveTextContent('1 on map');
+  });
+
   it('highlights an LHW who has not synced for two days or more', async () => {
     jest.useFakeTimers({ now: new Date('2026-10-08T12:00:00.000Z'), doNotFake: ['setTimeout', 'queueMicrotask', 'nextTick', 'setImmediate'] });
     const never = { ...activity.lhws[0], id: 'l2', lhwCode: 'LHW-00009', fullName: 'Hina Bibi', lastSyncAt: null };
@@ -114,6 +177,10 @@ describe('dashboard (M10 FE-1)', () => {
       'GET /dashboard/summary?districtId=d1&lhwId=l1': [200, summary],
       'GET /dashboard/lhw-activity?districtId=d1&lhwId=l1': [200, activity],
       'GET /households?districtId=d1&lhwId=l1&days=30': [200, { households: [] }],
+      'GET /dashboard/summary?districtId=d1&lhwId=l1&days=30': [200, { ...summary, registeredWomen: 9 }],
+      'GET /dashboard/lhw-activity?districtId=d1&lhwId=l1&days=30': [200, activity],
+      'GET /dashboard/maternal?districtId=d1&lhwId=l1&days=30': [200, maternal],
+      'GET /child-analytics/hotspots?districtId=d1&lhwId=l1&days=30': [200, { households: [] }],
     });
     renderApp('/', { session: supervisorSession });
     await screen.findByText('1 on map');
@@ -134,8 +201,9 @@ describe('dashboard (M10 FE-1)', () => {
     fireEvent.change(screen.getByLabelText('Period'), { target: { value: '30' } });
     expect(await screen.findByText('No households match these filters.')).toBeInTheDocument();
     expect(requested(fetchMock, '/households?districtId=d1&lhwId=l1&days=30')).toBe(1);
-    // The period is for the map only.
-    expect(requested(fetchMock, '/dashboard/summary?districtId=d1&lhwId=l1')).toBe(2);
+    expect(requested(fetchMock, '/dashboard/summary?districtId=d1&lhwId=l1&days=30')).toBe(1);
+    expect(requested(fetchMock, '/dashboard/maternal?districtId=d1&lhwId=l1&days=30')).toBe(1);
+    expect(screen.getByText('Synthetic Case')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(await screen.findByText('1 on map')).toBeInTheDocument();

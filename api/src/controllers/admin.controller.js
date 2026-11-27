@@ -4,6 +4,8 @@ const geographyService = require('../services/geography.service');
 const facilitiesService = require('../services/facilities.service');
 const auditService = require('../services/audit.service');
 const rolePermissions = require('../services/role-permissions.service');
+const db = require('../db/pool');
+const { managedAreaIds } = require('../services/scope.service');
 
 // M1 FE-1, FE-3: LHW accounts.
 
@@ -71,6 +73,9 @@ async function geographyTree(req, res) {
   res.json(await geographyService.tree());
 }
 
+async function facilityGeography(req, res) {
+  res.json(await geographyService.tree(await managedAreaIds(db, req.user)));
+}
 async function createUnit(req, res) {
   res.status(201).json(await geographyService.create(req.user, req.params.level, req.body));
 }
@@ -122,7 +127,7 @@ module.exports = {
   listAreas, listLhws, createLhw, updateLhw, deactivateLhw, activateLhw, resetPassword,
   issueActivationCode,
   listStaff, createStaff, updateStaff, deactivateStaff, activateStaff, resetStaffPassword,
-  geographyTree, createUnit, renameUnit, deleteUnit,
+  geographyTree, facilityGeography, createUnit, renameUnit, deleteUnit,
   listFacilities, createFacility, updateFacility, deleteFacility, updateRolePermissions,
   listAudit, listRoles,
 };

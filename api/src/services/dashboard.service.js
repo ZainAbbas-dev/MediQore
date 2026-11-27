@@ -17,7 +17,7 @@ const LAST_SYNC = `greatest(
 // The dashboard filters as SQL: `areaColumn` must lie in the viewer's areas and
 // the chosen district and Union Council; `byColumn` is the LHW who made the
 // record. Returns the conditions to AND together; values go into `params`.
-function placeConditions(params, { areaIds, districtId, tehsilId, unionCouncilId, lhwId }, areaColumn, byColumn) {
+function placeConditions(params, { areaIds, districtId, tehsilId, unionCouncilId, lhwId, days }, areaColumn, byColumn, dateColumn) {
   const conditions = [];
   const add = (value, condition) => {
     params.push(value);
@@ -34,6 +34,7 @@ function placeConditions(params, { areaIds, districtId, tehsilId, unionCouncilId
   }
   if (unionCouncilId) add(unionCouncilId, `${areaColumn} IN (SELECT id FROM areas WHERE union_council_id = ?)`);
   if (lhwId && byColumn) add(lhwId, `${byColumn} = ?`);
+  if (days && dateColumn) add(days, `${dateColumn} >= now() - make_interval(days => ?)`);
   return conditions;
 }
 
@@ -46,14 +47,14 @@ const and = (conditions) => conditions.map((c) => ` AND ${c}`).join('');
 async function summary(viewer, filters = {}) {
   const scope = { ...filters, areaIds: await scopedAreaIds(viewer) };
   const params = [];
-  const women = placeConditions(params, scope, 'area_id', 'created_by');
-  const visits = placeConditions(params, scope, 'area_id', 'created_by');
-  const conflicts = placeConditions(params, scope, 'area_id', 'submitted_by');
+  const women = placeConditions(params, scope, 'area_id', 'created_by', 'synced_at');
+  const visits = placeConditions(params, scope, 'area_id', 'created_by', 'visited_at');
+  const conflicts = placeConditions(params, scope, 'area_id', 'submitted_by', 'created_at');
   const lhws = placeConditions(params, scope, 'p.area_id', 'u.id');
   const { rows: [row] } = await db.query(
     `SELECT
        (SELECT count(*) FROM women WHERE deleted_at IS NULL${and(women)}) AS registered_women,
-       (SELECT count(*) FROM visits WHERE deleted_at IS NULL AND visited_at >= ${WEEK_START}${and(visits)}) AS visits_this_week,
+       (SELECT count(*) FROM visits WHERE deleted_at IS NULL AND visited_at >= ${WEEK_START} AND visited_at <= now()${and(visits)}) AS visits_this_week,
        (SELECT count(*) FROM sync_conflicts WHERE status = 'pending'${and(conflicts)}) AS pending_conflicts,
        (SELECT count(*) FROM users u JOIN lhw_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
           WHERE u.role = 'lhw' AND u.deleted_at IS NULL AND u.is_active${and(lhws)}) AS lhws,
@@ -128,19 +129,29 @@ async function filters(viewer) {
 // (LI-7); "last sync" is the server's time (LAST_SYNC).
 async function lhwActivity(viewer, filters) {
   const params = [];
+  const scope = { ...filters, areaIds: await scopedAreaIds(viewer) };
+  const visits = and(placeConditions(params, scope, 'v.area_id', null, 'v.visited_at'));
+  const women = and(placeConditions(params, scope, 'w.area_id', null, 'w.synced_at'));
+  const referrals = and(placeConditions(params, scope, 'f.area_id', null, 'f.referred_at'));
+  const anc = and(placeConditions(params, scope, 's.area_id', null));
   const where = [
     "u.role = 'lhw'",
     'u.deleted_at IS NULL',
-    ...placeConditions(params, { ...filters, areaIds: await scopedAreaIds(viewer) }, 'p.area_id', 'u.id'),
+    ...placeConditions(params, scope, 'p.area_id', 'u.id'),
   ];
   const { rows } = await db.query(
     `SELECT u.id, u.full_name, u.is_active, u.last_login_at, p.lhw_code,
             a.name AS area_name, uc.name AS union_council_name, d.name AS district_name,
             (SELECT count(*)::int FROM visits v WHERE v.created_by = u.id AND v.deleted_at IS NULL
-               AND v.visited_at >= ${WEEK_START}) AS visits_this_week,
-            (SELECT count(*)::int FROM visits v WHERE v.created_by = u.id AND v.deleted_at IS NULL) AS visits_total,
-            (SELECT count(*)::int FROM women w WHERE w.created_by = u.id AND w.deleted_at IS NULL) AS women_registered,
-            (SELECT max(v.visited_at) FROM visits v WHERE v.created_by = u.id AND v.deleted_at IS NULL) AS last_visit_at,
+               AND v.visited_at >= ${WEEK_START} AND v.visited_at <= now()${visits}) AS visits_this_week,
+            (SELECT count(*)::int FROM visits v WHERE v.created_by = u.id AND v.deleted_at IS NULL AND v.visited_at <= now()${visits}) AS visits_total,
+            (SELECT count(*)::int FROM women w WHERE w.created_by = u.id AND w.deleted_at IS NULL${women}) AS women_registered,
+            (SELECT max(v.visited_at) FROM visits v WHERE v.created_by = u.id AND v.deleted_at IS NULL AND v.visited_at <= now()${visits}) AS last_visit_at,
+            (SELECT count(*)::int FROM referrals f WHERE f.created_by = u.id AND f.deleted_at IS NULL
+               AND f.referred_at <= now() AND f.attended IS TRUE${referrals}) AS referrals_completed,
+            (SELECT count(*)::int FROM anc_schedule s JOIN pregnancies g ON g.id = s.pregnancy_id AND g.area_id = s.area_id
+               WHERE s.created_by = u.id AND s.deleted_at IS NULL AND g.deleted_at IS NULL AND g.status = 'active'
+               AND s.completed_visit_id IS NULL AND s.due_on < (now() AT TIME ZONE 'Asia/Karachi')::date${anc}) AS missed_anc,
             ${LAST_SYNC} AS last_sync_at
      FROM users u
      JOIN lhw_profiles p ON p.user_id = u.id AND p.deleted_at IS NULL
@@ -165,10 +176,12 @@ async function lhwActivity(viewer, filters) {
       visitsTotal: row.visits_total,
       womenRegistered: row.women_registered,
       lastVisitAt: row.last_visit_at,
+      referralsCompleted: row.referrals_completed,
+      missedAnc: row.missed_anc,
       lastSyncAt: row.last_sync_at,
       lastLoginAt: row.last_login_at,
     })),
   };
 }
 
-module.exports = { summary, filters, lhwActivity };
+module.exports = { summary, filters, lhwActivity, and, placeConditions, scopedAreaIds };

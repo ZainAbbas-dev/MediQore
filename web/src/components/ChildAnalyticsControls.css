@@ -1,0 +1,11 @@
+.child-analytics-filters .field {
+  max-width: 100%;
+}
+
+.child-analytics-filters input[type='date'] {
+  min-height: 40px;
+  padding: 6px 12px;
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-field);
+  background: var(--surface);
+}

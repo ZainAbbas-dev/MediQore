@@ -6,10 +6,10 @@ export const PORTAL_ROLES = ['supervisor', 'admin'];
 // What each portal role holds before an admin changes it (api/src/auth/permissions.js).
 // A session saved before the API sent `user.permissions` falls back to these.
 const ROLE_DEFAULTS = {
-  supervisor: ['records.view', 'conflicts.resolve', 'pin_reset.reply'],
+  supervisor: ['records.view', 'conflicts.resolve', 'pin_reset.reply', 'alerts.view', 'alerts.acknowledge', 'reports.view', 'inactivity.manage'],
   admin: [
     'records.view', 'conflicts.resolve', 'pin_reset.reply', 'accounts.manage', 'staff.manage', 'geography.manage',
-    'facilities.manage', 'audit.view', 'roles.manage',
+    'facilities.manage', 'audit.view', 'roles.manage', 'alerts.view', 'reports.view', 'escalation.manage', 'campaigns.manage',
   ],
 };
 

@@ -186,4 +186,53 @@ describeDb('dashboard: LHW activity and map filters (M10 FE-1)', () => {
     expect(Date.now() - new Date((await lhwB()).lastSyncAt).getTime()).toBeLessThan(60000);
     expect((await get(admin, '/dashboard/summary')).body).toMatchObject({ lhws: 2, lhwsSyncedToday: 2 });
   });
+  it('limits activity totals to the viewer’s areas after an LHW is reassigned', async () => {
+    await query('UPDATE lhw_profiles SET area_id = $1 WHERE user_id = $2', [ids.areaA, ids.lhwB]);
+    try {
+      const res = await get(supervisor, `/dashboard/lhw-activity?lhwId=${ids.lhwB}`);
+      expect(res.body.lhws[0]).toMatchObject({ lhwCode: 'LHW-B', womenRegistered: 0 });
+    } finally {
+      await query('UPDATE lhw_profiles SET area_id = $1 WHERE user_id = $2', [ids.areaB, ids.lhwB]);
+    }
+  });
+
+  it('uses the last assessed risk for each active pregnancy and keeps portal metrics inside the area', async () => {
+    const addRisk = (pregnancyId, areaId, userId, level, rank) => query(
+      `INSERT INTO risk_assessments
+        (area_id,created_by,visit_id,pregnancy_id,model_level,model_version,rule_result,rules_version,final_level,input_set)
+       SELECT $2, $3, id, $1, CASE WHEN $4 = 'red' THEN 'high' ELSE 'low' END, 'test', 'none', 'test', $4, 'five_feature'
+       FROM (SELECT id FROM visits WHERE pregnancy_id = $1 ORDER BY server_seq LIMIT 1 OFFSET $5) visit`,
+      [pregnancyId, areaId, userId, level, rank],
+    );
+    await push(ids.lhwB, ids.deviceB, [visit(b.pregnancy.id, new Date().toISOString())]);
+    await addRisk(a.pregnancy.id, ids.areaA, ids.lhwA, 'red', 0);
+    await addRisk(a.pregnancy.id, ids.areaA, ids.lhwA, 'green', 1);
+    await addRisk(b.pregnancy.id, ids.areaB, ids.lhwB, 'red', 0);
+    await query(
+      `INSERT INTO emergency_alerts (area_id, created_by, pregnancy_id, visit_recorded_at, raised_at)
+       VALUES ($1,$2,$3,now(),now()), ($4,$5,$6,now(),now())`,
+      [ids.areaA, ids.lhwA, a.pregnancy.id, ids.areaB, ids.lhwB, b.pregnancy.id],
+    );
+    await query(
+      `INSERT INTO referrals (area_id, created_by, pregnancy_id, referred_at, outcome_recorded_at, attended)
+       VALUES ($1,$2,$3,now(),now(),true), ($1,$2,$3,now(),now(),false), ($4,$5,$6,now(),NULL,NULL)`,
+      [ids.areaA, ids.lhwA, a.pregnancy.id, ids.areaB, ids.lhwB, b.pregnancy.id],
+    );
+
+    const scoped = await get(supervisor, '/dashboard/maternal?days=30');
+    expect(scoped.status).toBe(200);
+    expect(scoped.body).toMatchObject({
+      riskDistribution: { green: 0, yellow: 0, red: 1 },
+      unacknowledgedAlerts: 1,
+      referrals: { total: 2, completed: 1, overdue: 0 },
+      highRisk: [expect.objectContaining({ patientCode: 'LHW-A-0001', emergency: false })],
+    });
+    const deniedScope = await get(supervisor, `/dashboard/maternal?lhwId=${ids.lhwB}`);
+    expect(deniedScope.body).toMatchObject({ riskDistribution: { green: 0, yellow: 0, red: 0 }, highRisk: [] });
+    const map = await get(supervisor, '/households');
+    expect(map.body.households).toEqual([expect.objectContaining({ id: a.household.id, riskLevel: 'red' })]);
+    expect((await get(supervisor, '/dashboard/maternal')).body.riskDistribution.red).toBe(1);
+  });
+
+
 });

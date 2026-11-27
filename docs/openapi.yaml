@@ -692,6 +692,780 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /dashboard/maternal:
+    get:
+      tags:
+      - Module 10
+      operationId: getMaternalDashboard
+      summary: Get maternal dashboard metrics
+      description: Requires records.view. Returns riskDistribution for the latest assessment per active pregnancy within
+        the selected period, paged highRisk cases, referral outcome and overdue counts, unacknowledgedAlerts, and scoped
+        facility markers.
+      parameters:
+      - &id005
+        name: districtId
+        in: query
+        schema: &id001
+          type: string
+          format: uuid
+      - &id006
+        name: tehsilId
+        in: query
+        schema: *id001
+      - &id007
+        name: unionCouncilId
+        in: query
+        schema: *id001
+      - &id008
+        name: lhwId
+        in: query
+        schema: *id001
+      - name: days
+        in: query
+        schema: &id011
+          type: integer
+          minimum: 1
+          maximum: 366
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 50
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 10000
+      responses:
+        '200':
+          description: Successful response.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /alerts:
+    get:
+      tags: [Alerts]
+      summary: List scoped emergency alerts and model-only Red cases
+      description: Requires alerts.view. Supervisors see their currently assigned areas. Administrators see all areas.
+      operationId: listPortalAlerts
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - in: query
+          name: emergencyOnly
+          schema: { type: boolean, default: false }
+        - in: query
+          name: districtId
+          schema: { type: string, format: uuid }
+        - in: query
+          name: tehsilId
+          schema: { type: string, format: uuid }
+        - in: query
+          name: unionCouncilId
+          schema: { type: string, format: uuid }
+        - in: query
+          name: lhwId
+          schema: { type: string, format: uuid }
+        - in: query
+          name: days
+          schema: { type: integer, minimum: 1, maximum: 366 }
+        - in: query
+          name: before
+          description: The previous page's nextBefore cursor.
+          schema: { type: string, pattern: '^[1-9][0-9]{0,18}$' }
+      responses:
+        '200':
+          description: Alert history ordered by descending server sequence.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [alerts, nextBefore, pushAvailable]
+                properties:
+                  alerts:
+                    type: array
+                    items: { $ref: '#/components/schemas/PortalAlert' }
+                  nextBefore: { type: [string, 'null'] }
+                  pushAvailable:
+                    type: boolean
+                    description: Indicates whether the server has Firebase settings.
+        default:
+          $ref: '#/components/responses/Error'
+
+  /alerts/{id}/acknowledge:
+    post:
+      tags: [Alerts]
+      summary: Acknowledge an emergency alert
+      description: Requires alerts.view and alerts.acknowledge. Repeated acknowledgement returns the stored alert.
+      operationId: acknowledgeEmergencyAlert
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The acknowledged emergency alert.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [alert]
+                properties:
+                  alert: { $ref: '#/components/schemas/PortalAlert' }
+        '404':
+          description: No visible emergency alert has this ID.
+        default:
+          $ref: '#/components/responses/Error'
+
+  /alerts/push/subscriptions:
+    post:
+      tags: [Alerts]
+      summary: Register a supervisor browser for Firebase web push
+      description: Requires the supervisor role, alerts.view and server-side Firebase settings.
+      operationId: subscribePortalAlertPush
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string, minLength: 1, maxLength: 4096 }
+      responses:
+        '200':
+          description: ID of the saved browser subscription.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id]
+                properties:
+                  id: { type: string, format: uuid }
+        default:
+          $ref: '#/components/responses/Error'
+
+  /alerts/push/subscriptions/{id}:
+    delete:
+      tags: [Alerts]
+      summary: Unregister a supervisor browser for web push
+      description: Only the owning supervisor can remove the subscription.
+      operationId: unsubscribePortalAlertPush
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: The caller has no subscription with this ID.
+        default:
+          $ref: '#/components/responses/Error'
+
+  /reports:
+    get:
+      tags:
+      - Module 10
+      operationId: listPortalReports
+      summary: List generated reports
+      description: Requires reports.view. Returns reports and allowed areas, with weekly or monthly PDF and Excel availability
+        and an opaque nextBefore cursor.
+      parameters:
+      - name: period
+        in: query
+        schema:
+          type: string
+          enum:
+          - weekly
+          - monthly
+      - name: areaId
+        in: query
+        schema: *id001
+      - name: before
+        in: query
+        schema: { type: string }
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      responses:
+        '200':
+          description: Successful response.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /reports/{id}/download:
+    get:
+      tags:
+      - Module 10
+      operationId: downloadPortalReport
+      summary: Download an authorized report
+      description: Requires reports.view. The report’s stored area scope is checked before serving the file. Successful
+        downloads are audited.
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      responses:
+        '200':
+          description: Successful response.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /inactivity:
+    get:
+      tags: [Dashboard]
+      summary: Evaluate the latest completed Pakistan week for each visible LHW
+      operationId: getLhwInactivity
+      description: |
+        Requires records.view. Supervisors see LHWs in their assigned areas.
+        A week starts on Monday in Asia/Karachi and is assessed after a device sync
+        at or after the next Monday. The baseline uses earlier synced weeks, includes
+        zero-visit weeks and skips approved leave and campaign exclusions.
+      responses:
+        '200':
+          description: Latest completed week and each visible LHW's activity status.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [weekStart, lhws]
+                properties:
+                  weekStart: { type: string, format: date }
+                  lhws:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, fullName, lhwCode, area, lastSyncAt, inactivity]
+                      properties:
+                        id: { type: string, format: uuid }
+                        fullName: { type: string }
+                        lhwCode: { type: string }
+                        area: { type: string }
+                        lastSyncAt: { type: [string, 'null'], format: date-time }
+                        inactivity:
+                          type: object
+                          required: [status, visits, historyWeeks, exclusion]
+                          properties:
+                            status:
+                              type: string
+                              enum: [not_synced, insufficient_history, active, unusual_inactivity, excluded]
+                            visits: { type: [integer, 'null'], minimum: 0 }
+                            historyWeeks: { type: [integer, 'null'], minimum: 0 }
+                            exclusion: { enum: [leave, campaign, null] }
+        default:
+          $ref: '#/components/responses/Error'
+
+  /inactivity/{lhwId}/exclusions:
+    parameters:
+      - name: lhwId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      tags: [Dashboard]
+      summary: List an LHW's marked leave and campaign weeks
+      operationId: listLhwExclusions
+      description: Requires records.view and access to the LHW's area.
+      responses:
+        '200':
+          description: Current exclusions ordered by week, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [exclusions]
+                properties:
+                  exclusions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LhwWeekExclusion'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /inactivity/{lhwId}/exclusions/{weekStart}:
+    parameters:
+      - name: lhwId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: weekStart
+        in: path
+        required: true
+        description: A calendar date that falls on a Monday in Asia/Karachi.
+        schema: { type: string, format: date }
+    put:
+      tags: [Dashboard]
+      summary: Mark or update a leave or campaign week
+      operationId: putLhwExclusion
+      description: Requires records.view, inactivity.manage and access to the LHW's area.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind]
+              properties:
+                kind: { type: string, enum: [leave, campaign] }
+      responses:
+        '200':
+          description: The current exclusion.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [exclusion]
+                properties:
+                  exclusion:
+                    $ref: '#/components/schemas/LhwWeekExclusion'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Dashboard]
+      summary: Remove a leave or campaign week
+      operationId: deleteLhwExclusion
+      description: Requires records.view, inactivity.manage and access to the LHW's area.
+      responses:
+        '204':
+          description: No exclusion remains for this week.
+        default:
+          $ref: '#/components/responses/Error'
+
+  /child-analytics/filters:
+    get:
+      tags:
+      - Module 10
+      operationId: getChildFilters
+      summary: Get scoped child analytics filters
+      description: Requires records.view. Filters are intersected with the supervisor’s assigned areas.
+      parameters:
+      - *id005
+      - *id006
+      - *id007
+      - *id008
+      - &id009
+        name: areaId
+        in: query
+        schema: *id001
+      responses:
+        '200':
+          description: Successful response.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /child-analytics/children:
+    get:
+      tags:
+      - Module 10
+      operationId: listPortalChildren
+      summary: List children
+      description: Requires records.view. Filters are intersected with the supervisor’s assigned areas.
+      parameters:
+      - *id005
+      - *id006
+      - *id007
+      - *id008
+      - *id009
+      - &id012
+        name: startDate
+        in: query
+        schema: { type: string, format: date }
+      - &id013
+        name: endDate
+        in: query
+        schema: { type: string, format: date }
+      - &id014
+        name: days
+        in: query
+        schema: *id011
+      - &id015
+        name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+      - &id016
+        name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+      - name: followUp
+        in: query
+        schema:
+          type: string
+          enum:
+          - zero-dose
+          - no-opv
+      responses:
+        '200':
+          description: Successful response.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /child-analytics/coverage:
+    get:
+      tags:
+      - Module 10
+      operationId: getChildCoverage
+      summary: Get immunisation coverage and Penta-1 zero-dose metrics
+      description: Requires records.view. Filters are intersected with the supervisor’s assigned areas.
+      parameters:
+      - *id005
+      - *id006
+      - *id007
+      - *id008
+      - *id009
+      - *id012
+      - *id013
+      - *id014
+      responses:
+        '200':
+          description: Successful response.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /child-analytics/polio:
+    get:
+      tags:
+      - Module 10
+      operationId: getPolioCampaignProgress
+      summary: Get polio campaign progress
+      description: Requires records.view. Filters are intersected with the supervisor’s assigned areas.
+      parameters:
+      - *id005
+      - *id006
+      - *id007
+      - *id008
+      - *id009
+      - *id012
+      - *id013
+      - *id014
+      - *id015
+      - *id016
+      - name: roundId
+        in: query
+        schema: *id001
+      responses:
+        '200':
+          description: Successful response.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /child-analytics/hotspots:
+    get:
+      tags:
+      - Module 10
+      operationId: getChildHotspots
+      summary: Get child analytics household markers
+      description: Requires records.view. Filters are intersected with the supervisor’s assigned areas.
+      parameters:
+      - *id005
+      - *id006
+      - *id007
+      - *id008
+      - *id009
+      - *id012
+      - *id013
+      - *id014
+      - *id015
+      - *id016
+      responses:
+        '200':
+          description: Successful response.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /area-config/escalation-contacts:
+    get:
+      tags:
+      - Module 10
+      operationId: listEscalationContacts
+      summary: List area escalation contacts
+      description: Requires escalation.manage. The list is scoped to managed areas.
+      responses:
+        '200':
+          description: Successful response.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /area-config/escalation-contacts/options:
+    get:
+      tags:
+      - Module 10
+      operationId: getEscalationContactOptions
+      summary: List areas and supervisor contact options
+      description: Requires escalation.manage.
+      responses:
+        '200':
+          description: Successful response.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /area-config/escalation-contacts/{areaId}:
+    get:
+      tags:
+      - Module 10
+      operationId: getEscalationContact
+      summary: Get area escalation contacts
+      description: Requires escalation.manage for the area.
+      parameters:
+      - &id017
+        name: areaId
+        in: path
+        required: true
+        schema: *id001
+      responses:
+        '200':
+          description: Successful response.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    put:
+      tags:
+      - Module 10
+      operationId: saveEscalationContact
+      summary: Save area escalation contacts
+      description: Requires escalation.manage. Both secondary contact fields are set together. Synced devices read contacts
+        through sync configuration.
+      parameters:
+      - *id017
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                supervisorPhone: { type: string }
+                secondaryName:
+                  type:
+                  - string
+                  - 'null'
+                secondaryPhone:
+                  type:
+                  - string
+                  - 'null'
+                supervisorUserId:
+                  type:
+                  - string
+                  - 'null'
+                  format: uuid
+                escalateAfterMinutes:
+                  type: integer
+                  minimum: 1
+                  maximum: 32767
+                  default: 15
+              required:
+              - supervisorPhone
+      responses:
+        '200':
+          description: Successful response.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '201':
+          description: Created.
+    delete:
+      tags:
+      - Module 10
+      operationId: deleteEscalationContact
+      summary: Remove area escalation contacts
+      description: Requires escalation.manage. The change is audited.
+      parameters:
+      - *id017
+      responses:
+        '204':
+          description: Removed.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /area-config/campaign-rounds:
+    get:
+      tags:
+      - Module 10
+      operationId: listCampaignRounds
+      summary: List campaign rounds
+      description: Requires campaigns.manage. Each round lists its visible target areas.
+      responses:
+        '200':
+          description: Successful response.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+    post:
+      tags:
+      - Module 10
+      operationId: createCampaignRound
+      summary: Create a campaign round
+      description: Requires campaigns.manage for all target areas. Changes are audited.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: &id018
+                name: { type: string }
+                startsOn: { type: string, format: date }
+                endsOn: { type: string, format: date }
+                areaIds:
+                  type: array
+                  items: *id001
+                  minItems: 1
+                  uniqueItems: true
+              required:
+              - name
+              - startsOn
+              - endsOn
+              - areaIds
+      responses:
+        '201':
+          description: Successful response.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /area-config/campaign-rounds/options:
+    get:
+      tags:
+      - Module 10
+      operationId: getCampaignRoundOptions
+      summary: List available target areas
+      description: Requires campaigns.manage.
+      responses:
+        '200':
+          description: Successful response.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /area-config/campaign-rounds/{roundId}:
+    patch:
+      tags:
+      - Module 10
+      operationId: updateCampaignRound
+      summary: Update a campaign round
+      description: Requires campaigns.manage for all current and requested target areas.
+      parameters:
+      - &id019
+        name: roundId
+        in: path
+        required: true
+        schema: *id001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: *id018
+      responses:
+        '200':
+          description: Successful response.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags:
+      - Module 10
+      operationId: deleteCampaignRound
+      summary: Remove a campaign round
+      description: Requires campaigns.manage for all target areas. The change is audited.
+      parameters:
+      - *id019
+      responses:
+        '204':
+          description: Removed.
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+
   /dashboard/summary:
     get:
       tags: [Dashboard]
@@ -723,6 +1497,10 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: days
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 366 }
+          description: Activity and record lookback window in days.
       responses:
         '200':
           description: Counts.
@@ -797,6 +1575,10 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: days
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 366 }
+          description: Activity and record lookback window in days.
       responses:
         '200':
           description: LHWs, ordered by district, Union Council and LHW ID.
@@ -1400,6 +2182,22 @@ paths:
         '409':
           $ref: '#/components/responses/Error'
 
+  /admin/facilities/geography:
+    get:
+      tags: [Admin]
+      summary: Geographic options available to the facility manager
+      description: Requires facilities.manage. Supervisors see only their assigned areas and their parent places.
+      operationId: facilityGeography
+      responses:
+        '200':
+          description: Active places in the facility manager's scope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeographyTree'
+        default:
+          $ref: '#/components/responses/Error'
+
   /admin/hospitals:
     get:
       tags: [Admin]
@@ -1596,7 +2394,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [create, edit, delete, referral, alert, login, sync_conflict]
+            enum: [create, edit, delete, referral, alert, login, sync_conflict, report_download]
         - name: entityType
           in: query
           description: The record type (table name), for example users or visits.
@@ -1816,6 +2614,75 @@ components:
               lhw:
                 $ref: '#/components/schemas/Lhw'
   schemas:
+    PortalAlert:
+      type: object
+      required: [id, type, areaId, areaName, patient, lhw, triggeringSigns, occurredAt, ageSeconds, visitRecordedAt, status, overdue,
+        escalatedAt, escalationSeconds, attempts, acknowledgement, push, reminder]
+      properties:
+        id: { type: string, format: uuid }
+        type: { enum: [emergency, model_red] }
+        areaId: { type: string, format: uuid }
+        areaName: { type: string }
+        patient:
+          type: [object, 'null']
+          required: [name, patientCode]
+          properties:
+            name: { type: string }
+            patientCode: { type: string }
+        lhw:
+          type: [object, 'null']
+          required: [name, code]
+          properties:
+            name: { type: string }
+            code: { type: [string, 'null'] }
+        triggeringSigns:
+          type: array
+          items: { type: string }
+          description: Recorded danger-sign rule IDs.
+        occurredAt: { type: string, format: date-time }
+        ageSeconds: { type: integer, minimum: 0 }
+        visitRecordedAt: { type: [string, 'null'], format: date-time }
+        status: { enum: [open, acknowledged, escalated, null] }
+        overdue: { type: boolean }
+        escalatedAt: { type: [string, 'null'], format: date-time }
+        escalationSeconds: { type: [integer, 'null'], minimum: 0 }
+        attempts:
+          type: array
+          items:
+            type: object
+            required: [channel, recipient, status, attemptedAt]
+            properties:
+              channel: { enum: [internet, sms, call] }
+              recipient: { enum: [supervisor, secondary, null] }
+              status: { enum: [sent, delivered, failed, not_available] }
+              attemptedAt: { type: string, format: date-time }
+        acknowledgement:
+          type: [object, 'null']
+          required: [acknowledgedAt, method, acknowledgedBy]
+          properties:
+            acknowledgedAt: { type: string, format: date-time }
+            method: { enum: [dashboard, app, supervisor_reached] }
+            acknowledgedBy: { type: string }
+        push: { $ref: '#/components/schemas/PortalAlertPushAttempt' }
+        reminder: { $ref: '#/components/schemas/PortalAlertPushAttempt' }
+
+    PortalAlertPushAttempt:
+      type: [object, 'null']
+      required: [status, attemptedAt]
+      properties:
+        status: { enum: [sent, partial, failed, no_subscribers] }
+        attemptedAt: { type: string, format: date-time }
+
+    LhwWeekExclusion:
+      type: object
+      required: [id, weekStart, kind, markedBy, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        weekStart: { type: string, format: date }
+        kind: { type: string, enum: [leave, campaign] }
+        markedBy: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+
     Health:
       type: object
       required: [status, service, version, uptimeSeconds]
@@ -2183,7 +3050,7 @@ components:
           format: date-time
         action:
           type: string
-          enum: [create, edit, delete, referral, alert, login, sync_conflict]
+          enum: [create, edit, delete, referral, alert, login, sync_conflict, report_download]
         entityType:
           type: [string, 'null']
         entityId:

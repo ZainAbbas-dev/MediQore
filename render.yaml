@@ -9,27 +9,16 @@
 services:
   - type: web
     name: mediqore-staging
-    runtime: node
+    runtime: docker
     plan: free
     region: singapore
     branch: dev
-    buildCommand: >-
-      cd db && npm ci --include=dev &&
-      cd ../api && npm ci --omit=dev &&
-      cd ../web && npm ci --include=dev && npm run build
-    startCommand: cd db && npm run migrate:up && npm run rules:load && cd ../api && npm start
+    dockerfilePath: ./Dockerfile
     envVars:
-      - key: NODE_VERSION
-        value: "24"
-      - key: NODE_ENV
-        value: production
       # Render ends TLS in front of the service: trust its proxy so the API
       # sees https and refuses plain HTTP (M1 FE-2).
       - key: TRUST_PROXY
         value: "1"
-      # The portal, built into web/dist; relative to api/.
-      - key: PORTAL_DIR
-        value: ../web/dist
       # Signs access tokens; Render makes a random value.
       - key: JWT_ACCESS_SECRET
         generateValue: true

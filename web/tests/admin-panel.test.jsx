@@ -179,7 +179,7 @@ const hospital = {
 describe('hospitals and referral centres (M10 FE-3)', () => {
   it('lists hospitals and switches to referral centres', async () => {
     mockApi({
-      'GET /admin/geography': [200, tree],
+      'GET /admin/facilities/geography': [200, tree],
       'GET /admin/hospitals': [200, { facilities: [hospital] }],
       'GET /admin/referral-centres': [200, { facilities: [] }],
     });
@@ -196,7 +196,7 @@ describe('hospitals and referral centres (M10 FE-3)', () => {
 
   it('adds a hospital in a district and one of its areas, with GPS', async () => {
     const fetchMock = mockApi({
-      'GET /admin/geography': [200, tree],
+      'GET /admin/facilities/geography': [200, tree],
       'GET /admin/hospitals': [200, { facilities: [] }],
       'POST /admin/hospitals': [201, { facility: hospital }],
     });

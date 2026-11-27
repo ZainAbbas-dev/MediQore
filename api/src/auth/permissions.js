@@ -37,6 +37,12 @@ const PERMISSIONS = {
   'staff.manage': { roles: ['admin'], label: 'Create and manage supervisor and admin accounts' },
   'geography.manage': { roles: ['admin'], label: 'Manage districts, tehsils, Union Councils and areas' },
   'facilities.manage': { roles: ['admin'], label: 'Manage hospitals and referral centres' },
+  'alerts.view': { roles: ['supervisor', 'admin'], label: 'View alerts and recently synced high-risk cases' },
+  'alerts.acknowledge': { roles: ['supervisor'], label: 'Acknowledge emergency alerts' },
+  'reports.view': { roles: ['supervisor', 'admin'], label: 'Download weekly and monthly reports' },
+  'inactivity.manage': { roles: ['supervisor'], label: 'Mark LHW leave and campaign weeks' },
+  'escalation.manage': { roles: ['admin'], label: 'Manage area escalation contacts' },
+  'campaigns.manage': { roles: ['admin'], label: 'Manage polio campaign rounds' },
   'audit.view': { roles: ['admin'], label: 'View the audit log' },
   'roles.manage': { roles: ['admin'], label: 'Choose which role holds which permission' },
 };

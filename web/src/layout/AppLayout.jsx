@@ -7,7 +7,12 @@ import NavIcon from './NavIcon';
 // account's role holds the page's permission (M10 FE-3); the API checks the same.
 const MAIN_LINKS = [
   { to: '/', icon: 'dashboard', label: 'Dashboard', permission: 'records.view', end: true },
+  { to: '/alerts', icon: 'alert', label: 'Alerts', permission: 'alerts.view' },
   { to: '/women', icon: 'women', label: 'Registered women', permission: 'records.view' },
+  { to: '/children', icon: 'staff', label: 'Children', permission: 'records.view' },
+  { to: '/polio', icon: 'map', label: 'Polio campaigns', permission: 'records.view' },
+  { to: '/activity', icon: 'person', label: 'LHW activity', permission: 'records.view' },
+  { to: '/reports', icon: 'report', label: 'Reports', permission: 'reports.view' },
   { to: '/conflicts', icon: 'conflicts', label: 'Sync conflicts', permission: 'conflicts.resolve' },
   { to: '/pin-reset', icon: 'key', label: 'PIN reset codes', permission: 'pin_reset.reply' },
 ];
@@ -17,6 +22,8 @@ const ADMIN_LINKS = [
   { to: '/admin/staff', icon: 'staff', label: 'Supervisors and admins', permission: 'staff.manage' },
   { to: '/admin/geography', icon: 'map', label: 'Geography', permission: 'geography.manage' },
   { to: '/admin/facilities', icon: 'hospital', label: 'Hospitals', permission: 'facilities.manage' },
+  { to: '/admin/escalation-contacts', icon: 'alert', label: 'Escalation contacts', permission: 'escalation.manage' },
+  { to: '/admin/campaign-rounds', icon: 'map', label: 'Campaign rounds', permission: 'campaigns.manage' },
   { to: '/admin/roles', icon: 'shield', label: 'Roles', permission: 'roles.manage' },
   { to: '/admin/audit', icon: 'history', label: 'Audit log', permission: 'audit.view' },
 ];

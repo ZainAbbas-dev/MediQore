@@ -9,12 +9,13 @@ The roadmap's "one HTTPS staging server for supervisor reviews and demos" (Archi
 
 How it runs:
 
-- Render builds `db/`, `api/` and `web/` from the `dev` branch after every push.
+- Render builds the Docker image from the `dev` branch after every push. The image includes Chromium and the Urdu font for scheduled PDF exports.
 - Each start applies new migrations (`db`: `npm run migrate:up`), loads the Clinical Rules Table (`npm run rules:load`, P0-11), then starts the API.
 - For the first deployment of `1792000000000_absolute-session-expiry`, stop old API instances from issuing or refreshing sessions before applying the migration. The migration caps linked refresh tokens at their original deadline. Unlinked refresh tokens keep their recorded deadline because no earlier one is stored. Access tokens issued before deployment retain their signed expiry.
 - Apply `1792100000000_sync-operation-receipts` while staging traffic is stopped, then start the new API before resuming sync. Old API instances use the previous conflict index. A rollback cannot recreate that index while distinct pending conflicts share a record and reason.
 - The API serves the built portal (`PORTAL_DIR=../web/dist`), so the portal is at `https://<address>/` and the API at `https://<address>/api/v1`.
 - Plain HTTP is refused (M1 FE-2). Render ends TLS in front of the service (`TRUST_PROXY=1`).
+- Inactivity uses the most recent completed records pull. Existing installations become eligible for weekly assessment after their next completed records sync.
 
 Rules:
 
@@ -43,6 +44,8 @@ Rules:
 3. Render shows the service `mediqore-staging` and asks for `DATABASE_URL`: paste the Neon connection string. Click **Apply** (or **Deploy Blueprint**).
 4. The first build takes 5–10 minutes. When the service shows **Live**, its address is at the top of its page, for example `https://mediqore-staging.onrender.com`. Render adds a few letters if the name is taken.
 5. Open `https://<address>/api/v1/health`. It should answer `{"status":"ok", …}`.
+
+For emergency web push, add the `FIREBASE_*` server credentials from [api/.env.example](../api/.env.example) as runtime variables. Set the public `VITE_FIREBASE_*` build variables from [web/.env.example](../web/.env.example) for the same Firebase project, then rebuild the service. Supervisors can enable notifications from **Alerts** on the HTTPS portal.
 
 ### 3. Synthetic data, from your laptop (once)
 

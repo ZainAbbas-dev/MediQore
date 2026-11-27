@@ -51,7 +51,7 @@ const toUnit = (row) => ({ id: row.id, name: row.name });
 
 // GET /admin/geography: the whole tree, with how many LHWs and supervisors each
 // area has, for the admin panel and the account forms.
-async function tree() {
+async function tree(areaIds = null) {
   const [districts, tehsils, ucs, areas] = await Promise.all([
     db.query('SELECT id, name FROM districts WHERE deleted_at IS NULL ORDER BY name'),
     db.query('SELECT id, name, district_id FROM tehsils WHERE deleted_at IS NULL ORDER BY name'),
@@ -62,7 +62,8 @@ async function tree() {
                 WHERE p.area_id = a.id AND p.deleted_at IS NULL AND u.deleted_at IS NULL) AS lhws,
               (SELECT count(*)::int FROM supervisor_areas s JOIN users u ON u.id = s.supervisor_id
                 WHERE s.area_id = a.id AND s.deleted_at IS NULL AND u.deleted_at IS NULL) AS supervisors
-       FROM areas a WHERE a.deleted_at IS NULL ORDER BY a.name`,
+       FROM areas a WHERE a.deleted_at IS NULL AND ($1::uuid[] IS NULL OR a.id = ANY($1)) ORDER BY a.name`,
+      [areaIds],
     ),
   ]);
   const byParent = (rows, column, map) => {
@@ -74,9 +75,14 @@ async function tree() {
     return (id) => grouped.get(id) ?? [];
   };
   const areasOf = byParent(areas.rows, 'union_council_id', (r) => ({ ...toUnit(r), lhws: r.lhws, supervisors: r.supervisors }));
-  const ucsOf = byParent(ucs.rows, 'tehsil_id', (r) => ({ ...toUnit(r), areas: areasOf(r.id) }));
-  const tehsilsOf = byParent(tehsils.rows, 'district_id', (r) => ({ ...toUnit(r), unionCouncils: ucsOf(r.id) }));
-  return { districts: districts.rows.map((r) => ({ ...toUnit(r), tehsils: tehsilsOf(r.id) })) };
+  const ucsOf = byParent(ucs.rows.filter((row) => !areaIds || areasOf(row.id).length),
+    'tehsil_id', (r) => ({ ...toUnit(r), areas: areasOf(r.id) }));
+  const tehsilsOf = byParent(tehsils.rows.filter((row) => !areaIds || ucsOf(row.id).length),
+    'district_id', (r) => ({ ...toUnit(r), unionCouncils: ucsOf(r.id) }));
+  return {
+    districts: districts.rows.filter((row) => !areaIds || tehsilsOf(row.id).length)
+      .map((r) => ({ ...toUnit(r), tehsils: tehsilsOf(r.id) })),
+  };
 }
 
 async function requireParent(client, def, parentId) {
