@@ -14,6 +14,7 @@ const households = require('./steps/households');
 const maternal = require('./steps/maternal');
 const conflicts = require('./steps/conflicts');
 const facilities = require('./steps/facilities');
+const supervision = require('./steps/supervision');
 
 const DEFAULTS = {
   seed: 1,
@@ -60,6 +61,7 @@ function buildSynthetic(overrides, passwordHash) {
   const pregnant = maternal.build(ctx, homes);
   const held = conflicts.build(ctx, pregnant);
   const care = facilities.build(ctx, geo, people);
+  const supervisionTables = supervision.build(ctx, geo, people, homes, pregnant);
 
   // In insert order: parents before children.
   const tables = [
@@ -77,6 +79,7 @@ function buildSynthetic(overrides, passwordHash) {
     ['visits', pregnant.visits],
     ['sync_conflicts', held.conflicts],
     ['hospitals', care.hospitals],
+    ...supervisionTables,
   ];
   return { tables, accounts: people.summary };
 }

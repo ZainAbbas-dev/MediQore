@@ -38,6 +38,16 @@ describe('synthetic data (in memory)', () => {
     assert.ok(data.users.every((u) => u.username.startsWith('test.')));
   });
 
+  test('builds representative supervisor portal records within each area', () => {
+    assert.ok(data.risk_assessments.some((risk) => risk.final_level === 'red'));
+    assert.ok(data.emergency_alerts.every((alert) => alert.owner === 'phone'));
+    assert.equal(data.children.length, data.areas.length * 2);
+    assert.equal(data.immunisations.length, data.areas.length);
+    assert.equal(new Set(data.campaigns.map((campaign) => campaign.round_id)).size, 1);
+    assert.ok(data.campaign_household_status.some((visit) => visit.status === 'refusal'));
+    assert.ok(data.nutrition_screenings.some((screening) => screening.malnutrition_class === 'sam'));
+  });
+
   test('every record is made by its LHW, in the LHW area, as a UUID v4', () => {
     const lhwArea = new Map(data.lhw_profiles.map((p) => [p.user_id, p.area_id]));
     const uuidV4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -195,7 +205,11 @@ describe('synthetic data (in PostgreSQL)', () => {
       const { counts, accounts } = await generateSynthetic(client, { ...SMALL, prefix: 'pgtest', seed: 11 });
       assert.equal(accounts.lhws.length, 4);
 
-      for (const table of ['households', 'women', 'pregnancies', 'obstetric_history', 'visits', 'hospitals']) {
+      for (const table of [
+        'households', 'women', 'pregnancies', 'obstetric_history', 'visits', 'hospitals',
+        'risk_assessments', 'emergency_alerts', 'children', 'immunisations', 'nutrition_screenings', 'campaigns',
+        'campaign_household_status', 'campaign_child_doses',
+      ]) {
         const { rows: [row] } = await client.query(
           `SELECT count(*)::int AS n, count(server_seq)::int AS numbered, count(synced_at)::int AS synced
            FROM ${table} WHERE created_by IN (SELECT id FROM users WHERE username LIKE 'pgtest.%')`,

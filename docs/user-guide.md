@@ -56,6 +56,10 @@ Open the portal address in a browser (it can be installed as an app from the bro
 - **Registered women:** the women in your areas with their pregnancy file and history. Click the visit count to see her visits.
 - **Sync conflicts:** a visit held because the same woman already had a visit that day, next to the stored one with the differences highlighted. Keep both, keep the stored visit, or keep the new one.
 - **PIN reset codes:** choose the LHW, type the 6-digit code from her phone and read her the 8-digit reply code.
+- **Dashboard and Alerts.** Use the map layer selector to see household risk, high-risk clusters, immunisation coverage gaps or malnutrition hotspots. Recent emergencies show the LHW, recorded danger signs and contact attempts. Use **Acknowledge** from the dashboard or the Alerts page. Use **Turn on web notifications** when the portal offers it. On iPhone, add the portal to the home screen first.
+- **Children and Polio campaigns.** Review immunisation coverage, the Penta-1 zero-dose list, children with no recorded OPV dose, nutrition screenings and campaign follow-up by area and period.
+- **LHW activity.** The previous completed week is assessed after the phone completes another records sync. Use **Manage excluded weeks** to mark leave or campaign weeks.
+- **Reports.** Choose a weekly or monthly report and an area, then download the generated PDF or Excel file.
 
 ### Admins
 
@@ -63,3 +67,4 @@ Everything above, and under **Administration**:
 
 - **LHW accounts:** add an LHW (the LHW ID and a password are shown once); **New activation code** for her phone (shown once, 48 hours); **Edit** to change her name, phone or area, reset her password or deactivate her.
 - **Supervisors and admins**, **Geography** (districts, tehsils, Union Councils and areas), **Hospitals** (hospitals and referral centres), **Roles** (what each role may do) and **Audit log** (every change, sign-in and sync conflict, with who and when).
+- **Escalation contacts, Campaign rounds and Facilities.** Set contacts and reminder timing by area, assign a polio round to its target areas, and add a Nutrition Rehabilitation Centre under **Referral centres**.

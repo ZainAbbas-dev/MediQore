@@ -74,6 +74,18 @@ What the new tests cover:
 - role permissions edited on the portal, followed by the routes and the portal's pages at once; the tehsil filter;
 - transitions: 150–250 ms, linear or ease-out; screens fade, forms slide up, cards expand into their screen; none with "Remove animations".
 
+## Module 10 portal verification, 27 November 2026 (`dev`)
+
+| Check | Result |
+|---|---|
+| API and access controls | 276 passed on PostgreSQL 15 with Chromium enabled. The suite covers area assignment, dashboard totals, late sync, alerts and acknowledgement, notification routing with a mock sender, child analytics, scoped administration and report retries and downloads. |
+| Portal | 87 passed. Lint and the production build passed. |
+| Database and rules | 35 database tests passed. Migrations applied, rolled back and reapplied. The rules loader succeeded and 90 Clinical Rules Table tests passed. |
+| Production container | Chromium smoke at 1440 px and 390 px exercised the dashboard and alerts, including acknowledgement, and opened the activity, child, polio, reports and configuration pages. The scheduler produced PDF and Excel files. The PDF embedded Jameel Noori Nastaleeq and the Excel archive passed validation. |
+| Load smoke | Synthetic dataset with 1,200 households and 1,293 visits. PostgreSQL used the visit area/date index for a scoped 30-day visit count. The browser loaded the supervisor views against the same dataset. |
+
+Field acceptance still requires live Firebase delivery to an installed portal and the offline mobile-to-portal flows for Modules 4–9, including acknowledgement reaching the LHW's phone. The checks above used synthetic data.
+
 ## Open items
 
 - Real-phone checks in airplane mode for every Phase 1 FE, in both languages, before Phase 1 is signed off (Definition of done).
