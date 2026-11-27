@@ -78,6 +78,41 @@ void main() {
     expect(await db.pendingCount(), 0);
   });
 
+  test('losing an in-flight create keeps its operation even when a new edit replaces the queue entry', () async {
+    final home = await households.create(village: 'Test village');
+    server.afterPush = () async {
+      await households.setLocation(home.id, latitude: 33.62, longitude: 73.02);
+      throw http.ClientException('response lost after commit');
+    };
+    await expectLater(sync.syncNow('token-1'), throwsA(isA<http.ClientException>()));
+    final first = server.pushedBatches.single.single;
+
+    final reopened = SyncService(db: db, api: SyncApi(client: server.client, baseUrl: 'http://test/api/v1'), deviceId: 'device-1');
+    expect((await reopened.syncNow('token-1')).held, 0);
+    expect(server.pushedBatches.last.single, first, reason: 'recover the first receipt before submitting the newer edit');
+    expect((await reopened.syncNow('token-1')).held, 0);
+    expect(server.pushedBatches.last.single['baseVersion'], 1);
+    expect(server.records[home.id]!['data'], containsPair('latitude', 33.62));
+    expect(await db.pendingCount(), 0);
+  });
+
+  test('upgrading a legacy queued edit does not infer its base from an intervening server pull', () async {
+    final home = await households.create(village: 'Test village');
+    await sync.syncNow('token-1');
+    await households.setLocation(home.id, latitude: 33.62, longitude: 73.02);
+    final old = (jsonDecode((await db.select(db.outbox).getSingle()).payload) as Map)
+      ..remove('operationId')
+      ..remove('baseVersion');
+    await db.customStatement('UPDATE outbox SET payload = ?', [jsonEncode(old)]);
+    // The previous release could pull a newer server row over a refused local edit.
+    await db.setVersion('households', home.id, 2);
+    server.editOnServer(home.id, {'latitude': 33.61, 'longitude': 73.01});
+
+    expect((await sync.syncNow('token-1')).held, 1);
+    expect(server.pushedBatches.last.single.containsKey('baseVersion'), isFalse);
+    expect(server.records[home.id]!['data'], containsPair('latitude', 33.61));
+  });
+
   test('an acknowledgment of the first edit preserves and rebases a newer unsent edit', () async {
     final home = await households.create(village: 'Test village');
     await sync.syncNow('token-1');

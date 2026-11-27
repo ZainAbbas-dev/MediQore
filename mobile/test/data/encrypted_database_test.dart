@@ -4,9 +4,14 @@ import 'dart:typed_data';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:mediqore/data/app_database.dart';
 import 'package:mediqore/data/database_opener.dart';
 import 'package:mediqore/data/household_repository.dart';
+import 'package:mediqore/sync/sync_api.dart';
+import 'package:mediqore/sync/sync_service.dart';
+
+import '../support/fake_sync_server.dart';
 
 /// The real encrypted file (M3 FE-2, LI-8): what is on the disk, and what a
 /// wrong key, an older unencrypted database, a new key and a reset do.
@@ -40,6 +45,27 @@ void main() {
 
     db = await opener.open(keyA);
     expect((await HouseholdRepository(db).all()).single.village, 'Synthetic village 7');
+    await opener.close(db);
+  });
+
+  test('a pending operation survives an encrypted database reopen after a lost reply', () async {
+    final server = FakeSyncServer()
+      ..activate('device-1')
+      ..validAccessTokens.add('token-1')
+      ..afterPush = (() async => throw http.ClientException('response lost'));
+    final api = SyncApi(client: server.client, baseUrl: 'http://test/api/v1');
+    var db = await opener.open(keyA);
+    await HouseholdRepository(db).create(village: 'Synthetic restart village');
+    await expectLater(SyncService(db: db, api: api, deviceId: 'device-1').syncNow('token-1'), throwsException);
+    final first = server.pushedBatches.single.single;
+    await opener.close(db);
+
+    expect(fileShows(first['operationId'] as String), isFalse);
+    db = await opener.open(keyA);
+    expect(await db.pendingCount(), 1);
+    await SyncService(db: db, api: api, deviceId: 'device-1').syncNow('token-1');
+    expect(server.pushedBatches.last.single, first);
+    expect(await db.pendingCount(), 0);
     await opener.close(db);
   });
 

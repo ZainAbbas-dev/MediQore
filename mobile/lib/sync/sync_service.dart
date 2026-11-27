@@ -92,18 +92,29 @@ class SyncService {
         .get();
     final sent = <int>{};
     while (true) {
-      final batch = await (_db.select(_db.outbox)
-            ..where((o) => (o.lastError.isNull() | o.id.isIn(refusedBefore)) & o.id.isNotIn(sent))
-            ..orderBy([(o) => OrderingTerm.desc(o.priority), (o) => OrderingTerm.asc(o.id)])
-            ..limit(batchSize))
-          .get();
+      final (batch, snapshot) = await _nextPushBatch(refusedBefore, sent);
       if (batch.isEmpty) return (pushed, rejected, held);
       sent.addAll(batch.map((entry) => entry.id));
 
       final records = [for (final entry in batch) jsonDecode(entry.payload) as Map<String, dynamic>];
-      final results = await _api.push(token, device, records);
+      final List<Map<String, dynamic>> results;
+      try {
+        results = await _api.push(token, device, records);
+      } on ApiException catch (error) {
+        // Joi rejects the whole envelope before any write. Let a corrected
+        // queue entry replace it. A transport failure may have committed.
+        if (error.statusCode == 400 && error.code == 'VALIDATION_ERROR') {
+          await _db.transaction(() async {
+            if (await _db.readState(_pushSnapshotKey) == snapshot) {
+              await _db.deleteState(_pushSnapshotKey);
+            }
+          });
+        }
+        rethrow;
+      }
 
       await _db.transaction(() async {
+        if (await _db.readState(_pushSnapshotKey) != snapshot) return;
         for (final (index, entry) in batch.indexed) {
           final result = results[index];
           if (result['status'] == 'rejected') {
@@ -121,9 +132,34 @@ class SyncService {
           pushed++;
           await _markAccepted(entry, result['serverSeq'] as int, result['version'] as int?);
         }
+        await _db.deleteState(_pushSnapshotKey);
       });
     }
   }
+
+  static const String _pushSnapshotKey = 'sync_in_flight_batch';
+
+  // Keep a copy of the sent mutations in the encrypted database. An edit can
+  // replace an outbox row while its previous mutation is awaiting a reply.
+  Future<(List<OutboxEntry>, String?)> _nextPushBatch(List<int> refusedBefore, Set<int> sent) =>
+      _db.transaction(() async {
+        final snapshot = await _db.readState(_pushSnapshotKey);
+        if (snapshot != null) {
+          final batch = (jsonDecode(snapshot) as List)
+              .map((row) => OutboxEntry.fromJson(row as Map<String, dynamic>))
+              .toList();
+          return (batch, snapshot);
+        }
+        final batch = await (_db.select(_db.outbox)
+              ..where((o) => (o.lastError.isNull() | o.id.isIn(refusedBefore)) & o.id.isNotIn(sent))
+              ..orderBy([(o) => OrderingTerm.desc(o.priority), (o) => OrderingTerm.asc(o.id)])
+              ..limit(batchSize))
+            .get();
+        if (batch.isEmpty) return (batch, null);
+        final encoded = jsonEncode(batch);
+        await _db.writeState(_pushSnapshotKey, encoded);
+        return (batch, encoded);
+      });
 
   // Removes the outbox entry and stores the server's sequence number and
   // version, unless the record was edited again while the push was in flight

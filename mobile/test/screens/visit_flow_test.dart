@@ -47,14 +47,22 @@ void main() {
 
   // Signed in, a woman registered, offline, on the home screen.
   // Month 8 by default: past the gestational age at which fetal movement is asked.
-  Future<void> pumpHome(WidgetTester tester, {int month = 8}) async {
+  Future<void> pumpHome(WidgetTester tester, {int month = 8, bool atMovementThreshold = false}) async {
     tester.view.physicalSize = const Size(1080, 4000);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
     await tester.runAsync(() async {
       await activateApp(services, server);
+      final rules = services.clinicalRules!;
+      final daysLeft = (rules.gestationalAge.fullTermWeeks - rules.fetalMovementFromWeeks) * 7;
       await services.patients.register(
-        RegistrationInput(name: 'Synthetic Woman', age: 26, pregnancyMonth: month, village: 'Dhok Syedan'),
+        RegistrationInput(
+          name: 'Synthetic Woman',
+          age: 26,
+          pregnancyMonth: month,
+          village: 'Dhok Syedan',
+          estimatedDeliveryDate: atMovementThreshold ? DateTime.now().add(Duration(days: daysLeft)) : null,
+        ),
         by: services.session.user!,
       );
     });
@@ -64,9 +72,9 @@ void main() {
   }
 
   // Then her file and the visit form.
-  Future<void> openVisitForm(WidgetTester tester, {AppLocalizations? l10n, int month = 8}) async {
+  Future<void> openVisitForm(WidgetTester tester, {AppLocalizations? l10n, int month = 8, bool atMovementThreshold = false}) async {
     l10n ??= ur;
-    await pumpHome(tester, month: month);
+    await pumpHome(tester, month: month, atMovementThreshold: atMovementThreshold);
     await tapAndWait(tester, find.text(l10n.homePatientsButton));
     await tapAndWait(tester, find.text('Synthetic Woman'));
     expect(find.byType(PatientFileScreen), findsOneWidget);
@@ -223,6 +231,16 @@ void main() {
 
     final [visit] = await savedVisits(tester);
     expect(visit.fetalMovement, isNull);
+  });
+
+  testWidgets('fetal movement is available at the exact threshold in the Clinical Rules Table', (tester) async {
+    await openVisitForm(tester, atMovementThreshold: true);
+    final weeks = services.clinicalRules!.fetalMovementFromWeeks;
+    expect(find.textContaining(ur.visitGestationWeeks(weeks)), findsOneWidget);
+    await fillVitals(tester, ur);
+    await next(tester, ur.visitNextSigns);
+    expect(find.text(ur.fetalMovementNotYet(weeks)), findsNothing);
+    expect(find.text(ur.fetalMovementReduced), findsOneWidget);
   });
 
   testWidgets('step 1 refuses missing and impossible values with the reason, and does not move on', (tester) async {

@@ -363,6 +363,10 @@ class AppDatabase extends _$AppDatabase {
   Future<void> writeState(String key, String value) =>
       into(syncState).insertOnConflictUpdate(SyncStateCompanion.insert(key: key, value: value));
 
+  Future<void> deleteState(String key) async {
+    await (delete(syncState)..where((s) => s.key.equals(key))).go();
+  }
+
   /// Queues [payload] for the next push, replacing an earlier version of the
   /// same record that has not been pushed yet. Call it in the same transaction
   /// as the write (roadmap, Offline sync).
@@ -387,12 +391,12 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  Future<String> _operationPayload(Map<String, Object?> payload) async {
-    final version = await versionOf(payload['table']! as String, payload['id']! as String);
+  Future<String> _operationPayload(Map<String, Object?> payload, {bool captureVersion = true}) async {
+    final version = captureVersion ? await versionOf(payload['table']! as String, payload['id']! as String) : null;
     return jsonEncode({
       ...payload,
       'operationId': const Uuid().v4(),
-      if (version != null) 'baseVersion': version,
+      'baseVersion': ?version,
     });
   }
 
@@ -407,7 +411,7 @@ class AppDatabase extends _$AppDatabase {
         for (final entry in legacy) {
           final payload = jsonDecode(entry.read<String>('payload')) as Map<String, dynamic>;
           await (update(outbox)..where((o) => o.id.equals(entry.read<int>('id')))).write(
-            OutboxCompanion(payload: Value(await _operationPayload(payload))),
+            OutboxCompanion(payload: Value(await _operationPayload(payload, captureVersion: false))),
           );
         }
       });

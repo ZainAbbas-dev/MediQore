@@ -223,7 +223,9 @@ class FakeSyncServer {
   bool _outdated(Map<String, dynamic> r) {
     final stored = records[r['id']];
     final base = r['baseVersion'] as int?;
-    return stored != null && base != null && base < (stored['version'] as int);
+    if (stored == null) return false;
+    if (base != null) return base < (stored['version'] as int);
+    return r['operationId'] != null && jsonEncode(r['data']) != jsonEncode(stored['data']);
   }
 
   Map<String, dynamic> _store(Map<String, dynamic> r) {

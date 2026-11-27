@@ -26,7 +26,7 @@ const SYNCED_TABLES = [
 const SERVER_ONLY_TABLES = [
   'districts', 'tehsils', 'union_councils', 'areas',
   'users', 'lhw_profiles', 'supervisor_areas', 'devices', 'activation_codes', 'refresh_tokens', 'role_permissions',
-  'audit_log', 'sync_conflicts', 'report_jobs', 'clinical_rules_versions',
+  'audit_log', 'sync_conflicts', 'sync_operation_receipts', 'report_jobs', 'clinical_rules_versions',
   'epi_schedule',
   'leave_and_campaign_weeks',
 ];
