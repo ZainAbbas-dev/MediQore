@@ -37,7 +37,10 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <form className="login-card" onSubmit={handleSubmit}>
-        <h1>MediQore</h1>
+        <h1 className="login-brand">
+          <img src="/icons/icon.svg" alt="" width="56" height="56" />
+          MediQore
+        </h1>
         <p className="muted">Supervisor and admin portal</p>
         <label htmlFor="username">Username</label>
         <input id="username" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required />

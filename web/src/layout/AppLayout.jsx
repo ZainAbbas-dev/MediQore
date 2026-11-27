@@ -43,9 +43,7 @@ export default function AppLayout() {
     <div className="layout">
       <aside className="sidebar">
         <div className="brand">
-          <span className="brand-mark" aria-hidden="true">
-            +
-          </span>
+          <img className="brand-mark" src="/icons/icon.svg" alt="" width="36" height="36" />
           MediQore
         </div>
         <nav aria-label="Main">
