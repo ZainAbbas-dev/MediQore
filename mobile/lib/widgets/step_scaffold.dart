@@ -22,6 +22,7 @@ class StepScaffold extends StatefulWidget {
     required this.onNext,
     this.onBack,
     this.statusBar,
+    this.footerNotice,
     this.busy = false,
   });
 
@@ -46,6 +47,9 @@ class StepScaffold extends StatefulWidget {
 
   /// The sync state, at the end of the header: a compact [LiveStatusBar].
   final Widget? statusBar;
+
+  /// Inline feedback above the buttons that keeps the form actionable.
+  final Widget? footerNotice;
 
   /// Disables both buttons, for example while saving.
   final bool busy;
@@ -117,6 +121,11 @@ class _StepScaffoldState extends State<StepScaffold> {
           Expanded(
             child: _stepChanged ? EnterTransition(key: ValueKey(step), child: child) : child,
           ),
+          if (widget.footerNotice case final notice?)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Semantics(liveRegion: true, child: notice),
+            ),
           SafeArea(
             top: false,
             child: Padding(

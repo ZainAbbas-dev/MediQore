@@ -140,7 +140,9 @@ void main() {
     expect(await savedVisits(tester), isEmpty);
 
     await tester.runAsync(() => services.db.customStatement('DROP TRIGGER reject_visit_outbox'));
-    await tapAndWait(tester, find.text(ur.visitSaveButton));
+    final retry = find.widgetWithText(FilledButton, ur.visitSaveButton).hitTestable();
+    expect(retry, findsOneWidget);
+    await tapAndWait(tester, retry);
     expect(await savedVisits(tester), hasLength(1));
     expect(find.byType(PatientFileScreen), findsOneWidget);
     expect(find.text(ur.visitSaveFailed), findsNothing);

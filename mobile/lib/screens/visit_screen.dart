@@ -120,6 +120,7 @@ class _VisitScreenState extends State<VisitScreen> {
 
   VisitRanges? _ranges;
   bool _saving = false;
+  bool _saveFailed = false;
 
   AppServices get _services => widget.services;
 
@@ -299,8 +300,10 @@ class _VisitScreenState extends State<VisitScreen> {
   }
 
   Future<void> _save() async {
-    ScaffoldMessenger.of(context).removeCurrentSnackBar();
-    setState(() => _saving = true);
+    setState(() {
+      _saving = true;
+      _saveFailed = false;
+    });
     // Blood sugar is stored in the unit it was recorded in (M3 FE-1).
     final sugar = _double(_sugar);
     final LocalVisit visit;
@@ -334,10 +337,7 @@ class _VisitScreenState extends State<VisitScreen> {
         visitedAt: widget.visitDate,
       );
     } on Exception {
-      if (mounted) {
-        final l10n = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.visitSaveFailed)));
-      }
+      if (mounted) setState(() => _saveFailed = true);
       return;
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -376,6 +376,9 @@ class _VisitScreenState extends State<VisitScreen> {
       stepName: name,
       statusBar: LiveStatusBar(services: _services, compact: true),
       busy: _saving,
+      footerNotice: _saveFailed && _step == _steps - 1
+          ? NoticeCard(text: l10n.visitSaveFailed, tone: NoticeTone.problem)
+          : null,
       onBack: _step == 0 ? null : () => setState(() => _step--),
       nextLabel: nextLabel,
       onNext: () => _next(l10n),
