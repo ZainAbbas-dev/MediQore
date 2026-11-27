@@ -174,11 +174,14 @@ function reportHtml(report, fontUrl) {
 // in Node's HTML and Chromium's DevTools and CSS buffers for every PDF.
 async function startFontServer() {
   const server = createServer((request, response) => {
+    if (request.method === 'GET' && request.url === '/') {
+      response.writeHead(200, { 'Content-Type': 'text/html' }).end('<!doctype html>');
+      return;
+    }
     if (request.method !== 'GET' || request.url !== '/report.ttf') {
       response.writeHead(404).end();
       return;
     }
-    response.setHeader('Access-Control-Allow-Origin', '*');
     response.setHeader('Content-Type', 'font/ttf');
     void pipeline(createReadStream(FONT), response).catch(() => {
       // A failed read or cancelled render closes the response through pipeline.
@@ -202,10 +205,13 @@ async function pdf(report) {
   const fontServer = await startFontServer();
   let browser;
   try {
-    const fontUrl = `http://127.0.0.1:${fontServer.address().port}/report.ttf`;
+    const origin = `http://127.0.0.1:${fontServer.address().port}`;
     browser = await launch({ executablePath, args });
     const page = await browser.newPage();
-    await page.setContent(reportHtml(report, fontUrl), { waitUntil: 'load' });
+    // An empty same-origin page keeps Chromium's local-network checks from
+    // treating the font request as cross-origin. Report data stays off HTTP.
+    await page.goto(origin, { waitUntil: 'domcontentloaded' });
+    await page.setContent(reportHtml(report, `${origin}/report.ttf`), { waitUntil: 'load' });
     const shaped = await page.evaluate(async () => {
       // eslint-disable-next-line no-undef -- Evaluated in Chromium.
       const fonts = await document.fonts.load('20pt "Jameel Noori Nastaleeq"', 'ماہانہ صحت رپورٹ');

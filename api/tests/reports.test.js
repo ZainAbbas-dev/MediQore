@@ -222,7 +222,8 @@ const chromeTest = process.env.CHROME_PATH ? it : it.skip;
 chromeTest('prints and embeds the Urdu font in a downloadable PDF', async () => {
   const { stdout: output } = await promisify(execFile)(process.execPath, ['-e',
     `require('./src/services/reports-render.service').renderReport('pdf', JSON.parse(process.argv[1]))
-      .then((file) => process.stdout.write(file))`, JSON.stringify(sample)], { encoding: 'buffer' });
+      .then((file) => process.stdout.write(file))`, JSON.stringify(sample)], { encoding: 'buffer' })
+    .catch((error) => { throw new Error(error.stderr?.toString() || error.message); });
   expect(output.subarray(0, 5).toString()).toBe('%PDF-');
   expect(output.toString('latin1')).toMatch(/Nastaleeq/i);
 }, 20000);
