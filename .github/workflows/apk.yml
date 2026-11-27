@@ -111,7 +111,7 @@ jobs:
           APK_SIGNER="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
           "$APK_SIGNER" verify --print-certs build/test-apk/*.apk > "$RUNNER_TEMP/mediqore-apk-cert.txt"
           EXPECTED_CERT="$(cat "$RUNNER_TEMP/mediqore-test-cert.sha256")"
-          ACTUAL_CERT="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/mediqore-apk-cert.txt" | tr '[:upper:]' '[:lower:]')"
+          ACTUAL_CERT="$(sed -n 's/^.*certificate SHA-256 digest: *//p' "$RUNNER_TEMP/mediqore-apk-cert.txt" | tr '[:upper:]' '[:lower:]')"
           if [ "$ACTUAL_CERT" != "$EXPECTED_CERT" ]; then
             echo "::error::APK signer does not match the retained key. Expected $EXPECTED_CERT, received $ACTUAL_CERT."
             exit 1
