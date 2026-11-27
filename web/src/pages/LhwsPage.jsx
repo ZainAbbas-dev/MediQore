@@ -113,6 +113,8 @@ export default function LhwsPage() {
   const [dialog, setDialog] = useState(null); // { type, lhw?, credentials? }
   // The activation code just issued, shown once in the banner until Done.
   const [shownCode, setShownCode] = useState(null);
+  const [codeBusy, setCodeBusy] = useState(false);
+  const [codeError, setCodeError] = useState(null);
 
   const load = useCallback(() => {
     const params = new URLSearchParams();
@@ -134,7 +136,10 @@ export default function LhwsPage() {
       .catch((err) => setError(err.message));
   }, [request]);
 
-  const close = () => setDialog(null);
+  const close = () => {
+    setCodeError(null);
+    setDialog(null);
+  };
 
   async function create(values) {
     const result = await request('/admin/lhws', { method: 'POST', body: withoutEmptyPhone(values) });
@@ -165,13 +170,22 @@ export default function LhwsPage() {
       load();
     });
 
-  const issueActivationCode = (lhw) =>
-    run(async () => {
+  async function issueActivationCode(lhw) {
+    if (codeBusy) return;
+    setCodeBusy(true);
+    setCodeError(null);
+    setError(null);
+    try {
       const result = await request(`/admin/lhws/${lhw.id}/activation-code`, { method: 'POST' });
       setShownCode({ lhw: result.lhw, code: result.activationCode, expiresAt: result.expiresAt });
       close();
       load();
-    });
+    } catch (err) {
+      setCodeError(err.message);
+    } finally {
+      setCodeBusy(false);
+    }
+  }
 
   const resetPassword = (lhw) =>
     run(async () => {
@@ -223,6 +237,7 @@ export default function LhwsPage() {
               Give it to {shownCode.lhw.fullName} with her LHW ID and password. It works once, on one phone, and expires on{' '}
               {formatTime(shownCode.expiresAt)} (48 hours). It is shown only now; MediQore keeps only its hash.
             </p>
+            <p>Phone login username <strong>{shownCode.lhw.username}</strong></p>
           </div>
           <div className="code">{shownCode.code}</div>
           <button type="button" className="secondary" onClick={() => setShownCode(null)}>
@@ -349,6 +364,7 @@ export default function LhwsPage() {
       )}
       {dialog?.type === 'new-code' && (
         <Dialog title={`New activation code for ${dialog.lhw.lhwCode}?`}>
+          <p>Phone login username <strong>{dialog.lhw.username}</strong></p>
           <p>
             {dialog.lhw.fullName} types it once on her phone, with her LHW ID and password, to activate it. It works on
             one phone, for 48 hours. A code issued earlier and not used stops working.
@@ -359,11 +375,13 @@ export default function LhwsPage() {
               old phone that were not synced cannot be recovered (LI-8).
             </p>
           )}
+          {codeBusy && <p role="status" className="muted">Waiting for the server to generate the code…</p>}
+          {codeError && <p role="alert" className="error">{codeError}</p>}
           <div className="actions">
-            <button type="button" onClick={() => issueActivationCode(dialog.lhw)}>
-              Generate code
+            <button type="button" disabled={codeBusy} onClick={() => issueActivationCode(dialog.lhw)}>
+              {codeBusy ? 'Generating…' : 'Generate code'}
             </button>
-            <button type="button" className="secondary" onClick={close}>
+            <button type="button" className="secondary" disabled={codeBusy} onClick={close}>
               Cancel
             </button>
           </div>

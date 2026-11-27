@@ -1,4 +1,6 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import LhwsPage from '../src/pages/LhwsPage';
+import { AuthContext } from '../src/auth/context';
 import { adminSession, mockApi, renderApp } from './helpers';
 
 jest.mock('../src/components/AreaMap', () => function AreaMapStub() {
@@ -200,4 +202,37 @@ describe('LHW accounts (M1 FE-1, FE-3)', () => {
     expect(await screen.findByText('No LHWs match.')).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([url]) => url.endsWith('/admin/lhws?status=inactive'))).toBe(true);
   });
+});
+
+it('keeps activation progress and errors visible and allows a successful retry', async () => {
+  const worker = lhw({ username: 'syn.lhw.001' });
+  let rejectIssuance;
+  const request = jest.fn((path) => {
+    if (path === '/admin/areas') return Promise.resolve({ areas });
+    if (path === '/admin/lhws') return Promise.resolve({ lhws: [worker] });
+    return new Promise((_resolve, reject) => { rejectIssuance = reject; });
+  });
+  render(<AuthContext.Provider value={{ request }}><LhwsPage /></AuthContext.Provider>);
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit LHW-00001' }));
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'New activation code for LHW-00001' }));
+  const dialog = screen.getByRole('dialog');
+  expect(within(dialog).getByText('syn.lhw.001')).toBeInTheDocument();
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Generate code' }));
+  const pending = within(dialog).getByRole('button', { name: 'Generating…' });
+  expect(pending).toBeDisabled();
+  expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeDisabled();
+  expect(within(dialog).getByRole('status')).toHaveTextContent('Waiting for the server');
+  fireEvent.click(pending);
+  expect(request.mock.calls.filter(([path]) => path.endsWith('/activation-code'))).toHaveLength(1);
+  await act(async () => rejectIssuance(new Error('Cannot reach the server')));
+  expect(within(dialog).getByRole('alert')).toHaveTextContent('Cannot reach the server');
+  expect(within(dialog).getByRole('button', { name: 'Generate code' })).toBeEnabled();
+  request.mockImplementation(async (path) => path.endsWith('/activation-code')
+    ? { activationCode: 'K7QM-4R2X', expiresAt: '2026-12-01T08:00:00Z', lhw: worker }
+    : { lhws: [worker] });
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Generate code' }));
+  const banner = await screen.findByRole('region', { name: 'Activation code for LHW-00001 (Area 0101-1)' });
+  expect(within(banner).getByText('K7QM-4R2X')).toBeInTheDocument();
+  expect(within(banner).getByText('syn.lhw.001')).toBeInTheDocument();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
