@@ -199,7 +199,9 @@ async function pdf(report) {
     args.push('--no-sandbox');
     // The Linux container gives each static, network-restricted report its own
     // short-lived browser. Avoid extra Chromium processes within that browser.
-    if (process.platform === 'linux') args.push('--no-zygote', '--single-process');
+    if (process.platform === 'linux' && process.env.NODE_ENV === 'production') {
+      args.push('--no-zygote', '--single-process');
+    }
   }
   const { launch } = await import('puppeteer-core');
   const fontServer = await startFontServer();
