@@ -124,7 +124,20 @@ jobs:
         run: |
           export CHROME_PATH="$(command -v google-chrome)"
           test -x "$CHROME_PATH"
-          npm run test --if-present
+          if ! npm run test --if-present -- --json --outputFile="$RUNNER_TEMP/api-test-results.json"; then
+            node - "$RUNNER_TEMP/api-test-results.json" <<'JS'
+          const { testResults = [] } = require(process.argv[2]);
+          for (const { assertionResults = [], message } of testResults) {
+            const failures = assertionResults.filter((test) => test.status === 'failed');
+            for (const failure of failures) {
+              const details = [failure.fullName, ...failure.failureMessages].join(' ').replace(/\s+/g, ' ');
+              console.log('::error::' + details.slice(0, 500));
+            }
+            if (!failures.length && message) console.log('::error::' + message.replace(/\s+/g, ' ').slice(0, 500));
+          }
+          JS
+            exit 1
+          fi
 
   db:
     name: db (PostgreSQL 15 migrations)
