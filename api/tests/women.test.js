@@ -137,9 +137,9 @@ describeDb('Module 2: registration records through sync, and the portal list', (
     it('accepts the deletion of a woman whatever happened to her household', async () => {
       const reg = registration();
       await pushA(reg.all);
-      await pushA([{ ...reg.household, deleted: true }]);
+      await pushA([{ ...reg.household, baseVersion: 1, deleted: true }]);
 
-      const res = await pushA([{ ...reg.woman, deleted: true }]);
+      const res = await pushA([{ ...reg.woman, baseVersion: 1, deleted: true }]);
 
       expect(statuses(res)).toEqual(['updated']);
     });

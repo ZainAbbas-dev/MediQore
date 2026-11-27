@@ -87,27 +87,33 @@ async function insertRecord(client, record, { areaId, userId, deviceId, details 
 // Name and husband's name compared without case or extra spaces.
 const NORMALISED = (column) => `lower(regexp_replace(trim(coalesce(${column}, '')), '\\s+', ' ', 'g'))`;
 
-// Lists a conflict for the supervisor's Conflict Review page (M3 FE-2, M10 FE-3)
-// and audits it. Each modern operation keeps its own candidate. Legacy
-// requests still share a pending conflict per record and reason.
+// Lists and audits a separate candidate for each mutation. For older clients
+// without operation IDs, identical pending content from one phone is a retry.
 async function listConflict(client, ctx, { table, record, areaId, existingId, reason, baseVersion = null, existingVersion = null }) {
+  const payload = JSON.stringify(record);
+  if (!record.operationId) {
+    const { rows: [pending] } = await client.query(
+      `SELECT id FROM sync_conflicts
+       WHERE device_id = $1 AND table_name = $2 AND incoming_record_id = $3 AND reason = $4
+         AND status = 'pending' AND incoming_payload = $5::jsonb
+       ORDER BY created_at DESC LIMIT 1`,
+      [ctx.deviceId, table, record.id, reason, payload],
+    );
+    if (pending) return pending.id;
+  }
   const { rows: [conflict] } = await client.query(
     `INSERT INTO sync_conflicts
        (area_id, table_name, incoming_record_id, existing_record_id, incoming_payload, reason, submitted_by, device_id,
         base_version, existing_version, operation_id)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-     ON CONFLICT (table_name, incoming_record_id, reason) WHERE status = 'pending' AND operation_id IS NULL
-     DO UPDATE SET incoming_payload = EXCLUDED.incoming_payload, base_version = EXCLUDED.base_version,
-                   existing_version = EXCLUDED.existing_version
-     RETURNING id, (xmax = 0) AS inserted`,
-    [areaId, table, record.id, existingId, JSON.stringify(record), reason, ctx.userId, ctx.deviceId, baseVersion, existingVersion, record.operationId || null],
+     RETURNING id`,
+    [areaId, table, record.id, existingId, payload, reason, ctx.userId, ctx.deviceId,
+      baseVersion, existingVersion, record.operationId || crypto.randomUUID()],
   );
-  if (conflict.inserted) {
-    await writeAudit(client, {
-      userId: ctx.userId, deviceId: ctx.deviceId, action: 'sync_conflict', entityType: table, entityId: record.id,
-      details: { conflictId: conflict.id, existingRecordId: existingId, reason, baseVersion, existingVersion },
-    });
-  }
+  await writeAudit(client, {
+    userId: ctx.userId, deviceId: ctx.deviceId, action: 'sync_conflict', entityType: table, entityId: record.id,
+    details: { conflictId: conflict.id, existingRecordId: existingId, reason, baseVersion, existingVersion },
+  });
   return conflict.id;
 }
 
@@ -151,7 +157,7 @@ async function applyRecord(client, ctx, record) {
   );
 
   if (!existing) {
-    if (record.operationId && record.baseVersion !== undefined) {
+    if (record.baseVersion !== undefined) {
       return { ...result, status: 'rejected', reason: 'MISSING_RECORD' };
     }
     const areaId = areaForNewRecord(ctx, record);
@@ -170,7 +176,7 @@ async function applyRecord(client, ctx, record) {
     return { ...result, status: 'rejected', reason: 'OUT_OF_AREA' };
   }
 
-  if (record.operationId && record.baseVersion > existing.version) {
+  if (record.baseVersion > existing.version) {
     return { ...result, status: 'rejected', reason: 'VERSION_AHEAD' };
   }
 
@@ -183,9 +189,7 @@ async function applyRecord(client, ctx, record) {
   // M3 FE-2: an edit made on an older version than the server's is not applied.
   // It waits on the Conflict Review page, and the phone keeps it held until the
   // supervisor's decision comes back by pull.
-  const stale = record.baseVersion !== undefined && record.baseVersion < existing.version;
-  const missingBase = record.operationId && record.baseVersion === undefined;
-  if (stale || missingBase) {
+  if (record.baseVersion !== existing.version) {
     const conflictId = await listConflict(client, ctx, {
       table: record.table, record, areaId: existing.area_id, existingId: existing.id, reason: 'outdated_edit',
       baseVersion: record.baseVersion, existingVersion: existing.version,

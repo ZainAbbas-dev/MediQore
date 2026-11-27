@@ -60,7 +60,7 @@ describeDb('sync after an area reassignment (M1 FE-3)', () => {
     expect((await reassign(ids.areaB)).status).toBe(200);
 
     const late = household(ids.areaA, 'Made offline before the move');
-    const edit = { ...before, data: { village: 'Edited offline' } };
+    const edit = { ...before, baseVersion: 1, data: { village: 'Edited offline' } };
     const fresh = household(ids.areaB, 'New area village');
     const res = await push([late, edit, fresh]);
 

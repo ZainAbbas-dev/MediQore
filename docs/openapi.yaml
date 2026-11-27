@@ -281,7 +281,7 @@ paths:
         Reusing a committed operation ID for different content is rejected (`OPERATION_ID_REUSED`).
         Requests without an operation ID retain legacy identical-content replay behaviour.
 
-        Every record carries a version. A new operation editing an existing record sends `baseVersion`,
+        Every record carries a version. A request editing an existing record sends `baseVersion`,
         the version it was made on. A stale edit or one with an unknown base is held as its own
         Conflict Review candidate. A future base (`VERSION_AHEAD`) or an edit whose record has not
         arrived (`MISSING_RECORD`) can be retried after the preceding operation. A likely duplicate

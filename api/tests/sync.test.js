@@ -104,6 +104,20 @@ describeDb('sync', () => {
       expect(row).toEqual({ village: 'New village', version: 3 });
     });
 
+    it('preserves distinct legacy edits when their original base is unavailable', async () => {
+      const record = household();
+      await push(lhwA, deviceA, [record]);
+      const edits = ['Offline edit one', 'Offline edit two'].map((village) => ({ ...record, data: { ...record.data, village } }));
+      const first = (await push(lhwA, deviceA, [edits[0]])).body.results[0];
+      const next = (await push(lhwA, deviceA, [edits[1]])).body.results[0];
+      expect(first.status).toBe('conflict');
+      expect(next.status).toBe('conflict');
+      expect(next.conflictId).not.toBe(first.conflictId);
+      expect((await push(lhwA, deviceA, [edits[0]])).body.results[0]).toEqual(first);
+      const { rows: [stored] } = await query('SELECT village, version FROM households WHERE id = $1', [record.id]);
+      expect(stored).toEqual({ village: record.data.village, version: 1 });
+    });
+
     it('retains separate stale candidates for one record and identifies held edits on the submitting phone', async () => {
       const record = household({ operationId: randomUUID() });
       await push(lhwA, deviceA, [record]);
@@ -131,7 +145,7 @@ describeDb('sync', () => {
       const record = household();
       const first = await push(lhwA, deviceA, [record]);
 
-      const edited = { ...record, data: { ...record.data, village: 'Moved Village' } };
+      const edited = { ...record, baseVersion: 1, data: { ...record.data, village: 'Moved Village' } };
       const res = await push(lhwA, deviceA, [edited]);
 
       const [result] = res.body.results;
@@ -146,7 +160,7 @@ describeDb('sync', () => {
       const record = household();
       await push(lhwA, deviceA, [record]);
 
-      const res = await push(lhwA, deviceA, [{ ...record, deleted: true }]);
+      const res = await push(lhwA, deviceA, [{ ...record, baseVersion: 1, deleted: true }]);
 
       expect(res.body.results[0].status).toBe('updated');
       const { rows: [row] } = await query('SELECT deleted_at FROM households WHERE id = $1', [record.id]);
@@ -241,7 +255,7 @@ describeDb('sync', () => {
       const { body: before } = await pull(lhwA);
       const record = household();
       await push(lhwA, deviceA, [record]);
-      await push(lhwA, deviceA, [{ ...record, deleted: true }]);
+      await push(lhwA, deviceA, [{ ...record, baseVersion: 1, deleted: true }]);
 
       const res = await pull(lhwA, `?since=${before.nextSince}`);
 
